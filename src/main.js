@@ -4,6 +4,8 @@ import { parseOrders, rowsToOrderText } from './core/parse.js';
 import { solve } from './core/solve.js';
 import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, mergeBy, toCsv } from './io/importTable.js';
 import { renderKpis, renderPriorities, renderList, renderDetail, requestText } from './ui/orders.js';
+import { requireLogin, loadSettings, saveSetting, signOut, changePassword, listProfiles, setRole } from './auth.js';
+import { esc } from './core/util.js';
 import { renderCatalog, renderVehicles, renderCombos, renderRules, importReport } from './ui/settings.js';
 
 const $ = s => document.querySelector(s);
@@ -12,19 +14,41 @@ function load(key, def) { try { const v = localStorage.getItem(key); return v ? 
 function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* storage full or blocked */ } }
 
 // the prototype stored the catalog under this key; take it over once
-const oldCat = load('palcalc.catalog.v3', null);
-const savedCat = load(KEYS.catalog, null) || (Array.isArray(oldCat) ? oldCat.map(a => Object.assign({ pack: 'paleta' }, a)) : null);
-const savedVeh = load(KEYS.vehicles, null);
-const savedCombos = load(KEYS.combos, null);
+// sign in first; catalog, vehicles, combos and rules are shared for everybody in Supabase
+const me = await requireLogin();
+const isAdmin = me.role === 'admin';
+let shared = {};
+try { shared = await loadSettings(); } catch (e) { alert(e.message); }
 const state = {
-  catalog: Array.isArray(savedCat) && savedCat.length ? savedCat : clone(DEFAULT_CATALOG),
-  vehicles: Array.isArray(savedVeh) && savedVeh.length ? savedVeh : clone(DEFAULT_VEHICLES),
-  combos: Array.isArray(savedCombos) ? savedCombos : clone(DEFAULT_COMBOS),
-  rules: Object.assign(clone(DEFAULT_RULES), load(KEYS.rules, {})),
+  catalog: Array.isArray(shared.catalog) && shared.catalog.length ? shared.catalog : clone(DEFAULT_CATALOG),
+  vehicles: Array.isArray(shared.vehicles) && shared.vehicles.length ? shared.vehicles : clone(DEFAULT_VEHICLES),
+  combos: Array.isArray(shared.combos) ? shared.combos : clone(DEFAULT_COMBOS),
+  rules: Object.assign(clone(DEFAULT_RULES), shared.rules || {}),
   csv: load(KEYS.csv, SAMPLE),
   orders: new Map(), results: new Map(), forced: new Map(), sel: null, prioHidden: false,
   catView: { q: '', page: 0 }
 };
+
+// first admin login: move what this browser had saved locally into the shared database
+if (isAdmin) {
+  [['catalog', 'itab.catalog.v1'], ['vehicles', 'itab.vehicles.v1'], ['combos', 'itab.combos.v1'], ['rules', 'itab.rules.v1']].forEach(([name, key]) => {
+    if (shared[name] != null) return;
+    const local = load(key, null);
+    if (local != null && !(Array.isArray(local) && !local.length)) state[name] = name === 'rules' ? Object.assign(clone(DEFAULT_RULES), local) : local;
+    setTimeout(() => persist(name), 0);
+  });
+}
+
+// admin edits go to the shared database; plain users cannot write (RLS)
+function persist(name) {
+  if (!isAdmin) return;
+  const el = $('#saveState');
+  el.textContent = 'Ukládám…'; el.className = 'save-state';
+  saveSetting(name, state[name], me.user.id, err => {
+    el.textContent = err ? 'Neuloženo: ' + err : 'Uloženo pro všechny';
+    el.className = 'save-state ' + (err ? 'bad' : 'ok');
+  });
+}
 
 // ---------- calculation ----------
 function ctx(id) {
@@ -55,7 +79,7 @@ let timer = null;
 function later() { clearTimeout(timer); timer = setTimeout(recalc, 250); }
 
 // ---------- navigation ----------
-const VIEWS = ['orders', 'catalog', 'combos', 'vehicles', 'rules'];
+const VIEWS = ['orders', 'catalog', 'combos', 'vehicles', 'rules', 'users'];
 function showView(v) {
   VIEWS.forEach(x => {
     const on = x === v;
@@ -131,36 +155,36 @@ function cellValue(t) {
   if (t.type === 'number') return toNum(t.value) || 0;
   return t.value;
 }
-function bindTable(body, list, key, rerender) {
+function bindTable(body, list, name, rerender) {
   body.addEventListener('input', e => {
     const t = e.target, i = t.getAttribute('data-i'), f = t.getAttribute('data-f');
     if (i == null || t.type === 'checkbox' || t.tagName === 'SELECT') return;
-    list()[i][f] = cellValue(t); save(key, list()); later();
+    list()[i][f] = cellValue(t); persist(name); later();
   });
   body.addEventListener('change', e => {
     const t = e.target, i = t.getAttribute('data-i'), f = t.getAttribute('data-f');
     if (i == null || !(t.type === 'checkbox' || t.tagName === 'SELECT')) return;
-    list()[i][f] = cellValue(t); save(key, list()); later();
+    list()[i][f] = cellValue(t); persist(name); later();
   });
   body.addEventListener('click', e => {
     const i = e.target.getAttribute('data-del'); if (i == null) return;
-    list().splice(Number(i), 1); save(key, list()); rerender(); recalc();
+    list().splice(Number(i), 1); persist(name); rerender(); recalc();
   });
 }
 
 // ---------- catalog ----------
 const drawCatalog = () => renderCatalog(state.catalog, state.catView);
-bindTable($('#catBody'), () => state.catalog, KEYS.catalog, drawCatalog);
+bindTable($('#catBody'), () => state.catalog, 'catalog', drawCatalog);
 $('#catSearch').addEventListener('input', e => { state.catView.q = e.target.value; state.catView.page = 0; drawCatalog(); });
 $('#catPager').addEventListener('click', e => { const p = e.target.getAttribute('data-page'); if (p == null) return; state.catView.page = Number(p); drawCatalog(); });
 $('#catAdd').addEventListener('click', () => {
   state.catalog.unshift({ code: 'NOVY-' + (state.catalog.length + 1), name: '', pack: 'paleta', pl: 1200, pw: 800, per: 1, kg: 0, rot: true });
   state.catView = { q: '', page: 0 }; $('#catSearch').value = '';
-  save(KEYS.catalog, state.catalog); drawCatalog(); recalc();
+  persist('catalog'); drawCatalog(); recalc();
 });
 $('#catReset').addEventListener('click', () => {
   if (!confirm('Vrátit číselník na ukázková data? Nahrané artikly se smažou.')) return;
-  state.catalog = clone(DEFAULT_CATALOG); save(KEYS.catalog, state.catalog); drawCatalog(); recalc(); $('#catReport').innerHTML = '';
+  state.catalog = clone(DEFAULT_CATALOG); persist('catalog'); drawCatalog(); recalc(); $('#catReport').innerHTML = '';
 });
 $('#catExport').addEventListener('click', () => download('ciselnik-artiklu.csv',
   [['artikl', 'nazev', 'baleni', 'delka_mm', 'sirka_mm', 'ks_na_palete', 'vaha_kusu_kg', 'lze_otacet']]
@@ -172,7 +196,7 @@ $('#catFile').addEventListener('change', async e => {
     let merged = null;
     if (res.items.length) {
       merged = replace ? { list: res.items } : mergeBy(state.catalog, res.items, a => String(a.code).trim().toLowerCase());
-      state.catalog = merged.list; save(KEYS.catalog, state.catalog); drawCatalog(); recalc();
+      state.catalog = merged.list; persist('catalog'); drawCatalog(); recalc();
     }
     importReport($('#catReport'), res, merged, replace);
   } catch (err) { $('#catReport').innerHTML = '<p class="problems">' + err.message + '</p>'; }
@@ -180,14 +204,14 @@ $('#catFile').addEventListener('change', async e => {
 
 // ---------- vehicles ----------
 const drawVehicles = () => renderVehicles(state.vehicles);
-bindTable($('#vehBody'), () => state.vehicles, KEYS.vehicles, drawVehicles);
+bindTable($('#vehBody'), () => state.vehicles, 'vehicles', drawVehicles);
 $('#vehAdd').addEventListener('click', () => {
   state.vehicles.push({ name: 'Nové vozidlo', type: 'jine', L: 4, W: 2, kg: 1000, eup: 0, lift: false, cost: 0.5 });
-  save(KEYS.vehicles, state.vehicles); drawVehicles(); recalc();
+  persist('vehicles'); drawVehicles(); recalc();
 });
 $('#vehReset').addEventListener('click', () => {
   if (!confirm('Vrátit vozidla na výchozí hodnoty?')) return;
-  state.vehicles = clone(DEFAULT_VEHICLES); save(KEYS.vehicles, state.vehicles); drawVehicles(); recalc(); $('#vehReport').innerHTML = '';
+  state.vehicles = clone(DEFAULT_VEHICLES); persist('vehicles'); drawVehicles(); recalc(); $('#vehReport').innerHTML = '';
 });
 $('#vehExport').addEventListener('click', () => download('vozidla.csv',
   [['nazev', 'typ', 'delka_m', 'sirka_m', 'nosnost_kg', 'max_palet', 'celo', 'cena']]
@@ -199,7 +223,7 @@ $('#vehFile').addEventListener('change', async e => {
     let merged = null;
     if (res.items.length) {
       merged = replace ? { list: res.items } : mergeBy(state.vehicles, res.items, v => String(v.name).trim().toLowerCase());
-      state.vehicles = merged.list; save(KEYS.vehicles, state.vehicles); drawVehicles(); recalc();
+      state.vehicles = merged.list; persist('vehicles'); drawVehicles(); recalc();
     }
     importReport($('#vehReport'), res, merged, replace);
   } catch (err) { $('#vehReport').innerHTML = '<p class="problems">' + err.message + '</p>'; }
@@ -207,7 +231,7 @@ $('#vehFile').addEventListener('change', async e => {
 
 // ---------- combos ----------
 const drawCombos = () => renderCombos(state.combos, state.catalog);
-bindTable($('#comboBody'), () => state.combos, KEYS.combos, drawCombos);
+bindTable($('#comboBody'), () => state.combos, 'combos', drawCombos);
 $('#comboBody').addEventListener('change', e => { if (e.target.getAttribute('data-f') === 'mode' || e.target.getAttribute('data-f') === 'on') drawCombos(); });
 $('#comboBody').addEventListener('click', e => {
   const up = e.target.getAttribute('data-up'), down = e.target.getAttribute('data-down');
@@ -215,11 +239,11 @@ $('#comboBody').addEventListener('click', e => {
   const i = Number(up != null ? up : down), j = up != null ? i - 1 : i + 1;
   if (j < 0 || j >= state.combos.length) return;
   [state.combos[i], state.combos[j]] = [state.combos[j], state.combos[i]];
-  save(KEYS.combos, state.combos); drawCombos(); recalc();
+  persist('combos'); drawCombos(); recalc();
 });
 $('#comboAdd').addEventListener('click', () => {
   state.combos.push({ on: true, code: '', withCode: '', min: 0, max: 0, mode: 'host', host: '', pl: 0, pw: 0, per: 0, note: '' });
-  save(KEYS.combos, state.combos); drawCombos();
+  persist('combos'); drawCombos();
 });
 const MODE_NAMES = { host: 'na palete artiklu', pallet: 'na jine palete', parcel: 'jako balik' };
 $('#comboExport').addEventListener('click', () => download('kombinace.csv',
@@ -232,7 +256,7 @@ $('#comboFile').addEventListener('change', async e => {
     let merged = null;
     if (res.items.length) {
       merged = replace ? { list: res.items } : { list: state.combos.concat(res.items), added: res.items.length, updated: 0 };
-      state.combos = merged.list; save(KEYS.combos, state.combos); drawCombos(); recalc();
+      state.combos = merged.list; persist('combos'); drawCombos(); recalc();
     }
     importReport($('#comboReport'), res, merged, replace);
   } catch (err) { $('#comboReport').innerHTML = '<p class="problems">' + err.message + '</p>'; }
@@ -242,7 +266,7 @@ $('#comboFile').addEventListener('change', async e => {
 $('#rulesGrid').addEventListener('input', e => {
   const k = e.target.getAttribute('data-r'); if (!k) return;
   const v = toNum(e.target.value); if (!(v > 0)) return;
-  state.rules[k] = v; save(KEYS.rules, state.rules); later();
+  state.rules[k] = v; persist('rules'); later();
 });
 
 // ---------- theme ----------
@@ -262,6 +286,39 @@ document.querySelector('.themes').addEventListener('click', e => {
   applyTheme(themePref);
 });
 darkMq.addEventListener('change', () => { if (themePref === 'system') applyTheme('system'); });
+
+// ---------- account and roles ----------
+$('#who').textContent = (me.user.email || '') + (isAdmin ? ' · admin' : '');
+$('#logoutBtn').addEventListener('click', signOut);
+$('#passBtn').addEventListener('click', async () => {
+  const p = prompt('Nové heslo (aspoň 8 znaků):');
+  if (!p) return;
+  if (p.length < 8) { alert('Heslo musí mít aspoň 8 znaků.'); return; }
+  const err = await changePassword(p);
+  alert(err ? 'Heslo se nezměnilo: ' + err : 'Heslo změněno.');
+});
+if (!isAdmin) {
+  ['catalog', 'combos', 'vehicles', 'rules', 'users'].forEach(v => { $('#tab-' + v).hidden = true; });
+}
+async function drawUsers() {
+  const body = $('#userBody');
+  try {
+    const list = await listProfiles();
+    body.innerHTML = list.map(u => '<tr><td>' + esc(u.email || '') + '</td><td><select data-uid="' + u.id + '"' + (u.id === me.user.id ? ' disabled title="Svou roli změnit nelze"' : '') + '>' +
+      '<option value="user"' + (u.role === 'user' ? ' selected' : '') + '>uživatel (jen výpočet)</option>' +
+      '<option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>administrátor (vše)</option></select></td><td>' +
+      new Date(u.created_at).toLocaleDateString('cs-CZ') + '</td></tr>').join('');
+  } catch (e) { body.innerHTML = '<tr><td colspan="3" class="problems">' + esc(e.message) + '</td></tr>'; }
+}
+if (isAdmin) {
+  $('#tab-users').addEventListener('click', drawUsers);
+  $('#userBody').addEventListener('change', async e => {
+    const id = e.target.getAttribute('data-uid'); if (!id) return;
+    const err = await setRole(id, e.target.value);
+    $('#userReport').innerHTML = err ? '<p class="problems">' + esc(err) + '</p>' : '<p class="ok-line">Role uložena.</p>';
+    if (err) drawUsers();
+  });
+}
 
 // ---------- start ----------
 const td = new Date().toLocaleDateString('cs-CZ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });

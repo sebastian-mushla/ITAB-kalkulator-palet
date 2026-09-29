@@ -19,8 +19,14 @@
 - Папка проекта: `~/ITAB калькулятор палет`. Прототип-источник: `~/Desktop/expedice 2/index.html` (больше не развивается).
 - Без сборки: `index.html` + нативные ES-модули в `src/`. Node на Маке нет, поэтому без Vite/npm-зависимостей. Excel читается через SheetJS с cdnjs (подгружается только при загрузке .xlsx).
 - Запуск: `python3 -m http.server 5173` (или preview «itab» из `.claude/launch.json`). Тесты: `/tests/` в браузере; с Node — `node --test tests/`.
-- Данные в `localStorage` (ключи `itab.*`). Деплой: GitHub `sebastian-mushla/ITAB-kalkulator-palet` → Vercel (team `seb-team2`, preset Other, без build), прод: https://itab-kalkulator-palet.vercel.app. `git push` в `main` = автодеплой; доступ к GitHub сохранён в Связке ключей (fine-grained токен только на этот репо).
+- Общие данные в Supabase (см. ниже), в `localStorage` только текст заказов и тема. Деплой: GitHub `sebastian-mushla/ITAB-kalkulator-palet` → Vercel (team `seb-team2`, preset Other, без build), прод: https://itab-kalkulator-palet.vercel.app. `git push` в `main` = автодеплой; доступ к GitHub сохранён в Связке ключей (fine-grained токен только на этот репо).
 - Пользователь на Mac (M3, 16 ГБ), лимиты бесплатной/Pro-подписки, поэтому **расчёт делает обычный код, не LLM**.
+
+## Вход и роли (Supabase)
+- Проект Supabase `itab-kalkulator-palet` (ref `nxzprxxqconnodigvrjp`, Frankfurt, org ITAB, Free). Схема и RLS: `supabase/schema.sql`. Клиент: `src/auth.js` (supabase-js с jsDelivr, publishable key в коде — это нормально, защита через RLS).
+- Самостоятельная регистрация выключена. Новых людей админ добавляет в Supabase → Authentication → Users → Add user (Auto Confirm). Триггер создаёт `profiles` с ролью `user`.
+- `admin`: все вкладки + «Uživatelé» (смена ролей). `user`: только «Přehled». Справочник, машины, комбинации и правила хранятся в таблице `settings` (jsonb по ключам), читать могут все вошедшие, писать только admin. Заказы (текст импорта) по-прежнему в localStorage.
+- При первом входе админа локальные данные браузера (ключи `itab.*`) переносятся в базу, если там пусто.
 
 ## Структура
 - `src/core/`: `defaults.js` (справочник, машины, правила), `parse.js` (заказы), `pallets.js` (палеты, посылки, проверки сборной службы), `packing.js` (MaxRects по списку машин), `solve.js` (чистая функция `solve(order, {catalog, vehicles, rules, forced})`).
@@ -97,7 +103,7 @@ r10 V-POL police 156
 
 ## Что нужно сделать дальше (по порядку)
 1. ~~Модули, тесты~~, ~~импорт справочника CSV/Excel~~, ~~настраиваемые машины~~, ~~посылки~~ — сделано.
-3. Общая база для всех диспетчеров: Supabase (справочник, машины, правила, история, вход по логину).
+3. ~~Supabase: вход, роли, общий справочник~~ — сделано. Дальше: история расчётов.
 4. Составные артикулы и правила «проект: что на какой паллете».
 5. Telegram-бот и/или импорт из почты (Gmail).
 6. Сверить блок «параметры груза» с полями формы Ringil (ждём скриншот). Не выдумывать поля Ringil.
