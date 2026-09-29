@@ -79,3 +79,10 @@ export async function setRole(id, role) {
   const { error } = await sb.from('profiles').update({ role }).eq('id', id);
   return error ? error.message : null;
 }
+
+// create / delete users and set passwords: server side, Edge Function "admin-users"
+export async function adminUsers(body) {
+  const { error } = await sb.functions.invoke('admin-users', { body });
+  if (!error) return null;
+  try { const j = await error.context.json(); return j.error || error.message; } catch (e) { return error.message; }
+}

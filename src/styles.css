@@ -250,3 +250,7 @@ body{background:
 .save-state.ok{color:var(--green)}.save-state.bad{color:var(--red)}
 .tab[hidden]{display:none!important}
 @media (max-width:900px){.account .muted,.account #passBtn,.save-state{display:none}}
+.useradd{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:end;margin:4px 0 8px}
+.useradd label{display:flex;flex-direction:column;gap:6px;font-weight:500;font-size:13.5px}
+.useradd input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--soft);color:var(--ink)}
+.useradd .btn{padding:9px 16px}

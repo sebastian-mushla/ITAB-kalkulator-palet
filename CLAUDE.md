@@ -24,7 +24,7 @@
 
 ## Вход и роли (Supabase)
 - Проект Supabase `itab-kalkulator-palet` (ref `nxzprxxqconnodigvrjp`, Frankfurt, org ITAB, Free). Схема и RLS: `supabase/schema.sql`. Клиент: `src/auth.js` (supabase-js с jsDelivr, publishable key в коде — это нормально, защита через RLS).
-- Самостоятельная регистрация выключена. Новых людей админ добавляет в Supabase → Authentication → Users → Add user (Auto Confirm). Триггер создаёт `profiles` с ролью `user`.
+- Самостоятельная регистрация выключена. Админ управляет людьми прямо на сайте, вкладка «Uživatelé»: добавить (e-mail, пароль, роль), сменить пароль, удалить, сменить роль. Создание/удаление/пароль идут через Edge Function `admin-users` (`supabase/functions/admin-users/index.ts`, задеплоена через редактор в панели Supabase; проверяет, что вызывающий — admin; service key только на сервере). Триггер создаёт `profiles` с ролью `user`.
 - `admin`: все вкладки + «Uživatelé» (смена ролей). `user`: только «Přehled». Справочник, машины, комбинации и правила хранятся в таблице `settings` (jsonb по ключам), читать могут все вошедшие, писать только admin. Заказы (текст импорта) по-прежнему в localStorage.
 - При первом входе админа локальные данные браузера (ключи `itab.*`) переносятся в базу, если там пусто.
 

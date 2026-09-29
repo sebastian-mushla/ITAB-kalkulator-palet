@@ -4,7 +4,7 @@ import { parseOrders, rowsToOrderText } from './core/parse.js';
 import { solve } from './core/solve.js';
 import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, mergeBy, toCsv } from './io/importTable.js';
 import { renderKpis, renderPriorities, renderList, renderDetail, requestText } from './ui/orders.js';
-import { requireLogin, loadSettings, saveSetting, signOut, changePassword, listProfiles, setRole } from './auth.js';
+import { requireLogin, loadSettings, saveSetting, signOut, changePassword, listProfiles, setRole, adminUsers } from './auth.js';
 import { esc } from './core/util.js';
 import { renderCatalog, renderVehicles, renderCombos, renderRules, importReport } from './ui/settings.js';
 
@@ -307,11 +307,37 @@ async function drawUsers() {
     body.innerHTML = list.map(u => '<tr><td>' + esc(u.email || '') + '</td><td><select data-uid="' + u.id + '"' + (u.id === me.user.id ? ' disabled title="Svou roli změnit nelze"' : '') + '>' +
       '<option value="user"' + (u.role === 'user' ? ' selected' : '') + '>uživatel (jen výpočet)</option>' +
       '<option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>administrátor (vše)</option></select></td><td>' +
-      new Date(u.created_at).toLocaleDateString('cs-CZ') + '</td></tr>').join('');
-  } catch (e) { body.innerHTML = '<tr><td colspan="3" class="problems">' + esc(e.message) + '</td></tr>'; }
+      new Date(u.created_at).toLocaleDateString('cs-CZ') + '</td><td class="nowrap">' +
+      '<button class="btn small" data-pass="' + u.id + '">Nové heslo</button> ' +
+      (u.id === me.user.id ? '' : '<button class="btn small" data-deluser="' + u.id + '" data-email="' + esc(u.email || '') + '">Smazat</button>') + '</td></tr>').join('');
+  } catch (e) { body.innerHTML = '<tr><td colspan="4" class="problems">' + esc(e.message) + '</td></tr>'; }
 }
 if (isAdmin) {
   $('#tab-users').addEventListener('click', drawUsers);
+  const report = (err, ok) => { $('#userReport').innerHTML = err ? '<p class="problems">' + esc(err) + '</p>' : '<p class="ok-line">' + ok + '</p>'; };
+  $('#userAdd').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = $('#uaBtn'); btn.disabled = true;
+    const email = $('#uaEmail').value.trim();
+    const err = await adminUsers({ action: 'create', email, password: $('#uaPass').value, role: $('#uaRole').value });
+    btn.disabled = false;
+    report(err, 'Uživatel ' + esc(email) + ' přidán. Může se hned přihlásit.');
+    if (!err) { $('#userAdd').reset(); drawUsers(); }
+  });
+  $('#userBody').addEventListener('click', async e => {
+    const pid = e.target.getAttribute('data-pass'), did = e.target.getAttribute('data-deluser');
+    if (pid) {
+      const p = prompt('Nové heslo pro uživatele (aspoň 8 znaků):');
+      if (!p) return;
+      report(await adminUsers({ action: 'password', id: pid, password: p }), 'Heslo změněno.');
+    }
+    if (did) {
+      if (!confirm('Smazat uživatele ' + e.target.getAttribute('data-email') + '? Nepůjde to vrátit.')) return;
+      const err = await adminUsers({ action: 'delete', id: did });
+      report(err, 'Uživatel smazán.');
+      if (!err) drawUsers();
+    }
+  });
   $('#userBody').addEventListener('change', async e => {
     const id = e.target.getAttribute('data-uid'); if (!id) return;
     const err = await setRole(id, e.target.value);

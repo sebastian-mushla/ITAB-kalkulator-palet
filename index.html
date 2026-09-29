@@ -147,9 +147,15 @@ document.documentElement.setAttribute('data-theme',t);})();
       <section id="view-users" hidden>
         <div class="pagehead"><div><h1>Uživatelé</h1><p>Kdo smí co: administrátor vidí a mění vše, uživatel jen počítá zakázky na Přehledu.</p></div></div>
         <div class="card cat">
-          <p class="hint">Nového člověka přidáte v Supabase: <a href="https://supabase.com/dashboard/project/nxzprxxqconnodigvrjp/auth/users" target="_blank" rel="noopener">Authentication → Users → Add user → Create new user</a> (e-mail, dočasné heslo, zaškrtnout „Auto Confirm User“). Tady se pak objeví jako uživatel a můžete mu změnit roli.</p>
+          <form class="useradd" id="userAdd">
+            <label>E-mail<input type="email" id="uaEmail" required autocomplete="off"></label>
+            <label>Heslo (aspoň 8 znaků)<input type="text" id="uaPass" required minlength="8" autocomplete="new-password"></label>
+            <label>Role<select id="uaRole"><option value="user">uživatel (jen výpočet)</option><option value="admin">administrátor (vše)</option></select></label>
+            <button class="btn primary" type="submit" id="uaBtn">Přidat uživatele</button>
+          </form>
+          <p class="hint">Heslo předejte člověku sami. Po přihlášení si ho změní tlačítkem „Změnit heslo“ nahoře.</p>
           <div id="userReport"></div>
-          <div class="tscroll"><table><thead><tr><th>E-mail</th><th>Role</th><th>Založen</th></tr></thead><tbody id="userBody"></tbody></table></div>
+          <div class="tscroll"><table><thead><tr><th>E-mail</th><th>Role</th><th>Založen</th><th></th></tr></thead><tbody id="userBody"></tbody></table></div>
         </div>
       </section>
 
