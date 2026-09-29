@@ -19,7 +19,7 @@
 - Папка проекта: `~/ITAB калькулятор палет`. Прототип-источник: `~/Desktop/expedice 2/index.html` (больше не развивается).
 - Без сборки: `index.html` + нативные ES-модули в `src/`. Node на Маке нет, поэтому без Vite/npm-зависимостей. Excel читается через SheetJS с cdnjs (подгружается только при загрузке .xlsx).
 - Запуск: `python3 -m http.server 5173` (или preview «itab» из `.claude/launch.json`). Тесты: `/tests/` в браузере; с Node — `node --test tests/`.
-- Данные в `localStorage` (ключи `itab.*`). Деплой: GitHub + Vercel как статический сайт (preset Other, без build).
+- Данные в `localStorage` (ключи `itab.*`). Деплой: GitHub `sebastian-mushla/ITAB-kalkulator-palet` → Vercel (team `seb-team2`, preset Other, без build), прод: https://itab-kalkulator-palet.vercel.app. `git push` в `main` = автодеплой; доступ к GitHub сохранён в Связке ключей (fine-grained токен только на этот репо).
 - Пользователь на Mac (M3, 16 ГБ), лимиты бесплатной/Pro-подписки, поэтому **расчёт делает обычный код, не LLM**.
 
 ## Структура
@@ -97,7 +97,6 @@ r10 V-POL police 156
 
 ## Что нужно сделать дальше (по порядку)
 1. ~~Модули, тесты~~, ~~импорт справочника CSV/Excel~~, ~~настраиваемые машины~~, ~~посылки~~ — сделано.
-2. Залить в GitHub, подключить Vercel.
 3. Общая база для всех диспетчеров: Supabase (справочник, машины, правила, история, вход по логину).
 4. Составные артикулы и правила «проект: что на какой паллете».
 5. Telegram-бот и/или импорт из почты (Gmail).

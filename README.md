@@ -12,6 +12,9 @@ python3 -m http.server 5173
 Otevřete http://localhost:5173. Testy výpočtu: http://localhost:5173/tests/
 
 ## Deploy
+Produkce: **https://itab-kalkulator-palet.vercel.app** (testy: `/tests/`).
+Každý `git push` do `main` se na Vercelu nasadí sám.
+
 Statický web: GitHub → Vercel (Framework preset: **Other**, build command prázdný, output directory `.`).
 
 ## Data
