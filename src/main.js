@@ -245,6 +245,24 @@ $('#rulesGrid').addEventListener('input', e => {
   state.rules[k] = v; save(KEYS.rules, state.rules); later();
 });
 
+// ---------- theme ----------
+const darkMq = window.matchMedia('(prefers-color-scheme: dark)');
+function applyTheme(pref) {
+  const t = pref === 'system' ? (darkMq.matches ? 'dark' : 'light') : pref;
+  document.documentElement.setAttribute('data-theme', t);
+  document.querySelectorAll('[data-theme-set]').forEach(b => b.setAttribute('aria-checked', b.getAttribute('data-theme-set') === pref ? 'true' : 'false'));
+}
+let themePref = 'light';
+try { themePref = localStorage.getItem('itab.theme') || 'light'; } catch (e) { /* blocked storage */ }
+applyTheme(themePref);
+document.querySelector('.themes').addEventListener('click', e => {
+  const b = e.target.closest('[data-theme-set]'); if (!b) return;
+  themePref = b.getAttribute('data-theme-set');
+  try { localStorage.setItem('itab.theme', themePref); } catch (x) { /* blocked storage */ }
+  applyTheme(themePref);
+});
+darkMq.addEventListener('change', () => { if (themePref === 'system') applyTheme('system'); });
+
 // ---------- start ----------
 const td = new Date().toLocaleDateString('cs-CZ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 $('#today').textContent = td.charAt(0).toUpperCase() + td.slice(1);
