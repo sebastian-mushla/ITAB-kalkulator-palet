@@ -1,3 +1,4 @@
+html{color-scheme:light}
 :root{
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
@@ -7,14 +8,6 @@
   --red:#C0271C; --red-t:#FDECEA; --amber:#A96200; --amber-t:#FFF3DB; --green:#15804F; --green-t:#E2F5EA; --gray:#8A8FA6;
   --truck:#F1EFFA; --truck-line:#4A4568;
   --shadow:0 1px 2px rgba(40,30,90,.04),0 8px 22px -12px rgba(60,45,140,.16);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#121020; --panel:#1B1830; --ink:#EEECF8; --ink2:#A09CB8; --line:#2B2746; --soft:#211D3A;
-    --primary:#A99CFF; --primary-h:#BDB3FF; --primary-t:#2C2654; --on-primary:#FFFFFF; --grad:linear-gradient(100deg,#6F5DE8,#9484F4); --glow:0 8px 20px -8px rgba(0,0,0,.6);
-    --red:#FF8A7E; --red-t:#3A1E24; --amber:#F2B45A; --amber-t:#3A2E17; --green:#5FD6A0; --green-t:#173428; --gray:#7C82A0;
-    --truck:#24203F; --truck-line:#9A93C8; --shadow:0 1px 2px rgba(0,0,0,.3);
-  }
 }
 :root[data-theme="dark"]{
   --bg:#121020; --panel:#1B1830; --ink:#EEECF8; --ink2:#A09CB8; --line:#2B2746; --soft:#211D3A;
@@ -203,3 +196,16 @@ td.nowrap{white-space:nowrap}
 .btn.primary{background:var(--grad);border-color:transparent;box-shadow:var(--glow)}
 .btn.primary:hover{background:var(--primary-h)}
 .kpi-ic{background:var(--primary-t);color:var(--primary)}
+
+/* soft lavender glow on the edges */
+body{background:
+  radial-gradient(1100px 520px at 105% -8%, rgba(165,150,248,.22), transparent 62%),
+  radial-gradient(800px 480px at -12% 108%, rgba(120,102,238,.12), transparent 60%),
+  var(--bg);background-attachment:fixed}
+.nav{background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(247,246,253,.85));backdrop-filter:blur(12px);border-right-color:rgba(120,102,238,.12)}
+.topbar{background:rgba(255,255,255,.72);backdrop-filter:blur(12px);border-bottom-color:rgba(120,102,238,.12)}
+.card,.panel,.kpi:not(.alert){border:1px solid transparent;background:
+  linear-gradient(var(--panel),var(--panel)) padding-box,
+  linear-gradient(135deg,rgba(165,150,248,.55),var(--line) 35%,var(--line) 65%,rgba(165,150,248,.35)) border-box}
+.kpi:not(.alert) .kpi-ic{background:linear-gradient(135deg,var(--primary-t),#F8F6FF);box-shadow:inset 0 0 0 1px rgba(120,102,238,.12)}
+.search input{background:rgba(247,246,253,.9)}
