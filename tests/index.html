@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Testy výpočtu</title>
+<style>
+  :root{--bg:#F3F4F9;--ink:#12152B;--green:#15804F;--red:#C0271C}
+  @media (prefers-color-scheme: dark){:root{--bg:#0E1120;--ink:#ECEEF8;--green:#5FD6A0;--red:#FF8A7E}}
+  body{margin:0;padding:24px 16px;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif}
+  li{margin:6px 0}.ok{color:var(--green)}.bad{color:var(--red)}
+</style>
+</head>
+<body>
+<h1 id="sum">Testy…</h1>
+<ul id="out"></ul>
+<script type="module">
+import { runAll } from './cases.js';
+const res = runAll(), bad = res.filter(r => !r.ok).length;
+document.getElementById('sum').textContent = bad ? 'Chyby: ' + bad + ' z ' + res.length : 'Vše v pořádku: ' + res.length + ' testů';
+document.getElementById('sum').className = bad ? 'bad' : 'ok';
+document.getElementById('out').innerHTML = res.map(r => '<li class="' + (r.ok ? 'ok' : 'bad') + '">' + (r.ok ? '✓ ' : '✗ ') + r.name + (r.msg ? ' — ' + r.msg : '') + '</li>').join('');
+window.testResults = res;
+</script>
+</body>
+</html>

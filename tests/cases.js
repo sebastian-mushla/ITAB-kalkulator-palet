@@ -1,0 +1,115 @@
+// Acceptance tests from CLAUDE.md. Run in the browser (tests/index.html) or with `node --test tests/`.
+import { parseOrders, rowsToOrderText } from '../src/core/parse.js';
+import { solve } from '../src/core/solve.js';
+import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, SAMPLE } from '../src/core/defaults.js';
+import { parseCsvRows, rowsToCatalog, rowsToVehicles, mergeBy } from '../src/io/importTable.js';
+
+const ctx = { catalog: DEFAULT_CATALOG, vehicles: DEFAULT_VEHICLES, rules: DEFAULT_RULES };
+const EPS = 0.5;
+
+function assert(c, msg) { if (!c) throw new Error(msg); }
+function run(id, extra) {
+  const o = parseOrders(SAMPLE).orders.get(id);
+  return solve(o, Object.assign({}, ctx, extra || {}));
+}
+function checkLayout(r) {
+  r.vehicles.forEach(v => {
+    v.items.forEach((a, i) => {
+      assert(a.x >= -EPS && a.y >= -EPS && a.x + a.w <= v.L + EPS && a.y + a.h <= v.W + EPS, v.title + ': paleta mimo korbu');
+      v.items.forEach((b, j) => {
+        if (j <= i) return;
+        const overlap = a.x < b.x + b.w - EPS && b.x < a.x + a.w - EPS && a.y < b.y + b.h - EPS && b.y < a.y + a.h - EPS;
+        assert(!overlap, v.title + ': palety se překrývají');
+      });
+    });
+    assert(v.kg <= v.maxKg, v.title + ': překročena nosnost');
+  });
+}
+
+export const cases = [
+  ['505111: 24 palet, 6920 kg, LDM ~22,8, nadrozměr, 2× kamion', () => {
+    const r = run('505111');
+    assert(r.pallets.length === 24, 'palet: ' + r.pallets.length);
+    assert(Math.round(r.kg) === 6920, 'kg: ' + r.kg);
+    assert(Math.abs(r.ldm - 22.8) < 0.1, 'LDM: ' + r.ldm);
+    assert(r.big.length === 2, 'nadrozměr: ' + r.big.join(', '));
+    assert(!r.groupage.ok, 'sběrná služba by neměla projít');
+    assert(r.mode === 'trucks', 'mode: ' + r.mode);
+    assert(r.vehicles.length === 2 && r.vehicles.every(v => v.type === 'kamion'), 'vozidla: ' + r.reco);
+    const pol = r.rows.find(x => x.code === 'V-POL');
+    assert(pol.full === 7 && pol.rem === 148, 'V-POL: ' + pol.full + ' + ' + pol.rem);
+    checkLayout(r);
+  }],
+  ['505112: 1 europaleta, 468 kg, sběrná služba', () => {
+    const r = run('505112');
+    assert(r.pallets.length === 1 && r.euroCount === 1, 'palet: ' + r.pallets.length);
+    assert(Math.round(r.kg) === 468, 'kg: ' + r.kg);
+    assert(r.mode === 'groupage', 'mode: ' + r.mode);
+  }],
+  ['Ruční volba vozidla: 505112 na plachťáku', () => {
+    const r = run('505112', { forced: 1 });
+    assert(r.mode === 'trucks' && r.vehicles.length === 1 && r.vehicles[0].type === 'plachta', r.reco);
+    checkLayout(r);
+  }],
+  ['Ruční volba: 505111 na dodávce → nadrozměr se nevejde', () => {
+    const r = run('505111', { forced: 3 });
+    assert(r.mode === 'warn' && r.oversize.length > 0, 'mode: ' + r.mode);
+    checkLayout(r);
+  }],
+  ['Malá zakázka 5 europalet (2340 kg) → bez kamionu', () => {
+    const o = parseOrders('X;V-POL;' + (156 * 5)).orders.get('X');
+    const r = solve(o, ctx);
+    assert(r.mode === 'trucks' && r.vehicles.every(v => v.type !== 'kamion'), r.reco);
+    checkLayout(r);
+  }],
+  ['Počet europalet na kamionu ≤ 33', () => {
+    const o = parseOrders('X;V-POL;' + (156 * 40)).orders.get('X');
+    const r = solve(o, ctx);
+    assert(r.vehicles.every(v => v.items.length <= 33), r.reco);
+    checkLayout(r);
+  }],
+  ['Balíky: sběrná služba, těžký balík → kontrola', () => {
+    const catalog = DEFAULT_CATALOG.concat([
+      { code: 'KAB', name: 'Kabel', pack: 'balik', pl: 400, pw: 300, per: 10, kg: 1.5, rot: true },
+      { code: 'TIS', name: 'Tiskárna', pack: 'balik', pl: 500, pw: 400, per: 1, kg: 40, rot: true }
+    ]);
+    const a = solve(parseOrders('A;KAB;25').orders.get('A'), Object.assign({}, ctx, { catalog }));
+    assert(a.mode === 'parcels' && a.parcels.length === 3, 'mode ' + a.mode + ', balíků ' + a.parcels.length);
+    const b = solve(parseOrders('B;TIS;1').orders.get('B'), Object.assign({}, ctx, { catalog }));
+    assert(b.mode === 'warn', 'mode ' + b.mode);
+  }],
+  ['Import číselníku z examples/catalog.csv', () => {
+    const csv = 'article,name,pallet_length_mm,pallet_width_mm,units_per_pallet,unit_kg,rotatable\nV06,Kabina,2450,1300,1,200,true\nV-POL,Police,1200,800,156,3,true\nBAD,,0,800,1,2,true';
+    const res = rowsToCatalog(parseCsvRows(csv));
+    assert(res.items.length === 2 && res.errors.length === 1, JSON.stringify(res.errors));
+    assert(res.items[1].per === 156 && res.items[1].kg === 3 && res.items[1].pack === 'paleta', JSON.stringify(res.items[1]));
+    const m = mergeBy(DEFAULT_CATALOG, res.items, a => a.code.toLowerCase());
+    assert(m.added === 0 && m.updated === 2, 'merge');
+  }],
+  ['Import českého CSV se středníky a desetinnou čárkou', () => {
+    const csv = 'Artikl;Název;Balení;Délka palety, mm;Šířka palety, mm;Ks na paletě;Váha kusu, kg\nP1;"Pokladna; malá";paleta;1200;800;24;4,5\nB1;Kabel;balík;300;200;5;0,8';
+    const res = rowsToCatalog(parseCsvRows(csv));
+    assert(res.errors.length === 0, res.errors.join('; '));
+    assert(res.items[0].name === 'Pokladna; malá' && res.items[0].kg === 4.5 && res.items[0].per === 24, JSON.stringify(res.items[0]));
+    assert(res.items[1].pack === 'balik', 'balení');
+  }],
+  ['Import vozidel (rozměry v mm i m)', () => {
+    const csv = 'Název;Typ;Délka;Šířka;Nosnost kg;Europalet;Čelo\nFura;kamion;13600;2450;24000;33;ne\nBus s čelem;;4,2;2;1000;6;ano';
+    const res = rowsToVehicles(parseCsvRows(csv));
+    assert(res.errors.length === 0, res.errors.join('; '));
+    assert(res.items[0].L === 13.6 && res.items[0].type === 'kamion', JSON.stringify(res.items[0]));
+    assert(res.items[1].L === 4.2 && res.items[1].lift === true && res.items[1].type === 'celo', JSON.stringify(res.items[1]));
+  }],
+  ['Zakázka z tabulky se záhlavím (Excel)', () => {
+    const rows = [['Zakázka', 'Artikl', 'Název', 'Množství'], ['1001', 'V-POL', 'Police', 300], ['1001', 'V06', 'Kabina', 1]];
+    const res = parseOrders(rowsToOrderText(rows));
+    const o = res.orders.get('1001');
+    assert(res.problems.length === 0 && o && o.lines.size === 2, res.problems.join('; '));
+  }]
+];
+
+export function runAll() {
+  return cases.map(([name, fn]) => {
+    try { fn(); return { name, ok: true }; } catch (e) { return { name, ok: false, msg: e.message }; }
+  });
+}

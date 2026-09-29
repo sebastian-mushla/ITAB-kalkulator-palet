@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ITAB kalkulátor palet</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233358E6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 8l-9-5-9 5v8l9 5 9-5z'/%3E%3Cpath d='M3 8l9 5 9-5M12 13v8'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="src/styles.css">
+</head>
+<body>
+<div class="app">
+  <aside class="nav">
+    <div class="brand"><span class="logo"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></span><span>ITAB Expedice</span></div>
+    <nav class="tabs" role="tablist" aria-label="Hlavní navigace">
+      <button class="tab" role="tab" id="tab-orders" aria-selected="true" data-view="orders"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Přehled</button>
+      <button class="tab" role="tab" id="tab-catalog" aria-selected="false" data-view="catalog"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>Číselník artiklů</button>
+      <button class="tab" role="tab" id="tab-vehicles" aria-selected="false" data-view="vehicles"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h12v10H2z"/><path d="M14 9h4l4 4v3h-8z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>Vozidla</button>
+      <button class="tab" role="tab" id="tab-rules" aria-selected="false" data-view="rules"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Pravidla</button>
+    </nav>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <label class="search"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" type="search" placeholder="Hledat zakázku nebo artikl…" aria-label="Hledat zakázku nebo artikl"></label>
+      <div class="pill"><i class="dot"></i>Odeslání: Česko, továrna</div>
+    </header>
+    <main class="content">
+      <section id="view-orders">
+        <div class="pagehead">
+          <div><h1>Přehled zakázek</h1><p>Nahrajte zakázku: spočítáme palety, váhu a vhodnou dopravu.</p></div>
+          <div class="today" id="today"></div>
+        </div>
+        <div class="kpis" id="kpis"></div>
+        <div id="prio"></div>
+        <div class="grid2">
+          <section class="card drop" id="dropZone">
+            <h2>Import zakázek</h2>
+            <textarea id="csv" spellcheck="false" aria-label="Zakázky ke zpracování"></textarea>
+            <div class="row">
+              <button class="btn primary" id="btnCalc">Spočítat</button>
+              <label class="btn">Nahrát soubor<input type="file" id="file" accept=".csv,.txt,.tsv,.xlsx,.xls,.ods" hidden></label>
+            </div>
+            <p class="hint">Soubor sem můžete i přetáhnout (TXT, CSV, Excel). Formát z ERP: řádek „SO číslo“ a pod ním „r10 artikl název množství“. Nebo tabulka se sloupci zakázka, artikl, množství.</p>
+            <div class="problems" id="problems"></div>
+          </section>
+          <section class="card">
+            <div class="cardhead"><h2>Zakázky</h2><span class="muted" id="orderCount"></span></div>
+            <ul class="feedlist" id="orderList"></ul>
+          </section>
+        </div>
+        <section id="detail" aria-live="polite"></section>
+      </section>
+
+      <section id="view-catalog" hidden>
+        <div class="pagehead"><div><h1>Číselník artiklů</h1><p>Kolik kusů jde na paletu, rozměr palety a váha kusu. Z toho se počítá každá zakázka.</p></div></div>
+        <div class="card cat">
+          <div class="toolbar">
+            <label class="btn primary">Nahrát CSV / Excel<input type="file" id="catFile" accept=".csv,.txt,.tsv,.xlsx,.xls,.ods" hidden></label>
+            <label class="check"><input type="checkbox" id="catReplace">Nahradit celý číselník</label>
+            <button class="btn" id="catExport">Stáhnout CSV (šablona)</button>
+          </div>
+          <p class="hint">Sloupce poznáme podle záhlaví (česky, anglicky i rusky): artikl, název, balení (paleta / balík), délka mm, šířka mm, ks na paletě (u balíku ks v balíku), váha kusu kg, lze otáčet. Délka palety jde podél korby. Změny se ukládají v tomto prohlížeči.</p>
+          <div id="catReport"></div>
+          <div class="toolbar">
+            <label class="search"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="catSearch" type="search" placeholder="Hledat artikl…" aria-label="Hledat v číselníku"></label>
+            <span class="muted" id="catInfo"></span>
+          </div>
+          <div class="tscroll">
+            <table>
+              <thead><tr><th>Artikl</th><th>Název</th><th>Balení</th><th>Délka, mm</th><th>Šířka, mm</th><th>Kusů na paletě / v balíku</th><th>Váha kusu, kg</th><th>Lze otáčet</th><th></th></tr></thead>
+              <tbody id="catBody"></tbody>
+            </table>
+          </div>
+          <div class="pager" id="catPager"></div>
+          <div class="row">
+            <button class="btn" id="catAdd">Přidat artikl</button>
+            <button class="btn" id="catReset">Vrátit ukázku</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-vehicles" hidden>
+        <div class="pagehead"><div><h1>Vozidla</h1><p>Vozový park, ze kterého kalkulátor vybírá. Upravte rozměry korby, nosnost a cenu podle svých dopravců.</p></div></div>
+        <div class="card cat">
+          <div class="toolbar">
+            <label class="btn primary">Nahrát CSV / Excel<input type="file" id="vehFile" accept=".csv,.txt,.tsv,.xlsx,.xls,.ods" hidden></label>
+            <label class="check"><input type="checkbox" id="vehReplace">Nahradit všechna vozidla</label>
+            <button class="btn" id="vehExport">Stáhnout CSV (šablona)</button>
+          </div>
+          <p class="hint">„Cena“ je relativní: čím nižší, tím raději vozidlo volíme (kamion = 1). „Max palet“ 0 znamená bez limitu. Rozměry korby v metrech.</p>
+          <div id="vehReport"></div>
+          <div class="tscroll">
+            <table>
+              <thead><tr><th>Název</th><th>Typ</th><th>Délka korby, m</th><th>Šířka korby, m</th><th>Nosnost, kg</th><th>Max palet</th><th>Hydraulické čelo</th><th>Cena</th><th></th></tr></thead>
+              <tbody id="vehBody"></tbody>
+            </table>
+          </div>
+          <div class="row">
+            <button class="btn" id="vehAdd">Přidat vozidlo</button>
+            <button class="btn" id="vehReset">Vrátit výchozí</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-rules" hidden>
+        <div class="pagehead"><div><h1>Pravidla přepravy</h1><p>Limity sběrné služby pro palety a balíky, hranice nadrozměru.</p></div></div>
+        <div class="card rules">
+          <p class="hint">Palety na sebe nestohujeme. Váha se počítá bez vlastních palet. Sběrnou službou jdou palety, jen když jsou všechny euro (1200 × 800) a je jich nejvýše tolik, kolik je nastaveno.</p>
+          <div class="rgrid" id="rulesGrid"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+artikl;nazev;baleni;delka_mm;sirka_mm;ks_na_palete;vaha_kusu_kg;lze_otacet
+V06;Kabina;paleta;2450;1300;1;200;ano
+V04;Dopravník;paleta;3500;800;1;200;ano
+V-POL;Police;paleta;1200;800;156;3;ano
+KAB-01;Kabel USB (ukázka balíku);balik;400;300;10;0,2;ano

@@ -1,0 +1,5 @@
+nazev;typ;delka_m;sirka_m;nosnost_kg;max_palet;celo;cena
+Kamion (návěs);kamion;13,6;2,4;24000;33;ne;1
+Plachťák;plachta;4,8;2,2;1200;8;ne;0,6
+Dodávka s čelem;celo;4,2;2;1000;6;ano;0,45
+Dodávka;dodavka;3,2;1,7;1000;3;ne;0,3
