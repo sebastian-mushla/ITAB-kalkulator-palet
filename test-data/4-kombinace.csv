@@ -1,0 +1,5 @@
+aktivni;artikl;kdyz_je_v_zakazce;mnozstvi_od;mnozstvi_do;pojede;cil;delka_mm;sirka_mm;max_ks_na_paletu;poznamka
+ano;V04;V06;;10;na palete artiklu;V06;;;2;Dopravník do 10 ks jede na paletě kabiny, max 2 ks na kabinu
+ano;SK-01;PK-100;;20;na palete artiklu;PK-100;;;10;Skenery k pokladnám jedou s nimi
+ano;TP-80;;;30;jako balik;;400;300;5;Do 30 tiskáren posíláme balíky po 5 ks
+ano;RG-12;;20;;na jine palete;;2400;800;25;Od 20 regálů je dáváme na dlouhou paletu

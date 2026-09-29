@@ -27,3 +27,8 @@ export const RULE_FIELDS = [
 ];
 
 export const SAMPLE = ['SO 505111', 'r10 V06 kabina 6', 'r20 V04 dopravnik 10', 'r30 V-POL police 1240', '', 'SO 505112', 'r10 V-POL police 156'].join('\n');
+
+// Kombinace: example rule, switched off so the reference results stay unchanged.
+export const DEFAULT_COMBOS = [
+  { on: false, code: 'V04', withCode: 'V06', min: 0, max: 10, mode: 'host', host: 'V06', pl: 0, pw: 0, per: 0, note: 'Dopravník do 10 ks jede na paletě kabiny' }
+];

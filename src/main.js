@@ -1,13 +1,13 @@
 import { clone, toNum } from './core/util.js';
-import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, SAMPLE } from './core/defaults.js';
+import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, SAMPLE } from './core/defaults.js';
 import { parseOrders, rowsToOrderText } from './core/parse.js';
 import { solve } from './core/solve.js';
-import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, mergeBy, toCsv } from './io/importTable.js';
+import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, mergeBy, toCsv } from './io/importTable.js';
 import { renderKpis, renderPriorities, renderList, renderDetail, requestText } from './ui/orders.js';
-import { renderCatalog, renderVehicles, renderRules, importReport } from './ui/settings.js';
+import { renderCatalog, renderVehicles, renderCombos, renderRules, importReport } from './ui/settings.js';
 
 const $ = s => document.querySelector(s);
-const KEYS = { catalog: 'itab.catalog.v1', vehicles: 'itab.vehicles.v1', rules: 'itab.rules.v1', csv: 'itab.orders.v1' };
+const KEYS = { catalog: 'itab.catalog.v1', vehicles: 'itab.vehicles.v1', rules: 'itab.rules.v1', combos: 'itab.combos.v1', csv: 'itab.orders.v1' };
 function load(key, def) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
 function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* storage full or blocked */ } }
 
@@ -15,9 +15,11 @@ function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); 
 const oldCat = load('palcalc.catalog.v3', null);
 const savedCat = load(KEYS.catalog, null) || (Array.isArray(oldCat) ? oldCat.map(a => Object.assign({ pack: 'paleta' }, a)) : null);
 const savedVeh = load(KEYS.vehicles, null);
+const savedCombos = load(KEYS.combos, null);
 const state = {
   catalog: Array.isArray(savedCat) && savedCat.length ? savedCat : clone(DEFAULT_CATALOG),
   vehicles: Array.isArray(savedVeh) && savedVeh.length ? savedVeh : clone(DEFAULT_VEHICLES),
+  combos: Array.isArray(savedCombos) ? savedCombos : clone(DEFAULT_COMBOS),
   rules: Object.assign(clone(DEFAULT_RULES), load(KEYS.rules, {})),
   csv: load(KEYS.csv, SAMPLE),
   orders: new Map(), results: new Map(), forced: new Map(), sel: null, prioHidden: false,
@@ -26,7 +28,7 @@ const state = {
 
 // ---------- calculation ----------
 function ctx(id) {
-  return { catalog: state.catalog, vehicles: state.vehicles, rules: state.rules, forced: state.forced.has(id) ? state.forced.get(id) : null };
+  return { catalog: state.catalog, vehicles: state.vehicles, rules: state.rules, combos: state.combos, forced: state.forced.has(id) ? state.forced.get(id) : null };
 }
 function recalc() {
   state.results = new Map();
@@ -53,7 +55,7 @@ let timer = null;
 function later() { clearTimeout(timer); timer = setTimeout(recalc, 250); }
 
 // ---------- navigation ----------
-const VIEWS = ['orders', 'catalog', 'vehicles', 'rules'];
+const VIEWS = ['orders', 'catalog', 'combos', 'vehicles', 'rules'];
 function showView(v) {
   VIEWS.forEach(x => {
     const on = x === v;
@@ -203,6 +205,39 @@ $('#vehFile').addEventListener('change', async e => {
   } catch (err) { $('#vehReport').innerHTML = '<p class="problems">' + err.message + '</p>'; }
 });
 
+// ---------- combos ----------
+const drawCombos = () => renderCombos(state.combos, state.catalog);
+bindTable($('#comboBody'), () => state.combos, KEYS.combos, drawCombos);
+$('#comboBody').addEventListener('change', e => { if (e.target.getAttribute('data-f') === 'mode' || e.target.getAttribute('data-f') === 'on') drawCombos(); });
+$('#comboBody').addEventListener('click', e => {
+  const up = e.target.getAttribute('data-up'), down = e.target.getAttribute('data-down');
+  if (up == null && down == null) return;
+  const i = Number(up != null ? up : down), j = up != null ? i - 1 : i + 1;
+  if (j < 0 || j >= state.combos.length) return;
+  [state.combos[i], state.combos[j]] = [state.combos[j], state.combos[i]];
+  save(KEYS.combos, state.combos); drawCombos(); recalc();
+});
+$('#comboAdd').addEventListener('click', () => {
+  state.combos.push({ on: true, code: '', withCode: '', min: 0, max: 0, mode: 'host', host: '', pl: 0, pw: 0, per: 0, note: '' });
+  save(KEYS.combos, state.combos); drawCombos();
+});
+const MODE_NAMES = { host: 'na palete artiklu', pallet: 'na jine palete', parcel: 'jako balik' };
+$('#comboExport').addEventListener('click', () => download('kombinace.csv',
+  [['aktivni', 'artikl', 'kdyz_je_v_zakazce', 'mnozstvi_od', 'mnozstvi_do', 'pojede', 'cil', 'delka_mm', 'sirka_mm', 'max_ks_na_paletu', 'poznamka']]
+    .concat(state.combos.map(r => [r.on !== false ? 'ano' : 'ne', r.code, r.withCode, r.min || '', r.max || '', MODE_NAMES[r.mode], r.host, r.pl || '', r.pw || '', r.per || '', r.note]))));
+$('#comboFile').addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const { rows } = await readFileRows(f), res = rowsToCombos(rows), replace = $('#comboReplace').checked;
+    let merged = null;
+    if (res.items.length) {
+      merged = replace ? { list: res.items } : { list: state.combos.concat(res.items), added: res.items.length, updated: 0 };
+      state.combos = merged.list; save(KEYS.combos, state.combos); drawCombos(); recalc();
+    }
+    importReport($('#comboReport'), res, merged, replace);
+  } catch (err) { $('#comboReport').innerHTML = '<p class="problems">' + err.message + '</p>'; }
+});
+
 // ---------- rules ----------
 $('#rulesGrid').addEventListener('input', e => {
   const k = e.target.getAttribute('data-r'); if (!k) return;
@@ -214,5 +249,5 @@ $('#rulesGrid').addEventListener('input', e => {
 const td = new Date().toLocaleDateString('cs-CZ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 $('#today').textContent = td.charAt(0).toUpperCase() + td.slice(1);
 $('#csv').value = state.csv;
-drawCatalog(); drawVehicles(); renderRules(state.rules);
+drawCatalog(); drawVehicles(); drawCombos(); renderRules(state.rules);
 importOrders(state.csv);

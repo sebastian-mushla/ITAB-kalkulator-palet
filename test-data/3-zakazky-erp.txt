@@ -1,0 +1,11 @@
+SO 506001
+r10 PK-100 pokladna kompaktni 60
+r20 TP-80 tiskarna uctenek 60
+r30 ZS-01 zasuvka 60
+
+SO 506002
+r10 V04 dopravnik 3
+r20 PK-310 pult dlouhy 1
+
+SO 506003
+r10 KAB-01 kabel usb 200

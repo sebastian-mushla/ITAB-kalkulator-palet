@@ -34,11 +34,13 @@ export function svgVehicle(v) {
     } else s += '<rect x="' + px + '" y="' + py + '" width="' + pw + '" height="' + ph + '" rx="2" style="fill:' + col + '"/>';
     if (ph >= 24 && pw >= 50) {
       const l1 = it.code, l2 = it.units + ' ks' + (partial ? ', ' + Math.round(it.fill * 100) + '%' : '');
-      const fs = Math.max(9, Math.min(18, ph / 4.2, pw / (0.6 * Math.max(l1.length, l2.length) + 0.6)));
+      const l3 = it.extra ? '+ ' + it.extra.map(e => e.code + ' ' + e.units + ' ks').join(', ') : '';
+      const fs = Math.max(9, Math.min(18, ph / (l3 ? 5.4 : 4.2), pw / (0.6 * Math.max(l1.length, l2.length, l3.length) + 0.6)));
       const cx = px + pw / 2, cyy = py + ph / 2;
       const st = 'fill:#fff;font-weight:600;text-anchor:middle;paint-order:stroke;stroke:' + col + ';stroke-width:3px;stroke-linejoin:round;font-size:' + fs.toFixed(1) + 'px';
       s += '<text x="' + cx + '" y="' + (cyy - fs * 0.1) + '" style="' + st + '">' + esc(l1) + '</text>';
       s += '<text x="' + cx + '" y="' + (cyy + fs * 1.1) + '" style="' + st + '">' + esc(l2) + '</text>';
+      if (l3) s += '<text x="' + cx + '" y="' + (cyy + fs * 2.3) + '" style="' + st + '">' + esc(l3) + '</text>';
     }
   });
   const ry = y0 + Hw + 6;
@@ -96,7 +98,7 @@ export function requestText(r) {
   if (r.mode === 'groupage') L.push('Doprava palet: sběrná služba');
   else if (r.vehicles.length) {
     L.push('Doprava: ' + r.reco);
-    r.vehicles.forEach(v => L.push(v.title + ' (' + fmtM(v.L) + ' m): ' + groupItems(v.items).map(g => g.code + ' ' + g.count + ' ' + palWord(g.count) + ' (' + g.units + ' ks)').join(', ')));
+    r.vehicles.forEach(v => L.push(v.title + ' (' + fmtM(v.L) + ' m): ' + groupItems(v.items).map(g => g.code + ' ' + g.count + ' ' + palWord(g.count) + ' (' + g.units + ' ks)').concat(extrasOf(v.items).map(e => '+ ' + e.code + ' ' + e.units + ' ks na paletách ' + e.host)).join(', ')));
   }
   if (r.parcels.length) L.push('Balíky: sběrná služba (' + PARCEL_SERVICES + '), ' + r.parcels.length + ' ' + balWord(r.parcels.length));
   return L.join('\n');
@@ -127,18 +129,29 @@ function decisionHtml(r, rules) {
 function compositionHtml(r) {
   const body = r.rows.map(x => {
     const parts = [];
-    if (x.pack === 'balik') parts.push(x.count + ' ' + balWord(x.count) + ' po ' + x.per + ' ks' + (x.rem ? ' (poslední ' + x.rem + ' ks)' : ''));
+    if (x.onHost) parts.push(x.onHost + ' ks na paletách ' + x.host);
+    if (!x.count) { /* everything rides on host pallets */ }
+    else if (x.pack === 'balik') parts.push(x.count + ' ' + balWord(x.count) + ' po ' + x.per + ' ks' + (x.rem ? ' (poslední ' + x.rem + ' ks)' : ''));
     else if (x.per === 1) parts.push(x.full + ' ' + palWord(x.full));
     else {
       if (x.full > 0) parts.push(x.full + ' ' + plural(x.full, ['plná', 'plné', 'plných']));
       if (x.rem > 0) parts.push('1 neúplná: ' + x.rem + ' ks, ' + Math.round(x.fillRem * 100) + '%');
     }
-    return '<tr><td><i class="sw" style="background:' + color(x.ci) + '"></i>' + esc(x.code) + '<br><span class="hint">' + esc(x.name || '') + '</span></td><td class="num">' + fmtN(x.qty) + ' ks</td><td>' + esc(parts.join(', ')) + '</td><td class="num">' + fmtKg(x.kg) + '</td></tr>';
+    return '<tr><td><i class="sw" style="background:' + color(x.ci) + '"></i>' + esc(x.code) + '<br><span class="hint">' + esc(x.name || '') + '</span></td><td class="num">' + fmtN(x.qty) + ' ks</td><td>' + esc(parts.join(', ')) + (x.rule ? '<br><span class="rule-note">Pravidlo: ' + esc(x.rule) + '</span>' : '') + '</td><td class="num">' + fmtKg(x.kg) + '</td></tr>';
   }).join('');
   return '<div class="panel"><h3>Složení zakázky</h3><div class="tscroll"><table><thead><tr><th>Artikl</th><th class="num">Množství</th><th>Palety / balíky</th><th class="num">Váha</th></tr></thead><tbody>' + body + '</tbody></table></div></div>';
 }
+function extrasOf(items) {
+  const m = new Map();
+  items.forEach(it => (it.extra || []).forEach(e => {
+    const k = e.code + '|' + it.code, g = m.get(k) || { code: e.code, ci: e.ci, host: it.code, units: 0 };
+    g.units += e.units; m.set(k, g);
+  }));
+  return [...m.values()];
+}
 function vehicleHtml(v) {
-  const legend = groupItems(v.items).map(g => '<li><i class="sw" style="background:' + color(g.ci) + '"></i>' + esc(g.code) + ': ' + g.count + ' ' + palWord(g.count) + ', ' + g.units + ' ks</li>').join('');
+  const legend = groupItems(v.items).map(g => '<li><i class="sw" style="background:' + color(g.ci) + '"></i>' + esc(g.code) + ': ' + g.count + ' ' + palWord(g.count) + ', ' + g.units + ' ks</li>').join('') +
+    extrasOf(v.items).map(e => '<li><i class="sw" style="background:' + color(e.ci) + '"></i>' + esc(e.code) + ': ' + e.units + ' ks na paletách ' + esc(e.host) + '</li>').join('');
   const load = Math.round(v.kg / v.maxKg * 100);
   return '<article class="panel veh"><header><h3>' + esc(v.title) + ', korba ' + fmtM(v.L) + ' × ' + fmtM(v.W) + ' m</h3><p>' + v.items.length + ' ' + palWord(v.items.length) + ', ' + fmtKg(v.kg) + ' (' + load + ' % nosnosti)</p></header><ul class="legend">' + legend + '</ul><div class="plan">' + svgVehicle(v) + '</div></article>';
 }

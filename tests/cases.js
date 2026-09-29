@@ -1,10 +1,12 @@
 // Acceptance tests from CLAUDE.md. Run in the browser (tests/index.html) or with `node --test tests/`.
 import { parseOrders, rowsToOrderText } from '../src/core/parse.js';
 import { solve } from '../src/core/solve.js';
-import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, SAMPLE } from '../src/core/defaults.js';
-import { parseCsvRows, rowsToCatalog, rowsToVehicles, mergeBy } from '../src/io/importTable.js';
+import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, SAMPLE } from '../src/core/defaults.js';
+import { parseCsvRows, rowsToCatalog, rowsToVehicles, rowsToCombos, mergeBy } from '../src/io/importTable.js';
 
-const ctx = { catalog: DEFAULT_CATALOG, vehicles: DEFAULT_VEHICLES, rules: DEFAULT_RULES };
+const ctx = { catalog: DEFAULT_CATALOG, vehicles: DEFAULT_VEHICLES, rules: DEFAULT_RULES, combos: DEFAULT_COMBOS };
+const RULE_ON = [Object.assign({}, DEFAULT_COMBOS[0], { on: true })];
+const order = t => parseOrders(t).orders.values().next().value;
 const EPS = 0.5;
 
 function assert(c, msg) { if (!c) throw new Error(msg); }
@@ -107,6 +109,44 @@ export const cases = [
     assert(res.problems.length === 0 && o && o.lines.size === 2, res.problems.join('; '));
   }]
 ];
+
+cases.push(
+  ['Kombinace: V06 6 + V04 5 → V04 na paletách kabin', () => {
+    const r = solve(order('A;V06;6\nA;V04;5'), Object.assign({}, ctx, { combos: RULE_ON }));
+    assert(r.pallets.length === 6 && r.pallets.every(p => p.code === 'V06'), 'palet: ' + r.pallets.length);
+    assert(Math.round(r.kg) === 2200 && Math.round(r.pallets.reduce((s, p) => s + p.kg, 0)) === 2200, 'kg: ' + r.kg);
+    const v04 = r.rows.find(x => x.code === 'V04');
+    assert(v04.onHost === 5 && v04.count === 0 && v04.rule, JSON.stringify(v04));
+    checkLayout(r);
+  }],
+  ['Kombinace: V04 12 ks (nad limit) → běžný výpočet', () => {
+    const r = solve(order('A;V06;6\nA;V04;12'), Object.assign({}, ctx, { combos: RULE_ON }));
+    assert(r.pallets.length === 18, 'palet: ' + r.pallets.length);
+  }],
+  ['Kombinace: bez kabiny v zakázce → V04 na svých paletách', () => {
+    const r = solve(order('A;V04;5'), Object.assign({}, ctx, { combos: RULE_ON }));
+    assert(r.pallets.length === 5 && r.pallets.every(p => p.code === 'V04'), 'palet: ' + r.pallets.length);
+  }],
+  ['Kombinace: max ks na hostitelskou paletu, zbytek normálně', () => {
+    const combos = [Object.assign({}, RULE_ON[0], { per: 1 })];
+    const r = solve(order('A;V06;3\nA;V04;5'), Object.assign({}, ctx, { combos }));
+    assert(r.pallets.length === 5 && r.pallets.filter(p => p.extra).length === 3, 'palet: ' + r.pallets.length);
+  }],
+  ['Kombinace: jiná paleta a balík', () => {
+    const combos = [
+      { on: true, code: 'V-POL', withCode: '', min: 0, max: 100, mode: 'parcel', host: '', pl: 400, pw: 300, per: 10, note: '' },
+      { on: true, code: 'V-POL', withCode: '', min: 101, max: 0, mode: 'pallet', host: '', pl: 800, pw: 600, per: 50, note: '' }
+    ];
+    const a = solve(order('A;V-POL;40'), Object.assign({}, ctx, { combos }));
+    assert(a.mode === 'parcels' && a.parcels.length === 4, 'mode ' + a.mode);
+    const b = solve(order('B;V-POL;120'), Object.assign({}, ctx, { combos }));
+    assert(b.pallets.length === 3 && b.pallets[0].pl === 800, 'palet: ' + b.pallets.length);
+  }],
+  ['Import kombinací z CSV', () => {
+    const res = rowsToCombos(parseCsvRows('aktivni;artikl;kdyz_je_v_zakazce;mnozstvi_od;mnozstvi_do;pojede;cil;delka_mm;sirka_mm;max_ks_na_paletu;poznamka\nano;V04;V06;;10;na palete artiklu;V06;;;2;x'));
+    assert(res.errors.length === 0 && res.items[0].mode === 'host' && res.items[0].host === 'V06' && res.items[0].max === 10 && res.items[0].per === 2, JSON.stringify(res));
+  }]
+);
 
 export function runAll() {
   return cases.map(([name, fn]) => {

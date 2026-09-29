@@ -19,8 +19,8 @@ export function groupItems(items) {
 }
 
 // Pure: order + catalog + vehicles + rules -> result. `forced` = vehicle index chosen by the user.
-export function solve(o, { catalog, vehicles, rules, forced = null }) {
-  const mp = makePallets(o.lines, catalog);
+export function solve(o, { catalog, vehicles, rules, combos = [], forced = null }) {
+  const mp = makePallets([...o.lines.values()], catalog, combos);
   const r = {
     id: o.id, pallets: mp.pallets, parcels: mp.parcels, errors: mp.errors, rows: mp.rows,
     kg: 0, units: 0, groupage: null, parcelInfo: null, vehicles: [], oversize: [], mode: 'empty', reco: '', forced

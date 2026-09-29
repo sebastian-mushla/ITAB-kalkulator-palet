@@ -190,6 +190,49 @@ export function rowsToVehicles(rows) {
   return { items, errors, cols };
 }
 
+// ---------- combos ----------
+export const COMBO_FIELDS = {
+  code: ['artikl', 'article', 'артикул', 'code'],
+  withCode: ['kdyz je v zakazce', 'v kombinaci s', 'with', 'spolu s', 'в комбинации'],
+  min: ['mnozstvi od', 'od', 'min', 'от'],
+  max: ['mnozstvi do', 'do', 'max', 'до'],
+  mode: ['pojede', 'mode', 'akce', 'как'],
+  host: ['na palete artiklu', 'cil', 'host', 'хозяин', 'na palete'],
+  pl: ['delka', 'length', 'длина'],
+  pw: ['sirka', 'width', 'ширина'],
+  per: ['max ks na paletu', 'ks na paletu', 'per', 'ks', 'шт'],
+  note: ['poznamka', 'note', 'комментарий'],
+  on: ['aktivni', 'active', 'on', 'активно']
+};
+function comboMode(v) {
+  const s = norm(v);
+  if (/balik|parcel|посыл/.test(s)) return 'parcel';
+  if (/jin|other|drug|друг|pallet$|vlastn/.test(s) && !/artikl|host/.test(s)) return 'pallet';
+  return 'host';
+}
+export function rowsToCombos(rows) {
+  const hi = headerIndex(rows);
+  if (hi < 0) return { items: [], errors: ['Soubor je prázdný.'], cols: {} };
+  const cols = findColumns(rows[hi], COMBO_FIELDS);
+  if (cols.code == null) return { items: [], cols, errors: ['Nenalezen sloupec „artikl“.'] };
+  const items = [], errors = [];
+  const get = (r, k) => (cols[k] == null ? '' : r[cols[k]]);
+  rows.slice(hi + 1).forEach((r, i) => {
+    if (!r.some(c => String(c).trim() !== '')) return;
+    const x = {
+      on: toBool(get(r, 'on'), true), code: String(get(r, 'code')).trim(), withCode: String(get(r, 'withCode')).trim(),
+      min: toNum(get(r, 'min') || 0) || 0, max: toNum(get(r, 'max') || 0) || 0, mode: comboMode(get(r, 'mode')),
+      host: String(get(r, 'host')).trim(), pl: toNum(get(r, 'pl') || 0) || 0, pw: toNum(get(r, 'pw') || 0) || 0,
+      per: toNum(get(r, 'per') || 0) || 0, note: String(get(r, 'note')).trim()
+    };
+    if (!x.code) { errors.push('řádek ' + (hi + i + 2) + ': chybí artikl'); return; }
+    if (x.mode === 'host' && !x.host) { errors.push('řádek ' + (hi + i + 2) + ': chybí artikl, na jehož paletě pojede'); return; }
+    if (x.mode === 'pallet' && !(x.pl > 0 && x.pw > 0 && x.per > 0)) { errors.push('řádek ' + (hi + i + 2) + ': u jiné palety chybí délka, šířka nebo ks'); return; }
+    items.push(x);
+  });
+  return { items, errors, cols };
+}
+
 // ---------- merge / export ----------
 export function mergeBy(list, incoming, keyFn) {
   const out = list.slice(), idx = new Map(out.map((x, i) => [keyFn(x), i]));
