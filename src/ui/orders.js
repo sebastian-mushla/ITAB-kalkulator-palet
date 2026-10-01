@@ -131,7 +131,7 @@ function decisionHtml(r, rules) {
     h2 = 'Zkontrolovat zakázku';
     p = why.join('. ') + '.';
   }
-  return '<div class="decision ' + cls + '"><div><h2>' + esc(h2) + '</h2><p>' + esc(p) + '</p></div>' + (btn ? '<div class="dec-acts"><button class="btn primary" id="ringilBtn">Objednat dopravu (Ringil)</button><button class="btn" id="copyBtn">Zkopírovat text</button></div>' : '') + '</div>';
+  return '<div class="decision ' + cls + '"><div><h2>' + esc(h2) + '</h2><p>' + esc(p) + '</p></div>' + (btn ? '<div class="dec-acts"><button class="btn primary" id="ringilBtn">Objednat dopravu (Ringil)</button><button class="btn primary" id="packBtn">Tisk pro balení</button><button class="btn" id="copyBtn">Zkopírovat text</button></div>' : '') + '</div>';
 }
 function compositionHtml(r) {
   const body = r.rows.map(x => {

@@ -6,6 +6,7 @@ import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle
 import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, mergeBy, toCsv } from './io/importTable.js';
 import { renderKpis, renderPriorities, renderList, renderDetail, requestText } from './ui/orders.js';
 import { ringilHtml } from './ui/ringil.js';
+import { packListHtml } from './ui/packlist.js';
 import { requireLogin, loadSettings, saveSetting, signOut, changePassword, listProfiles, setRole, adminUsers } from './auth.js';
 import { esc } from './core/util.js';
 import { renderCatalog, renderVehicles, renderCombos, renderRules, importReport } from './ui/settings.js';
@@ -302,6 +303,18 @@ function askArticle(u) {
 }
 $('#daPack').addEventListener('change', e => { $('#daPerLabel').textContent = e.target.value === 'balik' ? 'Kusů v balíku' : 'Kusů na paletě'; });
 $('#detail').addEventListener('pointercancel', e => endDrag(e, true));
+
+// ---------- packing list ----------
+$('#detail').addEventListener('click', e => {
+  if (e.target.id !== 'packBtn') return;
+  const r = view(state.sel); if (!r) return;
+  const names = new Map(state.catalog.map(a => [String(a.code).toLowerCase(), a.name || '']));
+  state.orders.get(r.id).lines.forEach(l => { if (l.name && !names.get(l.code.toLowerCase())) names.set(l.code.toLowerCase(), l.name); });
+  const w = window.open('', '_blank');
+  if (!w) { flash('Prohlížeč zablokoval nové okno. Povolte vyskakovací okna pro tento web.'); return; }
+  w.document.write(packListHtml(r, names)); w.document.close();
+  w.focus(); setTimeout(() => w.print(), 300);
+});
 
 // ---------- Ringil ----------
 $('#detail').addEventListener('click', e => {
