@@ -131,7 +131,7 @@ function decisionHtml(r, rules) {
     h2 = 'Zkontrolovat zakázku';
     p = why.join('. ') + '.';
   }
-  return '<div class="decision ' + cls + '"><div><h2>' + esc(h2) + '</h2><p>' + esc(p) + '</p></div>' + (btn ? '<div class="dec-acts"><button class="btn primary" id="ringilBtn">Objednat dopravu (Ringil)</button><button class="btn primary" id="packBtn">Tisk pro balení</button><button class="btn" id="copyBtn">Zkopírovat text</button></div>' : '') + '</div>';
+  return '<div class="decision ' + cls + '"><div><h2>' + esc(h2) + '</h2><p>' + esc(p) + '</p></div>' + (btn ? '<div class="dec-acts"><button class="btn primary" id="ringilBtn">Objednat dopravu (Ringil)</button><button class="btn primary" id="packBtn">Tisk pro balení</button><button class="btn" id="loadPrintBtn">Tisk nakládky</button><button class="btn" id="copyBtn">Zkopírovat text</button></div>' : '') + '</div>';
 }
 function compositionHtml(r) {
   const body = r.rows.map(x => {
@@ -168,6 +168,26 @@ function vehiclePicker(r, vehicles) {
   const opts = ['<option value="">Automaticky (nejvýhodnější)</option>'].concat(vehicles.map((v, i) =>
     '<option value="' + i + '"' + (r.forced === i ? ' selected' : '') + '>' + esc(v.name) + ' – ' + String(v.L).replace('.', ',') + ' m, ' + fmtN(v.kg) + ' kg</option>'));
   return '<label class="picker"><span>Vozidlo</span><select id="forceVeh">' + opts.join('') + '</select></label>';
+}
+
+// Printable loading plan: every vehicle drawn from above with its legend.
+export function loadPlanHtml(r, vehicles) {
+  const vs = r.vehicles.filter(v => v.items.length);
+  const body = vs.length ? vs.map(v => {
+    const plain = Object.assign({}, v, { idx: null, lift: vehicles[v.vi] && vehicles[v.vi].lift });
+    const legend = groupItems(v.items).map(g => '<li><i style="background:' + color(g.ci) + '"></i>' + esc(g.code) + ': ' + g.count + ' ' + palWord(g.count) + ', ' + g.units + ' ks</li>').join('') +
+      extrasOf(v.items).map(e => '<li><i style="background:' + color(e.ci) + '"></i>' + esc(e.code) + ': ' + e.units + ' ks na paletách ' + esc(e.host) + '</li>').join('');
+    return '<section><h2>' + esc(v.title) + ' <small>korba ' + fmtM(v.L) + ' × ' + fmtM(v.W) + ' m · ' + v.items.length + ' ' + palWord(v.items.length) + ' · ' + fmtKg(v.kg) + '</small></h2><ul>' + legend + '</ul>' + svgVehicle(plain) + '</section>';
+  }).join('') : '<p>Zakázka nemá vlastní vozidlo (jede sběrnou službou).</p>';
+  return '<!DOCTYPE html><html lang="cs"><head><meta charset="utf-8"><title>Nakládka – zakázka ' + esc(r.id) + '</title><style>' +
+    ':root{--truck:#F1EFFA;--truck-line:#4A4568;--ink2:#555}' +
+    'body{font-family:Inter,Arial,sans-serif;color:#111;margin:24px;font-size:13px}h1{font-size:22px;margin:0 0 4px}.meta{color:#555}' +
+    'section{margin-top:20px;break-inside:avoid}h2{font-size:16px;margin:0 0 6px}h2 small{color:#555;font-weight:400;font-size:13px}' +
+    'ul{list-style:none;padding:0;margin:0 0 8px;display:flex;flex-wrap:wrap;gap:4px 16px}ul i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}' +
+    'svg{width:100%;height:auto;max-width:100%!important;min-width:0!important}' +
+    '@media print{body{margin:10mm}button{display:none}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}@page{size:landscape}' +
+    '</style></head><body><button onclick="print()" style="float:right;padding:8px 16px">Tisknout</button>' +
+    '<h1>Nakládka – zakázka ' + esc(r.id) + '</h1><div class="meta">' + new Date().toLocaleDateString('cs-CZ') + (r.reco ? ' · ' + esc(r.reco) : '') + ' · ' + fmtKg(r.kg) + ' · pohled shora, přední čelo vlevo</div>' + body + '</body></html>';
 }
 
 export function renderDetail(r, { rules, vehicles, isAdmin }) {

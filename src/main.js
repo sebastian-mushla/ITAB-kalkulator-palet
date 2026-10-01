@@ -4,7 +4,7 @@ import { parseOrders, rowsToOrderText } from './core/parse.js';
 import { solve } from './core/solve.js';
 import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle, replaceVehicle } from './core/manual.js';
 import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, mergeBy, toCsv } from './io/importTable.js';
-import { renderKpis, renderPriorities, renderList, renderDetail, requestText } from './ui/orders.js';
+import { renderKpis, renderPriorities, renderList, renderDetail, requestText, loadPlanHtml } from './ui/orders.js';
 import { ringilHtml } from './ui/ringil.js';
 import { packListHtml } from './ui/packlist.js';
 import { requireLogin, loadSettings, saveSetting, signOut, changePassword, listProfiles, setRole, adminUsers } from './auth.js';
@@ -319,6 +319,15 @@ $('#detail').addEventListener('click', e => {
   const w = window.open('', '_blank');
   if (!w) { flash('Prohlížeč zablokoval nové okno. Povolte vyskakovací okna pro tento web.'); return; }
   w.document.write(packListHtml(r, names)); w.document.close();
+  w.focus(); setTimeout(() => w.print(), 300);
+});
+
+$('#detail').addEventListener('click', e => {
+  if (e.target.id !== 'loadPrintBtn') return;
+  const r = view(state.sel); if (!r) return;
+  const w = window.open('', '_blank');
+  if (!w) { flash('Prohlížeč zablokoval nové okno. Povolte vyskakovací okna pro tento web.'); return; }
+  w.document.write(loadPlanHtml(r, state.vehicles)); w.document.close();
   w.focus(); setTimeout(() => w.print(), 300);
 });
 
