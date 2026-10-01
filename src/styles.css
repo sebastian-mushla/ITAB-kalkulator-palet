@@ -185,7 +185,7 @@ td.nowrap{white-space:nowrap}
 .rule-note{color:var(--primary);font-size:12.5px;font-weight:500}
 #view-combos td:first-child{min-width:0;text-align:center}
 #view-combos td input[type=text]{min-width:110px}
-#view-combos td:nth-child(11) input{min-width:200px}
+#view-combos td:nth-child(12) input{min-width:200px}
 #view-combos th{white-space:nowrap}
 
 /* lavender theme */
@@ -277,3 +277,29 @@ body{background:
 .drag-ghost{position:fixed;z-index:50;pointer-events:none;border-radius:4px;box-shadow:0 10px 24px -8px rgba(60,45,140,.55);opacity:.85;outline:2px solid #fff}
 .plan .veh-svg{touch-action:pan-y}
 .drag-msg{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--panel);padding:10px 16px;border-radius:10px;font-weight:600;font-size:13.5px;box-shadow:var(--shadow)}
+
+/* learning: unknown articles tray */
+.load.with-tray{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:16px;align-items:start}
+.load-main{min-width:0}
+.tray{position:sticky;top:16px;margin-top:16px;padding:14px;border-radius:14px;border:1px dashed color-mix(in srgb,var(--gray) 55%,transparent);background:var(--soft)}
+.tray h3{font-size:15px;margin:0 0 4px}
+.tray .hint{font-size:12.5px;margin:0 0 10px}
+.unk{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;margin-bottom:8px;border-radius:8px;background:color-mix(in srgb,var(--gray) 22%,var(--panel));border:1px solid color-mix(in srgb,var(--gray) 40%,transparent);cursor:grab;touch-action:none;user-select:none}
+.unk b{font-weight:700}.unk span{color:var(--ink2);font-size:13px}
+.unk:hover{border-color:var(--primary)}
+.unk.ro{cursor:default}.unk.ro:hover{border-color:color-mix(in srgb,var(--gray) 40%,transparent)}
+.unk.dragging{opacity:.3}
+.veh-svg .pal.drop-host rect{stroke:var(--primary)!important;stroke-width:4px!important}
+.empty-load{color:var(--ink2)}
+@media (max-width:900px){.load.with-tray{grid-template-columns:minmax(0,1fr)}.tray{position:static;order:-1}}
+/* dialogs */
+dialog.dlg{border:0;padding:0;border-radius:16px;max-width:440px;width:calc(100% - 32px);background:var(--panel);color:var(--ink);box-shadow:0 24px 60px -20px rgba(40,30,90,.5)}
+dialog.dlg::backdrop{background:rgba(30,25,60,.35);backdrop-filter:blur(2px)}
+dialog.dlg form{display:flex;flex-direction:column;gap:12px;padding:22px}
+dialog.dlg h2{font-size:19px}
+dialog.dlg p{margin:0;color:var(--ink2)}
+dialog.dlg label{display:flex;flex-direction:column;gap:5px;font-weight:500;font-size:13.5px}
+dialog.dlg label.inline{flex-direction:row;align-items:center;gap:8px}
+dialog.dlg input,dialog.dlg select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--soft);color:var(--ink)}
+dialog.dlg .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+dialog.dlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}

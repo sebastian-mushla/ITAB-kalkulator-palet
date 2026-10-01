@@ -26,7 +26,7 @@ const state = {
   combos: Array.isArray(shared.combos) ? shared.combos : clone(DEFAULT_COMBOS),
   rules: Object.assign(clone(DEFAULT_RULES), shared.rules || {}),
   csv: load(KEYS.csv, SAMPLE),
-  orders: new Map(), results: new Map(), forced: new Map(), manual: new Map(), sel: null, prioHidden: false,
+  orders: new Map(), results: new Map(), forced: new Map(), manual: new Map(), isAdmin, sel: null, prioHidden: false,
   catView: { q: '', page: 0 }
 };
 
@@ -191,6 +191,13 @@ $('#detail').addEventListener('dblclick', e => {
 // drag a pallet: a floating copy follows the pointer, the drop point in the target body is converted to mm
 let drag = null;
 $('#detail').addEventListener('pointerdown', e => {
+  const u = e.target.closest('.unk');
+  if (u && isAdmin && e.button === 0) {
+    const rc = u.getBoundingClientRect();
+    drag = { g: u, unk: { code: u.dataset.code, qty: Number(u.dataset.qty) }, sx: e.clientX, sy: e.clientY, w: Math.min(rc.width, 120), h: 40, color: 'var(--gray)', moved: false };
+    u.setPointerCapture(e.pointerId);
+    return;
+  }
   const g = e.target.closest('.pal'); if (!g || e.button !== 0) return;
   const svg = g.ownerSVGElement, rect = g.querySelector('rect').getBoundingClientRect();
   drag = { g, from: Number(g.dataset.v), pid: Number(g.dataset.p), sx: e.clientX, sy: e.clientY, w: rect.width, h: rect.height, color: g.querySelector('rect').style.fill, moved: false, svg };
@@ -207,18 +214,30 @@ $('#detail').addEventListener('pointermove', e => {
   }
   drag.ghost.style.left = (e.clientX - drag.w / 2) + 'px';
   drag.ghost.style.top = (e.clientY - drag.h / 2) + 'px';
-  document.querySelectorAll('.veh-svg.drop-target').forEach(x => x.classList.remove('drop-target'));
+  document.querySelectorAll('.veh-svg.drop-target,.pal.drop-host').forEach(x => x.classList.remove('drop-target', 'drop-host'));
   const over = document.elementFromPoint(e.clientX, e.clientY);
-  const t = over && over.closest('.veh-svg'); if (t) t.classList.add('drop-target');
+  const host = drag.unk && over && over.closest('.pal');
+  if (host) host.classList.add('drop-host');
+  else { const t = over && over.closest('.veh-svg'); if (t) t.classList.add('drop-target'); }
 });
 function endDrag(e, cancel) {
   if (!drag) return;
   const d = drag; drag = null;
   if (d.ghost) d.ghost.remove();
   d.g.classList.remove('dragging');
-  document.querySelectorAll('.veh-svg.drop-target').forEach(x => x.classList.remove('drop-target'));
+  document.querySelectorAll('.veh-svg.drop-target,.pal.drop-host').forEach(x => x.classList.remove('drop-target', 'drop-host'));
   if (cancel || !d.moved) return;
   const over = document.elementFromPoint(e.clientX, e.clientY), svg = over && over.closest('.veh-svg');
+  if (d.unk) {
+    const hostG = over && over.closest('.pal');
+    if (hostG) {
+      const v = view(state.sel), veh = v.vehicles[Number(hostG.dataset.v)];
+      const hp = veh && veh.items.find(i => i.id === Number(hostG.dataset.p));
+      if (hp) askCombo(d.unk, hp.code);
+    } else if (svg) askArticle(d.unk);
+    else flash('Pusťte artikl na paletu nebo na volné místo ve vozidle.');
+    return;
+  }
   if (!svg) { flash('Paletu pusťte do některého vozidla.'); return; }
   const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
   const p = pt.matrixTransform(svg.getScreenCTM().inverse());
@@ -228,6 +247,36 @@ function endDrag(e, cancel) {
   keepScroll(() => { if (!movePallet(m, state.vehicles, d.from, d.pid, to, x, y)) flash('Sem se paleta nevejde.'); });
 }
 $('#detail').addEventListener('pointerup', e => endDrag(e, false));
+
+// ---------- learning: save a combination or a new article from the drop ----------
+function relearn() { state.manual.delete(state.sel); recalc(); }
+function askCombo(u, host) {
+  const dlg = $('#dlgCombo');
+  $('#dcText').innerHTML = 'Artikl <b>' + esc(u.code) + '</b> (' + u.qty + ' ks) pojede na paletě <b>' + esc(host) + '</b>.<br>Pravidlo: když je v zakázce ' + esc(host) + ' a ' + esc(u.code) + ' je nejvýše ' + u.qty + ' ks, jede na paletách ' + esc(host) + '.';
+  $('#dcKg').value = '';
+  dlg.onclose = () => {
+    if (dlg.returnValue !== 'yes') return;
+    state.combos.push({ on: true, code: u.code, withCode: host, min: 0, max: u.qty, mode: 'host', host, pl: 0, pw: 0, per: 0, kg: toNum($('#dcKg').value) || 0, name: '', note: 'Uloženo z nakládky' });
+    persist('combos'); drawCombos(); relearn();
+    flash('Kombinace uložena.');
+  };
+  dlg.returnValue = ''; dlg.showModal();
+}
+function askArticle(u) {
+  const dlg = $('#dlgArticle');
+  $('#daTitle').textContent = 'Nový artikl ' + u.code;
+  $('#daForm').reset();
+  dlg.onclose = () => {
+    if (dlg.returnValue !== 'yes') return;
+    const a = { code: u.code, name: $('#daName').value.trim(), pack: $('#daPack').value, pl: toNum($('#daL').value), pw: toNum($('#daW').value), per: Math.max(1, Math.round(toNum($('#daPer').value))), kg: toNum($('#daKg').value) || 0, rot: $('#daRot').checked };
+    state.catalog.push(a);
+    persist('catalog'); drawCatalog(); relearn();
+    flash('Artikl ' + u.code + ' uložen do číselníku.');
+  };
+  dlg.returnValue = ''; dlg.showModal();
+  $('#daName').focus();
+}
+$('#daPack').addEventListener('change', e => { $('#daPerLabel').textContent = e.target.value === 'balik' ? 'Kusů v balíku' : 'Kusů na paletě'; });
 $('#detail').addEventListener('pointercancel', e => endDrag(e, true));
 
 $('#detail').addEventListener('click', e => {
@@ -349,8 +398,8 @@ $('#comboAdd').addEventListener('click', () => {
 });
 const MODE_NAMES = { host: 'na palete artiklu', pallet: 'na jine palete', parcel: 'jako balik' };
 $('#comboExport').addEventListener('click', () => download('kombinace.csv',
-  [['aktivni', 'artikl', 'kdyz_je_v_zakazce', 'mnozstvi_od', 'mnozstvi_do', 'pojede', 'cil', 'delka_mm', 'sirka_mm', 'max_ks_na_paletu', 'poznamka']]
-    .concat(state.combos.map(r => [r.on !== false ? 'ano' : 'ne', r.code, r.withCode, r.min || '', r.max || '', MODE_NAMES[r.mode], r.host, r.pl || '', r.pw || '', r.per || '', r.note]))));
+  [['aktivni', 'artikl', 'kdyz_je_v_zakazce', 'mnozstvi_od', 'mnozstvi_do', 'pojede', 'cil', 'delka_mm', 'sirka_mm', 'max_ks_na_paletu', 'vaha_kusu_kg', 'poznamka']]
+    .concat(state.combos.map(r => [r.on !== false ? 'ano' : 'ne', r.code, r.withCode, r.min || '', r.max || '', MODE_NAMES[r.mode], r.host, r.pl || '', r.pw || '', r.per || '', r.kg ? String(r.kg).replace('.', ',') : '', r.note]))));
 $('#comboFile').addEventListener('change', async e => {
   const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
   try {

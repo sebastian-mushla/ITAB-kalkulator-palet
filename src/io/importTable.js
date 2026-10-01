@@ -202,6 +202,8 @@ export const COMBO_FIELDS = {
   pw: ['sirka', 'width', 'ширина'],
   per: ['max ks na paletu', 'ks na paletu', 'per', 'ks', 'шт'],
   note: ['poznamka', 'note', 'комментарий'],
+  kg: ['vaha kusu', 'vaha', 'weight', 'вес'],
+  name: ['nazev', 'name', 'название'],
   on: ['aktivni', 'active', 'on', 'активно']
 };
 function comboMode(v) {
@@ -223,7 +225,7 @@ export function rowsToCombos(rows) {
       on: toBool(get(r, 'on'), true), code: String(get(r, 'code')).trim(), withCode: String(get(r, 'withCode')).trim(),
       min: toNum(get(r, 'min') || 0) || 0, max: toNum(get(r, 'max') || 0) || 0, mode: comboMode(get(r, 'mode')),
       host: String(get(r, 'host')).trim(), pl: toNum(get(r, 'pl') || 0) || 0, pw: toNum(get(r, 'pw') || 0) || 0,
-      per: toNum(get(r, 'per') || 0) || 0, note: String(get(r, 'note')).trim()
+      per: toNum(get(r, 'per') || 0) || 0, note: String(get(r, 'note')).trim(), kg: toNum(get(r, 'kg') || 0) || 0, name: String(get(r, 'name')).trim()
     };
     if (!x.code) { errors.push('řádek ' + (hi + i + 2) + ': chybí artikl'); return; }
     if (x.mode === 'host' && !x.host) { errors.push('řádek ' + (hi + i + 2) + ': chybí artikl, na jehož paletě pojede'); return; }

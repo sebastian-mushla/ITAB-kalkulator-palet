@@ -114,7 +114,7 @@ document.documentElement.setAttribute('data-theme',t);})();
           <div id="comboReport"></div>
           <div class="tscroll">
             <table>
-              <thead><tr><th>Aktivní</th><th>Artikl</th><th>Když je v zakázce</th><th>Množství od</th><th>Množství do</th><th>Pojede</th><th>Na paletě artiklu</th><th>Délka palety, mm</th><th>Šířka palety, mm</th><th>Max ks na paletu</th><th>Poznámka</th><th></th></tr></thead>
+              <thead><tr><th>Aktivní</th><th>Artikl</th><th>Když je v zakázce</th><th>Množství od</th><th>Množství do</th><th>Pojede</th><th>Na paletě artiklu</th><th>Délka palety, mm</th><th>Šířka palety, mm</th><th>Max ks na paletu</th><th>Váha kusu, kg</th><th>Poznámka</th><th></th></tr></thead>
               <tbody id="comboBody"></tbody>
             </table>
           </div>
@@ -169,6 +169,26 @@ document.documentElement.setAttribute('data-theme',t);})();
     </main>
   </div>
 </div>
+<dialog class="dlg" id="dlgCombo">
+  <form method="dialog">
+    <h2>Uložit kombinaci?</h2>
+    <p id="dcText"></p>
+    <label>Váha kusu, kg (nepovinné)<input type="number" id="dcKg" min="0" step="any" placeholder="zatím neznámá"></label>
+    <div class="acts"><button class="btn" value="no">Ne</button><button class="btn primary" value="yes" id="dcYes">Ano, uložit</button></div>
+  </form>
+</dialog>
+<dialog class="dlg" id="dlgArticle">
+  <form method="dialog" id="daForm">
+    <h2 id="daTitle">Nový artikl</h2>
+    <p>Doplňte údaje, artikl se uloží do číselníku pro všechny.</p>
+    <label>Název<input type="text" id="daName"></label>
+    <label>Balení<select id="daPack"><option value="paleta">paleta</option><option value="balik">balík</option></select></label>
+    <div class="two"><label>Délka, mm<input type="number" id="daL" min="1" value="1200" required></label><label>Šířka, mm<input type="number" id="daW" min="1" value="800" required></label></div>
+    <div class="two"><label><span id="daPerLabel">Kusů na paletě</span><input type="number" id="daPer" min="1" step="1" value="1" required></label><label>Váha kusu, kg<input type="number" id="daKg" min="0" step="any" value="0" required></label></div>
+    <label class="inline"><input type="checkbox" id="daRot" checked>Lze otáčet</label>
+    <div class="acts"><button class="btn" value="no" formnovalidate>Zrušit</button><button class="btn primary" value="yes">Uložit artikl</button></div>
+  </form>
+</dialog>
 </div>
 <script type="module" src="src/main.js"></script>
 </body>

@@ -170,7 +170,7 @@ function vehiclePicker(r, vehicles) {
   return '<label class="picker"><span>Vozidlo</span><select id="forceVeh">' + opts.join('') + '</select></label>';
 }
 
-export function renderDetail(r, { rules, vehicles }) {
+export function renderDetail(r, { rules, vehicles, isAdmin }) {
   const el = $('#detail');
   if (!r) { el.innerHTML = '<div class="empty">Vložte zakázky do importu a klikněte na „Spočítat“.</div>'; return; }
   let h = '<div class="sec-head"><h2>Detail zakázky ' + esc(r.id) + '</h2>' + vehiclePicker(r, vehicles) + '</div>' + decisionHtml(r, rules);
@@ -187,13 +187,20 @@ export function renderDetail(r, { rules, vehicles }) {
   if (r.pallets.length || r.parcels.length) h += '<details class="panel"><summary>Parametry nákladu pro poptávku</summary><table><tbody>' + cargoRows(r).map(x => '<tr><th scope="row">' + esc(x[0]) + '</th><td>' + esc(x[1]) + '</td></tr>').join('') + '</tbody></table><p class="hint">LDM je odhad podle plochy palet: plocha ÷ šířka korby největšího vozidla.</p></details>';
 
   // visual at the bottom
-  if (r.vehicles.length || r.pallets.length) {
+  const unk = r.unknown || [];
+  const tray = unk.length ? '<aside class="tray" aria-label="Neznámé artikly"><h3>Neznámé artikly</h3><p class="hint">' +
+    (isAdmin ? 'Přetáhněte na paletu (uloží se kombinace) nebo na volné místo ve vozidle (nový artikl).' : 'Tyto artikly nejsou v číselníku. Požádejte administrátora o doplnění.') + '</p>' +
+    unk.map(u => '<div class="unk' + (isAdmin ? '' : ' ro') + '" data-code="' + esc(u.code) + '" data-qty="' + u.qty + '"' + (isAdmin ? ' title="Přetáhněte do vozidla"' : '') + '><b>' + esc(u.code) + '</b><span>' + fmtN(u.qty) + ' ks</span></div>').join('') + '</aside>' : '';
+  if (r.vehicles.length || r.pallets.length || unk.length) {
     const opts = vehicles.map((v, i) => '<option value="' + i + '">' + esc(v.name) + ' – ' + String(v.L).replace('.', ',') + ' × ' + String(v.W).replace('.', ',') + ' m</option>').join('');
     h += '<div class="sec-head vis"><h2>Nakládka' + (r.vehicles.length ? ': ' + esc(r.reco || 'žádné vozidlo') : '') + '</h2>' +
       '<div class="vehtools"><select id="addVehSel" aria-label="Vozidlo k přidání">' + opts + '</select><button class="btn" id="addVehBtn">+ Přidat vozidlo</button>' +
       (r.manualOn ? '<button class="btn" id="resetManual">Vrátit automatické rozložení</button>' : '') + '</div></div>';
+    h += '<div class="load' + (tray ? ' with-tray' : '') + '"><div class="load-main">';
     if (r.vehicles.length) h += '<p class="hint drag-hint">Paletu chyťte myší a přetáhněte jinam nebo do jiného vozidla. Dvojklik paletu otočí. Prázdné vozidlo odeberete křížkem.</p>';
     h += r.vehicles.map((v, i) => vehicleHtml(Object.assign({ idx: i }, v, { lift: vehicles[v.vi] && vehicles[v.vi].lift }))).join('');
+    if (!r.vehicles.length && unk.length) h += '<div class="panel empty-load">Zatím žádné vozidlo. Přidejte vozidlo tlačítkem „+ Přidat vozidlo“ a pak do něj přetáhněte neznámý artikl.</div>';
+    h += '</div>' + tray + '</div>';
     h += '<p class="note">Rozložení je orientační: pohled shora, palety nestohujeme, váha je bez vlastních palet. Nakládku a konečné rozhodnutí určuje dopravce.</p>';
   }
   const shipment = [];

@@ -4,7 +4,7 @@ import { findRule, ruleText } from './combos.js';
 // Splits order lines into full pallets + one partial pallet per article, or into parcels for pack = 'balik'.
 // combos (Kombinace tab) can override this per order; see combos.js.
 export function makePallets(lines, catalog, combos = []) {
-  const pallets = [], parcels = [], errors = [], rows = [];
+  const pallets = [], parcels = [], errors = [], rows = [], unknown = [];
   const index = new Map(catalog.map((a, i) => [String(a.code).trim().toLowerCase(), i]));
   const present = new Set(lines.map(l => l.code.toLowerCase()));
   const riders = [];
@@ -21,7 +21,18 @@ export function makePallets(lines, catalog, combos = []) {
 
   lines.forEach(l => {
     const idx = index.has(l.code.toLowerCase()) ? index.get(l.code.toLowerCase()) : -1;
-    if (idx < 0) { errors.push('Artikl „' + l.code + '“ není v číselníku, nebyl spočítán.'); return; }
+    if (idx < 0) {
+      // not in the catalog yet: it can still ride on a host pallet if a Kombinace rule says so
+      const r0 = findRule(l.code, l.qty, present, combos);
+      if (r0 && r0.mode === 'host') {
+        const a0 = { code: l.code, name: r0.name || '', kg: r0.kg || 0, per: 0, pl: 0, pw: 0, unknown: true };
+        const ci = catalog.length + unknown.length + riders.length;
+        const row = { code: l.code, name: a0.name, qty: l.qty, kg: l.qty * a0.kg, ci, rule: ruleText(r0) };
+        riders.push({ a: a0, idx: ci, qty: l.qty, rule: r0, row }); rows.push(row); return;
+      }
+      unknown.push({ code: l.code, qty: l.qty });
+      errors.push('Artikl „' + l.code + '“ není v číselníku, nebyl spočítán.'); return;
+    }
     let a = catalog[idx];
     const rule = findRule(a.code, l.qty, present, combos);
     const row = { code: a.code, name: a.name, qty: l.qty, kg: l.qty * (a.kg || 0), ci: idx, rule: rule ? ruleText(rule) : null };
@@ -46,12 +57,16 @@ export function makePallets(lines, catalog, combos = []) {
       left -= n;
     });
     row.onHost = qty - left; row.host = rule.host;
-    if (left > 0) {
+    if (left > 0 && a.unknown) {
+      unknown.push({ code: a.code, qty: left });
+      errors.push('Artikl „' + a.code + '“: ' + left + ' ks se nevešlo na palety ' + rule.host + ' a není v číselníku.');
+      Object.assign(row, { pack: 'paleta', full: 0, rem: 0, per: 0, fillRem: 0, count: 0 });
+    } else if (left > 0) {
       if (!(a.per > 0) || !(a.pl > 0) || !(a.pw > 0)) { errors.push('U artiklu „' + a.code + '“ chybí rozměry nebo počet kusů.'); return; }
       build(a, idx, left, row);
     } else Object.assign(row, { pack: 'paleta', full: 0, rem: 0, per: a.per, fillRem: 0, count: 0 });
   });
-  return { pallets, parcels, errors, rows };
+  return { pallets, parcels, errors, rows, unknown };
 }
 const low = s => String(s == null ? '' : s).trim().toLowerCase();
 

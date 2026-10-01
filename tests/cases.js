@@ -148,6 +148,25 @@ cases.push(
   }]
 );
 
+cases.push(
+  ['Učení: neznámý artikl → seznam neznámých', () => {
+    const r = solve(order('A;V06;2\nA;XX-1;5'), ctx);
+    assert(r.unknown.length === 1 && r.unknown[0].code === 'XX-1' && r.unknown[0].qty === 5, JSON.stringify(r.unknown));
+  }],
+  ['Učení: kombinace pro neznámý artikl → jede na V06, váha z pravidla', () => {
+    const combos = [{ on: true, code: 'XX-1', withCode: 'V06', min: 0, max: 5, mode: 'host', host: 'V06', pl: 0, pw: 0, per: 0, kg: 2 }];
+    const r = solve(order('A;V06;2\nA;XX-1;5'), Object.assign({}, ctx, { combos }));
+    assert(r.unknown.length === 0 && r.pallets.length === 2, 'unknown ' + r.unknown.length + ', palet ' + r.pallets.length);
+    assert(r.pallets.some(p => p.extra && p.extra[0].code === 'XX-1' && p.extra[0].units === 5), 'extra');
+    assert(Math.round(r.kg) === 410, 'kg ' + r.kg);
+  }],
+  ['Učení: víc kusů než v kombinaci → znovu neznámý', () => {
+    const combos = [{ on: true, code: 'XX-1', withCode: 'V06', min: 0, max: 5, mode: 'host', host: 'V06', pl: 0, pw: 0, per: 0, kg: 2 }];
+    const r = solve(order('A;V06;2\nA;XX-1;8'), Object.assign({}, ctx, { combos }));
+    assert(r.unknown.length === 1 && r.unknown[0].qty === 8, JSON.stringify(r.unknown));
+  }]
+);
+
 export function runAll() {
   return cases.map(([name, fn]) => {
     try { fn(); return { name, ok: true }; } catch (e) { return { name, ok: false, msg: e.message }; }

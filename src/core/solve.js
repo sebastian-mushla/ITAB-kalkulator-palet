@@ -22,7 +22,7 @@ export function groupItems(items) {
 export function solve(o, { catalog, vehicles, rules, combos = [], forced = null }) {
   const mp = makePallets([...o.lines.values()], catalog, combos);
   const r = {
-    id: o.id, pallets: mp.pallets, parcels: mp.parcels, errors: mp.errors, rows: mp.rows,
+    id: o.id, pallets: mp.pallets, parcels: mp.parcels, errors: mp.errors, rows: mp.rows, unknown: mp.unknown,
     kg: 0, units: 0, groupage: null, parcelInfo: null, vehicles: [], oversize: [], mode: 'empty', reco: '', forced
   };
   r.kg = mp.rows.reduce((s, x) => s + x.kg, 0);

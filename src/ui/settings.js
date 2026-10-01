@@ -55,9 +55,10 @@ export function renderCombos(combos, catalog) {
       txt('code', 'artikl') + txt('withCode', 'libovolně') + num('min', '–') + num('max', '–') +
       '<td><select data-i="' + i + '" data-f="mode" aria-label="Pojede">' + COMBO_MODES.map(m => '<option value="' + m[0] + '"' + (r.mode === m[0] ? ' selected' : '') + '>' + m[1] + '</option>').join('') + '</select></td>' +
       txt('host', 'artikl', !host) + num('pl', host ? '' : 'z číselníku', host) + num('pw', host ? '' : 'z číselníku', host) + num('per', host ? 'bez limitu' : 'z číselníku') +
+      '<td><input type="number" min="0" step="any" data-i="' + i + '" data-f="kg" value="' + (r.kg > 0 ? r.kg : '') + '" placeholder="z číselníku"></td>' +
       '<td><input type="text" data-i="' + i + '" data-f="note" value="' + esc(r.note || '') + '" aria-label="Poznámka"></td>' +
       '<td class="nowrap"><button class="btn small" data-up="' + i + '" aria-label="Výš"' + (i === 0 ? ' disabled' : '') + '>↑</button> <button class="btn small" data-down="' + i + '" aria-label="Níž"' + (i === combos.length - 1 ? ' disabled' : '') + '>↓</button> <button class="btn small" data-del="' + i + '">Smazat</button></td></tr>';
-  }).join('') || '<tr><td colspan="13" class="empty">Zatím žádná pravidla. Bez pravidel platí běžný výpočet z číselníku.</td></tr>';
+  }).join('') || '<tr><td colspan="14" class="empty">Zatím žádná pravidla. Bez pravidel platí běžný výpočet z číselníku.</td></tr>';
   $('#comboBody').insertAdjacentHTML('beforeend', codes);
 }
 
