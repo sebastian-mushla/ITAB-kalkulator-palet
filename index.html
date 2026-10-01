@@ -179,10 +179,12 @@ document.documentElement.setAttribute('data-theme',t);})();
 </dialog>
 <dialog class="dlg" id="dlgCombo">
   <form method="dialog">
-    <h2>Uložit kombinaci?</h2>
+    <h2>Přesunout artikl na paletu</h2>
     <p id="dcText"></p>
     <label>Váha kusu, kg (nepovinné)<input type="number" id="dcKg" min="0" step="any" placeholder="zatím neznámá"></label>
-    <div class="acts"><button class="btn" value="no">Ne</button><button class="btn primary" value="yes" id="dcYes">Ano, uložit</button></div>
+    <label class="inline"><input type="checkbox" id="dcRemember" checked>Zapamatovat kombinaci pro další zakázky</label>
+    <p class="hint" id="dcRule"></p>
+    <div class="acts"><button class="btn" value="no">Zrušit</button><button class="btn primary" value="yes" id="dcYes">Přesunout na paletu</button></div>
   </form>
 </dialog>
 <dialog class="dlg" id="dlgArticle">

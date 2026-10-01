@@ -28,7 +28,7 @@ const state = {
   combos: Array.isArray(shared.combos) ? shared.combos : clone(DEFAULT_COMBOS),
   rules: Object.assign(clone(DEFAULT_RULES), shared.rules || {}),
   csv: load(KEYS.csv, SAMPLE),
-  orders: new Map(), results: new Map(), forced: new Map(), manual: new Map(), done: new Set(load('itab.done.v1', [])), isAdmin, sel: null, prioHidden: false,
+  orders: new Map(), results: new Map(), forced: new Map(), manual: new Map(), oneOff: new Map(), done: new Set(load('itab.done.v1', [])), isAdmin, sel: null, prioHidden: false,
   catView: { q: '', page: 0 }
 };
 
@@ -55,7 +55,8 @@ function persist(name) {
 
 // ---------- calculation ----------
 function ctx(id) {
-  return { catalog: state.catalog, vehicles: state.vehicles, rules: state.rules, combos: state.combos, forced: state.forced.has(id) ? state.forced.get(id) : null };
+  // one-off moves (not remembered) apply only to that order and win over saved rules
+  return { catalog: state.catalog, vehicles: state.vehicles, rules: state.rules, combos: (state.oneOff.get(id) || []).concat(state.combos), forced: state.forced.has(id) ? state.forced.get(id) : null };
 }
 function recalc() {
   state.results = new Map();
@@ -85,7 +86,7 @@ function importOrders(text, open, initial) {
   const fresh = [...res.orders.keys()];
   // a new import clears the orders marked as done
   if (fresh.length && !initial) { state.done.forEach(id => { state.orders.delete(id); state.forced.delete(id); state.manual.delete(id); }); state.done.clear(); save('itab.done.v1', []); }
-  fresh.forEach(id => { state.forced.delete(id); state.manual.delete(id); state.orders.delete(id); });
+  fresh.forEach(id => { state.forced.delete(id); state.manual.delete(id); state.oneOff.delete(id); state.orders.delete(id); });
   state.orders = new Map([...res.orders, ...state.orders]);
   state.prioHidden = false;
   $('#problems').textContent = res.problems.length ? 'Nerozpoznáno: ' + res.problems.join('; ') + '.' : '';
@@ -95,7 +96,7 @@ function importOrders(text, open, initial) {
   if (open && fresh.length) goDetail();
 }
 function removeOrder(id) {
-  state.orders.delete(id); state.results.delete(id); state.forced.delete(id); state.manual.delete(id);
+  state.orders.delete(id); state.results.delete(id); state.forced.delete(id); state.manual.delete(id); state.oneOff.delete(id);
   if (state.done.delete(id)) save('itab.done.v1', [...state.done]);
   if (state.sel === id) state.sel = state.orders.size ? state.orders.keys().next().value : null;
   saveOrderList();
@@ -275,13 +276,16 @@ function askCombo(u, host) {
   const dlg = $('#dlgCombo');
   const hostArt = state.catalog.find(a => String(a.code).toLowerCase() === host.toLowerCase());
   const nm = (code, name) => '<b>' + esc(code) + '</b>' + (name ? ' <span class="dlg-name">' + esc(name) + '</span>' : '');
-  $('#dcText').innerHTML = 'Artikl ' + nm(u.code, u.name) + ' (' + u.qty + ' ks)<br>pojede na paletě ' + nm(host, hostArt && hostArt.name) + '.<br><br>Pravidlo: když je v zakázce ' + esc(host) + ' a ' + esc(u.code) + ' je nejvýše ' + u.qty + ' ks, jede na paletách ' + esc(host) + '.';
-  $('#dcKg').value = '';
-  dlg.onclose = () => {
-    if (dlg.returnValue !== 'yes') return;
-    state.combos.push({ on: true, code: u.code, withCode: host, min: 0, max: u.qty, mode: 'host', host, pl: 0, pw: 0, per: 0, kg: toNum($('#dcKg').value) || 0, name: u.name || '', note: 'Uloženo z nakládky' });
-    persist('combos'); drawCombos(); relearn();
-    flash('Kombinace uložena.');
+  $('#dcText').innerHTML = 'Artikl ' + nm(u.code, u.name) + ' (' + u.qty + ' ks)<br>pojede na paletě ' + nm(host, hostArt && hostArt.name) + '.';
+  $('#dcRule').textContent = 'Pravidlo: když je v zakázce ' + host + ' a ' + u.code + ' je nejvýše ' + u.qty + ' ks, jede na paletách ' + host + '.';
+  $('#dcKg').value = ''; $('#dcRemember').checked = true; $('#dcRule').hidden = false;
+  // act on the button press itself; the dialog's close event is not reliable in every browser
+  dlg.querySelector('form').onsubmit = ev => {
+    if (!ev.submitter || ev.submitter.value !== 'yes') return;
+    const rule = { on: true, code: u.code, withCode: host, min: 0, max: u.qty, mode: 'host', host, pl: 0, pw: 0, per: 0, kg: toNum($('#dcKg').value) || 0, name: u.name || '', note: 'Uloženo z nakládky' };
+    if ($('#dcRemember').checked) { state.combos.push(rule); persist('combos'); drawCombos(); flash('Přesunuto a kombinace uložena.'); }
+    else { const id = state.sel; state.oneOff.set(id, (state.oneOff.get(id) || []).concat([rule])); flash('Přesunuto jen pro tuto zakázku.'); }
+    relearn();
   };
   dlg.returnValue = ''; dlg.showModal();
 }
@@ -291,8 +295,9 @@ function askArticle(u) {
   $('#daForm').reset();
   // names come from the order (ERP / designers) and are not edited here
   $('#daName').value = u.name || ''; $('#daName').readOnly = !!u.name;
-  dlg.onclose = () => {
-    if (dlg.returnValue !== 'yes') return;
+  // act on the button press itself; the dialog's close event is not reliable in every browser
+  dlg.querySelector('form').onsubmit = ev => {
+    if (!ev.submitter || ev.submitter.value !== 'yes') return;
     const a = { code: u.code, name: $('#daName').value.trim(), pack: $('#daPack').value, pl: toNum($('#daL').value), pw: toNum($('#daW').value), per: Math.max(1, Math.round(toNum($('#daPer').value))), kg: toNum($('#daKg').value) || 0, rot: $('#daRot').checked };
     state.catalog.push(a);
     persist('catalog'); drawCatalog(); relearn();
@@ -301,6 +306,7 @@ function askArticle(u) {
   dlg.returnValue = ''; dlg.showModal();
   (u.name ? $('#daL') : $('#daName')).focus();
 }
+$('#dcRemember').addEventListener('change', e => { $('#dcRule').hidden = !e.target.checked; });
 $('#daPack').addEventListener('change', e => { $('#daPerLabel').textContent = e.target.value === 'balik' ? 'Kusů v balíku' : 'Kusů na paletě'; });
 $('#detail').addEventListener('pointercancel', e => endDrag(e, true));
 
