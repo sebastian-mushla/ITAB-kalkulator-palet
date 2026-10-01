@@ -305,3 +305,6 @@ dialog.dlg .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 dialog.dlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
 .ftext .unk-line{color:var(--amber);font-weight:600;font-size:12.5px}
 .feed .chip{flex:none}
+.rgrid label.rule-bool{grid-column:1/-1;display:flex;align-items:flex-start;gap:10px}
+.rgrid label.rule-bool span{margin:0}
+.rgrid label.rule-bool input{width:auto;margin-top:3px}

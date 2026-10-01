@@ -416,6 +416,7 @@ $('#comboFile').addEventListener('change', async e => {
 // ---------- rules ----------
 $('#rulesGrid').addEventListener('input', e => {
   const k = e.target.getAttribute('data-r'); if (!k) return;
+  if (e.target.type === 'checkbox') { state.rules[k] = e.target.checked; persist('rules'); later(); return; }
   const v = toNum(e.target.value); if (!(v > 0)) return;
   state.rules[k] = v; persist('rules'); later();
 });

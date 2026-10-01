@@ -55,7 +55,7 @@ export function solve(o, { catalog, vehicles, rules, combos = [], forced = null 
   r.groupage = groupageCheck(mp.pallets, rules);
   if (r.groupage.ok && forced == null) { r.mode = 'groupage'; r.stat = 'Sběrná služba'; }
   else {
-    const pk = packAll(mp.pallets, vehicles, forced);
+    const pk = packAll(mp.pallets, vehicles, forced, rules.oneVeh !== false);
     r.vehicles = pk.vehicles; r.oversize = pk.oversize;
     r.reco = recoText(pk.vehicles);
     if (pk.oversize.length) { r.mode = 'warn'; r.stat = 'Zkontrolovat'; }

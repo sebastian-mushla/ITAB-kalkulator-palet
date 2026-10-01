@@ -58,9 +58,19 @@ export const cases = [
     assert(r.mode === 'warn' && r.oversize.length > 0, 'mode: ' + r.mode);
     checkLayout(r);
   }],
-  ['Malá zakázka 5 europalet (2340 kg) → bez kamionu', () => {
+  ['Jedna zakázka = jedno vozidlo: 5 europalet (2340 kg) → 1 kamion, ne 3 dodávky', () => {
+    const r = solve(parseOrders('X;V-POL;' + (156 * 5)).orders.get('X'), ctx);
+    assert(r.vehicles.length === 1 && r.vehicles[0].type === 'kamion', r.reco);
+    checkLayout(r);
+  }],
+  ['Jedna zakázka = jedno vozidlo: 2 europalety (900 kg) → nejlevnější vozidlo, které unese vše', () => {
+    const r = solve(parseOrders('X;V-POL;300').orders.get('X'), Object.assign({}, ctx, { rules: Object.assign({}, DEFAULT_RULES, { gMax: 0 }) }));
+    assert(r.vehicles.length === 1 && r.vehicles[0].type === 'dodavka', r.reco);
+    checkLayout(r);
+  }],
+  ['Pravidlo vypnuto: 5 europalet → menší vozidla, bez kamionu', () => {
     const o = parseOrders('X;V-POL;' + (156 * 5)).orders.get('X');
-    const r = solve(o, ctx);
+    const r = solve(o, Object.assign({}, ctx, { rules: Object.assign({}, DEFAULT_RULES, { oneVeh: false }) }));
     assert(r.mode === 'trucks' && r.vehicles.every(v => v.type !== 'kamion'), r.reco);
     checkLayout(r);
   }],

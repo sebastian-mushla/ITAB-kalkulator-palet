@@ -63,8 +63,9 @@ export function renderCombos(combos, catalog) {
 }
 
 export function renderRules(rules) {
-  $('#rulesGrid').innerHTML = RULE_FIELDS.map(f =>
-    '<label><span>' + f[1] + '</span><input type="number" step="' + f[2] + '" min="0" data-r="' + f[0] + '" value="' + rules[f[0]] + '"></label>').join('');
+  $('#rulesGrid').innerHTML = RULE_FIELDS.map(f => f[2] === 'bool'
+    ? '<label class="rule-bool"><input type="checkbox" data-r="' + f[0] + '"' + (rules[f[0]] !== false ? ' checked' : '') + '><span>' + f[1] + '</span></label>'
+    : '<label><span>' + f[1] + '</span><input type="number" step="' + f[2] + '" min="0" data-r="' + f[0] + '" value="' + rules[f[0]] + '"></label>').join('');
 }
 
 export function importReport(el, res, merged, replaced) {

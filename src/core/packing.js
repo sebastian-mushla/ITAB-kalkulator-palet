@@ -83,7 +83,8 @@ function fillBins(list, primary, bySize) {
 }
 
 // pallets -> vehicles. `forced` = index into vehicles to use only that vehicle.
-export function packAll(pallets, vehicles, forced) {
+// oneVehicle: an order goes in a single vehicle whenever one can take it all (company rule), even if several smaller ones are cheaper
+export function packAll(pallets, vehicles, forced, oneVehicle) {
   let pool = prepareVehicles(vehicles);
   if (forced != null) pool = pool.filter(v => v.vi === forced);
   const oversize = [], items = [];
@@ -111,7 +112,17 @@ export function packAll(pallets, vehicles, forced) {
   // try filling each distinct body size first; the largest one is the baseline
   const primaries = bySize.filter((v, i) => bySize.findIndex(x => x.Lmm === v.Lmm && x.Wmm === v.Wmm && x.kg === v.kg && x.eup === v.eup) === i);
   let best = null;
-  primaries.forEach(P => {
+  if (oneVehicle && forced == null) {
+    const byCost = pool.slice().sort((a, b) => (a.cost || 0) - (b.cost || 0) || a.Lmm * a.Wmm - b.Lmm * b.Wmm);
+    for (const v of byCost) {
+      if (!items.every(it => fitsVehicle(it, v))) continue;
+      if (items.reduce((s, it) => s + it.kg, 0) > v.kg) continue;
+      if (v.eup > 0 && items.length > v.eup) continue;
+      const one = lists.map(list => fillBins(list, v, [v])).find(bins => bins.length === 1 && bins[0].items.length === items.length);
+      if (one) { best = { c: v.cost || 0, typed: [{ v, b: one[0] }] }; break; }
+    }
+  }
+  if (!best) primaries.forEach(P => {
     lists.forEach(list => {
       const bins = fillBins(list, P, bySize);
       let c = 0;

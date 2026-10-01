@@ -17,8 +17,9 @@ export const VEHICLE_TYPES = [
   ['kamion', 'Kamion'], ['plachta', 'Plachťák'], ['celo', 'Dodávka s čelem'], ['dodavka', 'Dodávka'], ['jine', 'Jiné']
 ];
 
-export const DEFAULT_RULES = { gMax: 3, oL: 2.4, oW: 1.2, pKg: 31.5, pL: 1.2 };
+export const DEFAULT_RULES = { oneVeh: true, gMax: 3, oL: 2.4, oW: 1.2, pKg: 31.5, pL: 1.2 };
 export const RULE_FIELDS = [
+  ['oneVeh', 'Jedna zakázka jede jedním vozidlem, pokud se vejde (i když by víc menších vozidel vyšlo levněji)', 'bool'],
   ['gMax', 'Sběrná služba: maximum europalet', '1'],
   ['pKg', 'Balík: maximální váha, kg', '0.5'],
   ['pL', 'Balík: nejdelší strana, m', '0.05'],
