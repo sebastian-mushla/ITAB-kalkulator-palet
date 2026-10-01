@@ -253,6 +253,15 @@ export function renderPriorities(res, hidden) {
     items.map(it => '<li><i class="pdot ' + it.c + '"></i><span>' + it.t + '</span><button class="linkbtn ' + (it.c === 'red' ? 'red' : '') + '" ' + (it.id ? 'data-id="' + esc(it.id) + '"' : 'data-view="' + it.view + '"') + '>' + it.a + ' ›</button></li>').join('') + '</ul></section>';
 }
 
+// ring like a usage meter: share of the order's articles that are in the catalog
+function ring(known, total) {
+  const p = total ? known / total : 1, C = 2 * Math.PI * 14;
+  const col = p >= 1 ? 'var(--green)' : p >= 0.5 ? 'var(--amber)' : 'var(--red)';
+  return '<svg class="ring" viewBox="0 0 36 36" width="38" height="38" role="img" aria-label="Zařazeno ' + known + ' z ' + total + ' artiklů"><title>Zařazeno ' + known + ' z ' + total + ' artiklů</title>' +
+    '<circle cx="18" cy="18" r="14" style="fill:none;stroke:var(--line);stroke-width:4"/>' +
+    '<circle cx="18" cy="18" r="14" transform="rotate(-90 18 18)" style="fill:none;stroke:' + col + ';stroke-width:4;stroke-linecap:round;stroke-dasharray:' + (C * p).toFixed(1) + ' ' + C.toFixed(1) + '"/>' +
+    '<text x="18" y="21.5" style="fill:var(--ink);font-size:' + (total >= 10 ? 8 : 10) + 'px;font-weight:700;text-anchor:middle">' + known + '/' + total + '</text></svg>';
+}
 function unkChip(r) {
   const n = (r.unknown || []).length;
   return n ? '<span class="unk-line" title="' + esc(r.unknown.map(u => u.code).join(', ')) + '">' + n + ' ' + plural(n, ['nezařazený artikl', 'nezařazené artikly', 'nezařazených artiklů']) + '</span>' : '';
@@ -267,8 +276,10 @@ export function renderList(orders, results, sel, q) {
   $('#orderCount').textContent = zak(ids.length);
   if (!ids.length) { ul.innerHTML = '<li class="empty">' + (orders.size ? 'Nic nenalezeno.' : 'Zakázky zatím nejsou.') + '</li>'; return; }
   ul.innerHTML = ids.map(id => {
-    const r = results.get(id), c = (r.mode === 'groupage' || r.mode === 'parcels') ? 'green' : (r.mode === 'trucks' ? 'blue' : 'amber');
-    return '<li class="feedrow"><button class="feed" data-id="' + esc(id) + '"' + (id === sel ? ' aria-current="true"' : '') + '><i class="fdot ' + c + '"></i><span class="ftext"><b>Zakázka ' + esc(id) + '</b><span>' + esc(r.listInfo) + (r.vehicles.length ? ' · ' + esc(r.reco) : '') + '</span>' + unkChip(r) + '</span><span class="chip ' + c + '">' + esc(r.stat) + '</span></button>' +
+    const r0 = results.get(id), total = orders.get(id).lines.size;
+    const r = Object.assign({}, r0, { total, known: total - new Set((r0.unknown || []).map(u => u.code.toLowerCase())).size });
+    const c = (r.mode === 'groupage' || r.mode === 'parcels') ? 'green' : (r.mode === 'trucks' ? 'blue' : 'amber');
+    return '<li class="feedrow"><button class="feed" data-id="' + esc(id) + '"' + (id === sel ? ' aria-current="true"' : '') + '>' + ring(r.known, r.total) + '<span class="ftext"><b>Zakázka ' + esc(id) + '</b><span>' + esc(r.listInfo) + (r.vehicles.length ? ' · ' + esc(r.reco) : '') + '</span>' + unkChip(r) + '</span><span class="chip ' + c + '">' + esc(r.stat) + '</span></button>' +
       '<button class="feed-x" data-del="' + esc(id) + '" aria-label="Odebrat zakázku ' + esc(id) + '" title="Odebrat ze seznamu">×</button></li>';
   }).join('');
 }

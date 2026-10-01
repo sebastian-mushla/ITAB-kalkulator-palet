@@ -320,3 +320,4 @@ dialog.dlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
 .dlg-name{color:var(--ink2);font-weight:500}
 dialog.dlg input[readonly]{opacity:.75;cursor:not-allowed}
 .ro-name{display:inline-block;padding:6px 2px;color:var(--ink)}
+.feed .ring{flex:none}
