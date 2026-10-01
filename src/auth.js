@@ -17,6 +17,11 @@ function showLogin(msg) {
 
 // Resolves with { user, role } once somebody is signed in.
 export async function requireLogin() {
+  // local development only: http://localhost:5173/?demo opens the app as admin without saving anything
+  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).has('demo')) {
+    $('#login').hidden = true; $('#appRoot').hidden = false;
+    return { user: { id: null, email: 'demo (lokálně)' }, role: 'admin', demo: true };
+  }
   const { data } = await sb.auth.getSession();
   if (data.session) {
     const me = await profileOf(data.session.user);

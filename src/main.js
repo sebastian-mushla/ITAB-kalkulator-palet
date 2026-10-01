@@ -2,6 +2,7 @@ import { clone, toNum } from './core/util.js';
 import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, SAMPLE } from './core/defaults.js';
 import { parseOrders, rowsToOrderText } from './core/parse.js';
 import { solve } from './core/solve.js';
+import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle } from './core/manual.js';
 import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, mergeBy, toCsv } from './io/importTable.js';
 import { renderKpis, renderPriorities, renderList, renderDetail, requestText } from './ui/orders.js';
 import { requireLogin, loadSettings, saveSetting, signOut, changePassword, listProfiles, setRole, adminUsers } from './auth.js';
@@ -9,7 +10,7 @@ import { esc } from './core/util.js';
 import { renderCatalog, renderVehicles, renderCombos, renderRules, importReport } from './ui/settings.js';
 
 const $ = s => document.querySelector(s);
-const KEYS = { catalog: 'itab.catalog.v1', vehicles: 'itab.vehicles.v1', rules: 'itab.rules.v1', combos: 'itab.combos.v1', csv: 'itab.orders.v1' };
+const KEYS = { list: 'itab.orderlist.v1', catalog: 'itab.catalog.v1', vehicles: 'itab.vehicles.v1', rules: 'itab.rules.v1', combos: 'itab.combos.v1', csv: 'itab.orders.v1' };
 function load(key, def) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
 function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* storage full or blocked */ } }
 
@@ -18,19 +19,19 @@ function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); 
 const me = await requireLogin();
 const isAdmin = me.role === 'admin';
 let shared = {};
-try { shared = await loadSettings(); } catch (e) { alert(e.message); }
+if (!me.demo) { try { shared = await loadSettings(); } catch (e) { alert(e.message); } }
 const state = {
   catalog: Array.isArray(shared.catalog) && shared.catalog.length ? shared.catalog : clone(DEFAULT_CATALOG),
   vehicles: Array.isArray(shared.vehicles) && shared.vehicles.length ? shared.vehicles : clone(DEFAULT_VEHICLES),
   combos: Array.isArray(shared.combos) ? shared.combos : clone(DEFAULT_COMBOS),
   rules: Object.assign(clone(DEFAULT_RULES), shared.rules || {}),
   csv: load(KEYS.csv, SAMPLE),
-  orders: new Map(), results: new Map(), forced: new Map(), sel: null, prioHidden: false,
+  orders: new Map(), results: new Map(), forced: new Map(), manual: new Map(), sel: null, prioHidden: false,
   catView: { q: '', page: 0 }
 };
 
 // first admin login: move what this browser had saved locally into the shared database
-if (isAdmin) {
+if (isAdmin && !me.demo) {
   [['catalog', 'itab.catalog.v1'], ['vehicles', 'itab.vehicles.v1'], ['combos', 'itab.combos.v1'], ['rules', 'itab.rules.v1']].forEach(([name, key]) => {
     if (shared[name] != null) return;
     const local = load(key, null);
@@ -41,7 +42,7 @@ if (isAdmin) {
 
 // admin edits go to the shared database; plain users cannot write (RLS)
 function persist(name) {
-  if (!isAdmin) return;
+  if (!isAdmin || me.demo) return;
   const el = $('#saveState');
   el.textContent = 'Ukládám…'; el.className = 'save-state';
   saveSetting(name, state[name], me.user.id, err => {
@@ -61,19 +62,39 @@ function recalc() {
   if (!state.orders.has(state.sel)) state.sel = state.orders.size ? state.orders.keys().next().value : null;
   renderOverview();
 }
+// result as shown: with the operator's manual loading plan applied
+function view(id) { const r = state.results.get(id); return r ? viewOf(r, state.manual.get(id), state.vehicles) : null; }
+function views() { return new Map([...state.results.keys()].map(id => [id, view(id)])); }
 function renderOverview() {
-  const res = [...state.results.values()];
+  const vs = views(), res = [...vs.values()];
   renderKpis(res);
   renderPriorities(res, state.prioHidden);
-  renderList(state.orders, state.results, state.sel, $('#q').value);
-  renderDetail(state.results.get(state.sel), state);
+  renderList(state.orders, vs, state.sel, $('#q').value);
+  renderDetail(vs.get(state.sel), state);
 }
-function importOrders(text) {
+function saveOrderList() {
+  const lines = [];
+  state.orders.forEach(o => o.lines.forEach(l => lines.push(o.id + ';' + l.code + ';' + l.qty)));
+  save(KEYS.list, lines.join('\n'));
+}
+// new orders go to the top of the list and the first one opens; older ones stay
+function importOrders(text, open) {
   const res = parseOrders(text);
-  state.orders = res.orders; state.forced = new Map(); state.prioHidden = false;
+  const fresh = [...res.orders.keys()];
+  fresh.forEach(id => { state.forced.delete(id); state.manual.delete(id); state.orders.delete(id); });
+  state.orders = new Map([...res.orders, ...state.orders]);
+  state.prioHidden = false;
   $('#problems').textContent = res.problems.length ? 'Nerozpoznáno: ' + res.problems.join('; ') + '.' : '';
-  state.sel = state.orders.size ? state.orders.keys().next().value : null;
+  if (fresh.length) state.sel = fresh[0];
+  saveOrderList();
   recalc();
+  if (open && fresh.length) goDetail();
+}
+function removeOrder(id) {
+  state.orders.delete(id); state.results.delete(id); state.forced.delete(id); state.manual.delete(id);
+  if (state.sel === id) state.sel = state.orders.size ? state.orders.keys().next().value : null;
+  saveOrderList();
+  renderOverview();
 }
 let timer = null;
 function later() { clearTimeout(timer); timer = setTimeout(recalc, 250); }
@@ -93,24 +114,28 @@ function goDetail() {
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (d && d.scrollIntoView) d.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
 }
-function select(id) { state.sel = id; renderList(state.orders, state.results, state.sel, $('#q').value); renderDetail(state.results.get(id), state); goDetail(); }
+function select(id) { state.sel = id; renderOverview(); goDetail(); }
 
-$('#q').addEventListener('input', () => { showView('orders'); renderList(state.orders, state.results, state.sel, $('#q').value); });
+$('#q').addEventListener('input', () => { showView('orders'); renderList(state.orders, views(), state.sel, $('#q').value); });
 $('#prio').addEventListener('click', e => {
   if (e.target.id === 'prioHide') { state.prioHidden = true; renderPriorities([], true); return; }
   const b = e.target.closest('button[data-id],button[data-view]'); if (!b) return;
   if (b.getAttribute('data-view')) { showView(b.getAttribute('data-view')); return; }
   select(b.getAttribute('data-id'));
 });
-$('#orderList').addEventListener('click', e => { const b = e.target.closest('.feed'); if (b) select(b.getAttribute('data-id')); });
+$('#orderList').addEventListener('click', e => {
+  const x = e.target.closest('.feed-x');
+  if (x) { removeOrder(x.getAttribute('data-del')); return; }
+  const b = e.target.closest('.feed'); if (b) select(b.getAttribute('data-id'));
+});
 
 // ---------- order import ----------
-$('#btnCalc').addEventListener('click', () => { state.csv = $('#csv').value; save(KEYS.csv, state.csv); importOrders(state.csv); });
+$('#btnCalc').addEventListener('click', () => { state.csv = $('#csv').value; save(KEYS.csv, state.csv); importOrders(state.csv, true); });
 async function orderFile(f) {
   try {
     const { rows, text } = await readFileRows(f);
     const t = isSpreadsheet(f.name) || /\.csv$/i.test(f.name) ? rowsToOrderText(rows) : text;
-    $('#csv').value = t; state.csv = t; save(KEYS.csv, t); importOrders(t);
+    $('#csv').value = t; state.csv = t; save(KEYS.csv, t); importOrders(t, true);
   } catch (err) { $('#problems').textContent = err.message; }
 }
 $('#file').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; if (f) orderFile(f); e.target.value = ''; });
@@ -124,13 +149,90 @@ $('#detail').addEventListener('change', e => {
   if (e.target.id !== 'forceVeh') return;
   const id = state.sel, v = e.target.value;
   if (v === '') state.forced.delete(id); else state.forced.set(id, Number(v));
+  state.manual.delete(id);
   const o = state.orders.get(id);
   state.results.set(id, solve(o, ctx(id)));
   renderOverview();
 });
+// ---------- manual loading ----------
+function manualOf(id) {
+  if (!state.manual.has(id)) state.manual.set(id, fromResult(state.results.get(id)));
+  return state.manual.get(id);
+}
+function keepScroll(fn) { const y = window.scrollY; fn(); renderOverview(); window.scrollTo(0, y); }
+let flashMsg = null;
+function flash(text) {
+  clearTimeout(flashMsg);
+  let el = $('#dragMsg');
+  if (!el) { el = document.createElement('div'); el.id = 'dragMsg'; el.className = 'drag-msg'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+  el.textContent = text; el.hidden = false;
+  flashMsg = setTimeout(() => { el.hidden = true; }, 2600);
+}
+$('#detail').addEventListener('click', e => {
+  const id = state.sel; if (!id) return;
+  if (e.target.id === 'addVehBtn') {
+    const r = state.results.get(id), vi = Number($('#addVehSel').value);
+    keepScroll(() => {
+      const fresh = !state.manual.has(id);
+      const m = manualOf(id);
+      addVehicle(m, state.vehicles, vi, fresh && !m.vehicles.length ? r.pallets : null);
+    });
+    return;
+  }
+  if (e.target.id === 'resetManual') { keepScroll(() => state.manual.delete(id)); return; }
+  const rm = e.target.getAttribute('data-rmveh');
+  if (rm != null) { keepScroll(() => removeVehicle(manualOf(id), Number(rm))); return; }
+});
+$('#detail').addEventListener('dblclick', e => {
+  const g = e.target.closest('.pal'); if (!g) return;
+  const id = state.sel;
+  keepScroll(() => { if (!rotatePallet(manualOf(id), state.vehicles, Number(g.dataset.v), Number(g.dataset.p))) flash('Otočená se paleta nevejde nebo ji nelze otáčet.'); });
+});
+// drag a pallet: a floating copy follows the pointer, the drop point in the target body is converted to mm
+let drag = null;
+$('#detail').addEventListener('pointerdown', e => {
+  const g = e.target.closest('.pal'); if (!g || e.button !== 0) return;
+  const svg = g.ownerSVGElement, rect = g.querySelector('rect').getBoundingClientRect();
+  drag = { g, from: Number(g.dataset.v), pid: Number(g.dataset.p), sx: e.clientX, sy: e.clientY, w: rect.width, h: rect.height, color: g.querySelector('rect').style.fill, moved: false, svg };
+  g.setPointerCapture(e.pointerId);
+});
+$('#detail').addEventListener('pointermove', e => {
+  if (!drag) return;
+  if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 5) return;
+  if (!drag.moved) {
+    drag.moved = true; drag.g.classList.add('dragging');
+    drag.ghost = document.createElement('div'); drag.ghost.className = 'drag-ghost';
+    Object.assign(drag.ghost.style, { width: drag.w + 'px', height: drag.h + 'px', background: drag.color });
+    document.body.appendChild(drag.ghost);
+  }
+  drag.ghost.style.left = (e.clientX - drag.w / 2) + 'px';
+  drag.ghost.style.top = (e.clientY - drag.h / 2) + 'px';
+  document.querySelectorAll('.veh-svg.drop-target').forEach(x => x.classList.remove('drop-target'));
+  const over = document.elementFromPoint(e.clientX, e.clientY);
+  const t = over && over.closest('.veh-svg'); if (t) t.classList.add('drop-target');
+});
+function endDrag(e, cancel) {
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (d.ghost) d.ghost.remove();
+  d.g.classList.remove('dragging');
+  document.querySelectorAll('.veh-svg.drop-target').forEach(x => x.classList.remove('drop-target'));
+  if (cancel || !d.moved) return;
+  const over = document.elementFromPoint(e.clientX, e.clientY), svg = over && over.closest('.veh-svg');
+  if (!svg) { flash('Paletu pusťte do některého vozidla.'); return; }
+  const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+  const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+  const S = Number(svg.dataset.s), to = Number(svg.dataset.v);
+  const m = manualOf(state.sel), it = m.vehicles[d.from].items.find(i => i.id === d.pid);
+  const x = (p.x - Number(svg.dataset.x0)) * S - it.w / 2, y = (p.y - Number(svg.dataset.y0)) * S - it.h / 2;
+  keepScroll(() => { if (!movePallet(m, state.vehicles, d.from, d.pid, to, x, y)) flash('Sem se paleta nevejde.'); });
+}
+$('#detail').addEventListener('pointerup', e => endDrag(e, false));
+$('#detail').addEventListener('pointercancel', e => endDrag(e, true));
+
 $('#detail').addEventListener('click', e => {
   if (e.target.id !== 'copyBtn') return;
-  const r = state.results.get(state.sel); if (!r) return;
+  const r = view(state.sel); if (!r) return;
   const btn = e.target;
   const done = msg => { btn.textContent = msg; setTimeout(() => { btn.textContent = 'Zkopírovat poptávku'; }, 2000); };
   const fallback = () => {
@@ -351,4 +453,4 @@ const td = new Date().toLocaleDateString('cs-CZ', { weekday: 'long', day: 'numer
 $('#today').textContent = td.charAt(0).toUpperCase() + td.slice(1);
 $('#csv').value = state.csv;
 drawCatalog(); drawVehicles(); drawCombos(); renderRules(state.rules);
-importOrders(state.csv);
+importOrders(load(KEYS.list, null) || state.csv);

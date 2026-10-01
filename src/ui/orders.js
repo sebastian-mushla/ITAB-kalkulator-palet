@@ -19,7 +19,8 @@ export function icon(n) {
 // ---------- drawings ----------
 export function svgVehicle(v) {
   const S = 10, x0 = 86, y0 = 6, Lw = v.L / S, Hw = v.W / S, lift = v.lift ? 26 : 0, vbW = x0 + Lw + 14 + lift, vbH = y0 + Hw + 36;
-  let s = '<svg viewBox="0 0 ' + vbW + ' ' + vbH + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Schéma nakládky: ' + esc(v.title) + '" style="min-width:' + Math.max(320, Math.round(vbW * 0.62)) + 'px;max-width:' + Math.round(vbW * 1.15) + 'px">';
+  const drag = v.idx != null;
+  let s = '<svg viewBox="0 0 ' + vbW + ' ' + vbH + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Schéma nakládky: ' + esc(v.title) + '"' + (drag ? ' class="veh-svg" data-v="' + v.idx + '" data-x0="' + x0 + '" data-y0="' + y0 + '" data-s="' + S + '"' : '') + ' style="min-width:' + Math.max(320, Math.round(vbW * 0.62)) + 'px;max-width:' + Math.round(vbW * 1.15) + 'px">';
   const ch = Hw * 0.78, cy = y0 + (Hw - ch) / 2;
   s += '<path d="M 12 ' + (cy + ch * 0.25) + ' L 30 ' + cy + ' L ' + (x0 - 6) + ' ' + cy + ' L ' + (x0 - 6) + ' ' + (cy + ch) + ' L 30 ' + (cy + ch) + ' L 12 ' + (cy + ch * 0.75) + ' Z" style="fill:var(--truck);stroke:var(--truck-line);stroke-width:2"/>';
   s += '<rect x="24" y="' + (cy + ch * 0.2) + '" width="9" height="' + (ch * 0.6) + '" style="fill:var(--ink2);fill-opacity:.55"/>';
@@ -27,6 +28,7 @@ export function svgVehicle(v) {
   if (v.lift) s += '<rect x="' + (x0 + Lw + 3) + '" y="' + (y0 + Hw * 0.1) + '" width="' + (lift - 6) + '" height="' + (Hw * 0.8) + '" rx="2" style="fill:none;stroke:var(--truck-line);stroke-width:2;stroke-dasharray:4 3"/>';
   v.items.forEach(it => {
     const px = x0 + it.x / S + 1.5, py = y0 + it.y / S + 1.5, pw = it.w / S - 3, ph = it.h / S - 3, col = color(it.ci), partial = it.fill < 0.999;
+    if (drag) s += '<g class="pal" data-v="' + v.idx + '" data-p="' + it.id + '"><title>' + esc(it.code) + ', ' + it.units + ' ks – přetáhněte, dvojklik otočí</title>';
     if (partial) {
       s += '<rect x="' + px + '" y="' + py + '" width="' + pw + '" height="' + ph + '" rx="2" style="fill:' + col + ';fill-opacity:.3;stroke:' + col + ';stroke-width:2"/>';
       if (pw >= ph) s += '<rect x="' + px + '" y="' + py + '" width="' + (pw * it.fill) + '" height="' + ph + '" rx="2" style="fill:' + col + '"/>';
@@ -42,6 +44,7 @@ export function svgVehicle(v) {
       s += '<text x="' + cx + '" y="' + (cyy + fs * 1.1) + '" style="' + st + '">' + esc(l2) + '</text>';
       if (l3) s += '<text x="' + cx + '" y="' + (cyy + fs * 2.3) + '" style="' + st + '">' + esc(l3) + '</text>';
     }
+    if (drag) s += '</g>';
   });
   const ry = y0 + Hw + 6;
   s += '<line x1="' + x0 + '" y1="' + ry + '" x2="' + (x0 + Lw) + '" y2="' + ry + '" style="stroke:var(--ink2);stroke-width:1.5"/>';
@@ -113,6 +116,10 @@ function decisionHtml(r, rules) {
   } else if (r.mode === 'parcels') {
     h2 = 'Objednat: sběrná služba – balíky'; cls = 'groupage';
     p = PARCEL_SERVICES + '. ' + r.parcels.length + ' ' + balWord(r.parcels.length) + ', ' + fmtKg(r.parcelInfo.kg) + '.';
+  } else if (r.manualOn && r.mode === 'trucks') {
+    h2 = 'Objednat: ' + (r.reco || 'žádné vozidlo');
+    p = 'Rozložení upraveno ručně.' + (r.overweight.length ? ' Přetížené: ' + r.overweight.map(v => v.title).join(', ') + '.' : '') + parcelNote;
+    if (r.overweight.length) cls = 'warn';
   } else if (r.mode === 'trucks') {
     h2 = 'Objednat: ' + r.reco;
     p = (r.forced != null ? 'Vozidlo zvoleno ručně.' : 'Sběrná služba nevyhovuje: ' + r.groupage.reasons.join('; ') + '.') + parcelNote;
@@ -152,8 +159,9 @@ function extrasOf(items) {
 function vehicleHtml(v) {
   const legend = groupItems(v.items).map(g => '<li><i class="sw" style="background:' + color(g.ci) + '"></i>' + esc(g.code) + ': ' + g.count + ' ' + palWord(g.count) + ', ' + g.units + ' ks</li>').join('') +
     extrasOf(v.items).map(e => '<li><i class="sw" style="background:' + color(e.ci) + '"></i>' + esc(e.code) + ': ' + e.units + ' ks na paletách ' + esc(e.host) + '</li>').join('');
-  const load = Math.round(v.kg / v.maxKg * 100);
-  return '<article class="panel veh"><header><h3>' + esc(v.title) + ', korba ' + fmtM(v.L) + ' × ' + fmtM(v.W) + ' m</h3><p>' + v.items.length + ' ' + palWord(v.items.length) + ', ' + fmtKg(v.kg) + ' (' + load + ' % nosnosti)</p></header><ul class="legend">' + legend + '</ul><div class="plan">' + svgVehicle(v) + '</div></article>';
+  const load = v.maxKg ? Math.round(v.kg / v.maxKg * 100) : 0, over = v.kg > v.maxKg;
+  const rm = v.idx != null && !v.items.length ? '<button class="veh-x" data-rmveh="' + v.idx + '" aria-label="Odebrat vozidlo">×</button>' : '';
+  return '<article class="panel veh' + (over ? ' over' : '') + '"><header><h3>' + esc(v.title) + ', korba ' + fmtM(v.L) + ' × ' + fmtM(v.W) + ' m</h3><p>' + (v.items.length ? v.items.length + ' ' + palWord(v.items.length) + ', ' + fmtKg(v.kg) + ' (' + load + ' % nosnosti' + (over ? ', přetíženo!' : '') + ')' : 'prázdné – přetáhněte sem palety') + rm + '</p></header><ul class="legend">' + legend + '</ul><div class="plan">' + svgVehicle(v) + '</div></article>';
 }
 function vehiclePicker(r, vehicles) {
   if (!r.pallets.length) return '';
@@ -179,13 +187,17 @@ export function renderDetail(r, { rules, vehicles }) {
   if (r.pallets.length || r.parcels.length) h += '<details class="panel"><summary>Parametry nákladu pro poptávku</summary><table><tbody>' + cargoRows(r).map(x => '<tr><th scope="row">' + esc(x[0]) + '</th><td>' + esc(x[1]) + '</td></tr>').join('') + '</tbody></table><p class="hint">LDM je odhad podle plochy palet: plocha ÷ šířka korby největšího vozidla.</p></details>';
 
   // visual at the bottom
-  if (r.vehicles.length) {
-    h += '<div class="sec-head vis"><h2>Nakládka: ' + esc(r.reco) + '</h2></div>';
-    h += r.vehicles.map(v => vehicleHtml(Object.assign({}, v, { lift: vehicles[v.vi] && vehicles[v.vi].lift }))).join('');
+  if (r.vehicles.length || r.pallets.length) {
+    const opts = vehicles.map((v, i) => '<option value="' + i + '">' + esc(v.name) + ' – ' + String(v.L).replace('.', ',') + ' × ' + String(v.W).replace('.', ',') + ' m</option>').join('');
+    h += '<div class="sec-head vis"><h2>Nakládka' + (r.vehicles.length ? ': ' + esc(r.reco || 'žádné vozidlo') : '') + '</h2>' +
+      '<div class="vehtools"><select id="addVehSel" aria-label="Vozidlo k přidání">' + opts + '</select><button class="btn" id="addVehBtn">+ Přidat vozidlo</button>' +
+      (r.manualOn ? '<button class="btn" id="resetManual">Vrátit automatické rozložení</button>' : '') + '</div></div>';
+    if (r.vehicles.length) h += '<p class="hint drag-hint">Paletu chyťte myší a přetáhněte jinam nebo do jiného vozidla. Dvojklik paletu otočí. Prázdné vozidlo odeberete křížkem.</p>';
+    h += r.vehicles.map((v, i) => vehicleHtml(Object.assign({ idx: i }, v, { lift: vehicles[v.vi] && vehicles[v.vi].lift }))).join('');
     h += '<p class="note">Rozložení je orientační: pohled shora, palety nestohujeme, váha je bez vlastních palet. Nakládku a konečné rozhodnutí určuje dopravce.</p>';
   }
   const shipment = [];
-  if (r.mode === 'groupage') r.pallets.forEach(p => shipment.push(Object.assign({ kind: 'paleta' }, p)));
+  if (r.mode === 'groupage' && !r.manualOn) r.pallets.forEach(p => shipment.push(Object.assign({ kind: 'paleta' }, p)));
   r.parcels.forEach(p => shipment.push(Object.assign({ kind: 'balik' }, p)));
   if (shipment.length) {
     h += '<div class="sec-head vis"><h2>Sběrná služba</h2></div><div class="panel"><p class="hint">' + (r.mode === 'groupage' ? 'Palety' + (r.parcels.length ? ' a balíky' : '') : 'Balíky') + ' předáte přepravci (' + PARCEL_SERVICES + '). Vlastní vozidlo není potřeba.</p><div class="plan">' + svgShipment(shipment) + '</div></div>';
@@ -245,6 +257,7 @@ export function renderList(orders, results, sel, q) {
   if (!ids.length) { ul.innerHTML = '<li class="empty">' + (orders.size ? 'Nic nenalezeno.' : 'Zakázky zatím nejsou.') + '</li>'; return; }
   ul.innerHTML = ids.map(id => {
     const r = results.get(id), c = (r.mode === 'groupage' || r.mode === 'parcels') ? 'green' : (r.mode === 'trucks' ? 'blue' : 'amber');
-    return '<li><button class="feed" data-id="' + esc(id) + '"' + (id === sel ? ' aria-current="true"' : '') + '><i class="fdot ' + c + '"></i><span class="ftext"><b>Zakázka ' + esc(id) + '</b><span>' + esc(r.listInfo) + (r.vehicles.length ? ' · ' + esc(r.reco) : '') + '</span></span><span class="chip ' + c + '">' + esc(r.stat) + '</span></button></li>';
+    return '<li class="feedrow"><button class="feed" data-id="' + esc(id) + '"' + (id === sel ? ' aria-current="true"' : '') + '><i class="fdot ' + c + '"></i><span class="ftext"><b>Zakázka ' + esc(id) + '</b><span>' + esc(r.listInfo) + (r.vehicles.length ? ' · ' + esc(r.reco) : '') + '</span></span><span class="chip ' + c + '">' + esc(r.stat) + '</span></button>' +
+      '<button class="feed-x" data-del="' + esc(id) + '" aria-label="Odebrat zakázku ' + esc(id) + '" title="Odebrat ze seznamu">×</button></li>';
   }).join('');
 }
