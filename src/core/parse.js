@@ -25,8 +25,11 @@ export function parseOrders(text) {
     const sep = line.indexOf(';') >= 0 ? ';' : (line.indexOf('\t') >= 0 ? '\t' : ',');
     const p = line.split(sep).map(s => s.trim().replace(/^"(.*)"$/, '$1'));
     if (p.length < 3 || !p[0] || !p[1]) { problems.push('řádek ' + (idx + 1) + ': nerozpoznaný formát'); return; }
-    const qty = toNum(p[2]);
-    if (!isFinite(qty)) { if (isFirst) return; problems.push('řádek ' + (idx + 1) + ': množství „' + p[2] + '“ není číslo'); return; }
+    // order;article;qty or order;article;name…;qty (pasted from Excel): quantity is the last filled column
+    while (p.length > 3 && p[p.length - 1] === '') p.pop();
+    const qCell = p[p.length - 1];
+    const qty = toNum(qCell);
+    if (!isFinite(qty)) { if (isFirst) return; problems.push('řádek ' + (idx + 1) + ': množství „' + qCell + '“ není číslo'); return; }
     if (qty % 1 !== 0 || qty <= 0) { problems.push('řádek ' + (idx + 1) + ': množství musí být celé číslo větší než nula'); return; }
     add(p[0], p[1], qty);
   });

@@ -167,6 +167,12 @@ cases.push(
   }]
 );
 
+cases.push(['Vložená tabulka se 4 sloupci (název uprostřed)', () => {
+  const res = parseOrders('zakazka\tartikl\tnazev\tmnozstvi\n800001\tV06\tKabina\t3\n800001\tNEW-A\tDržák displeje\t4');
+  const o = res.orders.get('800001');
+  assert(res.problems.length === 0 && o.lines.get('v06').qty === 3 && o.lines.get('new-a').qty === 4, res.problems.join('; '));
+}]);
+
 export function runAll() {
   return cases.map(([name, fn]) => {
     try { fn(); return { name, ok: true }; } catch (e) { return { name, ok: false, msg: e.message }; }
