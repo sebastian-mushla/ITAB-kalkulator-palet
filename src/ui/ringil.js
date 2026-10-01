@@ -8,16 +8,19 @@ const cm = mm => String(Math.round(mm / 10));
 // one "náklad" (load unit block) per vehicle, pallet type or parcel type
 export function ringilLoads(r) {
   const loads = [];
-  if (r.vehicles.length && r.mode !== 'groupage') {
-    r.vehicles.filter(v => v.items.length).forEach(v => {
+  const vs = r.vehicles.filter(v => v.items.length);
+  {
+    vs.forEach(v => {
       const usedL = Math.max(...v.items.map(i => i.x + i.w));
       loads.push({ title: v.title, unit: 'Ložné metry', count: num(Math.ceil(usedL / 100) / 10), L: '', W: '', H: '', kg: num(v.kg),
         note: groupItems(v.items).map(g => g.code + ' ' + g.count + '×').join(', ') });
     });
-  } else if (r.pallets.length) {
+  }
+  const groupage = r.depot ? r.depot.items : (!vs.length ? r.pallets : []);
+  if (groupage.length) {
     const m = new Map();
-    r.pallets.forEach(p => { const k = p.pl + '×' + p.pw, g = m.get(k) || { p, n: 0, kg: 0 }; g.n++; g.kg += p.kg; m.set(k, g); });
-    m.forEach(g => loads.push({ title: 'Palety ' + cm(g.p.pl) + ' × ' + cm(g.p.pw) + ' cm', unit: g.p.euro ? 'Europaleta' : 'Paleta', count: String(g.n), L: cm(g.p.pl), W: cm(g.p.pw), H: '', kg: num(g.kg), note: '' }));
+    groupage.forEach(p => { const k = p.pl + '×' + p.pw, g = m.get(k) || { p, n: 0, kg: 0 }; g.n++; g.kg += p.kg; m.set(k, g); });
+    m.forEach(g => loads.push({ title: 'Sběrná služba – palety ' + cm(g.p.pl) + ' × ' + cm(g.p.pw) + ' cm', unit: g.p.euro ? 'Europaleta' : 'Paleta', count: String(g.n), L: cm(g.p.pl), W: cm(g.p.pw), H: '', kg: num(g.kg), note: '' }));
   }
   if (r.parcels.length) {
     const m = new Map();

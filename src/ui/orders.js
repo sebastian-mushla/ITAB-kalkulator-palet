@@ -21,10 +21,20 @@ export function svgVehicle(v) {
   const S = 10, x0 = 86, y0 = 6, Lw = v.L / S, Hw = v.W / S, lift = v.lift ? 26 : 0, vbW = x0 + Lw + 14 + lift, vbH = y0 + Hw + 36;
   const drag = v.idx != null;
   let s = '<svg viewBox="0 0 ' + vbW + ' ' + vbH + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Schéma nakládky: ' + esc(v.title) + '"' + (drag ? ' class="veh-svg" data-v="' + v.idx + '" data-x0="' + x0 + '" data-y0="' + y0 + '" data-s="' + S + '"' : '') + ' style="min-width:' + Math.min(560, Math.max(320, Math.round(vbW * 0.62))) + 'px;max-width:' + Math.round(vbW * 1.15) + 'px">';
+  const depot = v.type === 'depot';
+  if (depot) {
+    // handover floor: hatched outline, carrier names, no cab
+    s += '<defs><pattern id="hatch' + (v.idx || 0) + '" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="10" style="stroke:var(--line);stroke-width:4"/></pattern></defs>';
+    s += '<rect x="' + (x0 - 70) + '" y="' + y0 + '" width="62" height="' + Hw + '" rx="8" style="fill:var(--green-t);stroke:var(--green);stroke-width:1.5"/>';
+    s += '<text transform="translate(' + (x0 - 39) + ' ' + (y0 + Hw / 2) + ') rotate(-90)" style="fill:var(--green);font-size:12px;font-weight:700;text-anchor:middle;letter-spacing:.04em">PŘEDÁVKA</text>';
+    s += '<rect x="' + x0 + '" y="' + y0 + '" width="' + Lw + '" height="' + Hw + '" rx="6" style="fill:url(#hatch' + (v.idx || 0) + ');stroke:var(--green);stroke-width:2;stroke-dasharray:8 5"/>';
+  }
   const ch = Hw * 0.78, cy = y0 + (Hw - ch) / 2;
-  s += '<path d="M 12 ' + (cy + ch * 0.25) + ' L 30 ' + cy + ' L ' + (x0 - 6) + ' ' + cy + ' L ' + (x0 - 6) + ' ' + (cy + ch) + ' L 30 ' + (cy + ch) + ' L 12 ' + (cy + ch * 0.75) + ' Z" style="fill:var(--truck);stroke:var(--truck-line);stroke-width:2"/>';
-  s += '<rect x="24" y="' + (cy + ch * 0.2) + '" width="9" height="' + (ch * 0.6) + '" style="fill:var(--ink2);fill-opacity:.55"/>';
-  s += '<rect x="' + x0 + '" y="' + y0 + '" width="' + Lw + '" height="' + Hw + '" style="fill:var(--truck);stroke:var(--truck-line);stroke-width:2"/>';
+  if (!depot) s += '<path d="M 12 ' + (cy + ch * 0.25) + ' L 30 ' + cy + ' L ' + (x0 - 6) + ' ' + cy + ' L ' + (x0 - 6) + ' ' + (cy + ch) + ' L 30 ' + (cy + ch) + ' L 12 ' + (cy + ch * 0.75) + ' Z" style="fill:var(--truck);stroke:var(--truck-line);stroke-width:2"/>';
+  if (!depot) {
+    s += '<rect x="24" y="' + (cy + ch * 0.2) + '" width="9" height="' + (ch * 0.6) + '" style="fill:var(--ink2);fill-opacity:.55"/>';
+    s += '<rect x="' + x0 + '" y="' + y0 + '" width="' + Lw + '" height="' + Hw + '" style="fill:var(--truck);stroke:var(--truck-line);stroke-width:2"/>';
+  }
   if (v.lift) s += '<rect x="' + (x0 + Lw + 3) + '" y="' + (y0 + Hw * 0.1) + '" width="' + (lift - 6) + '" height="' + (Hw * 0.8) + '" rx="2" style="fill:none;stroke:var(--truck-line);stroke-width:2;stroke-dasharray:4 3"/>';
   v.items.forEach(it => {
     const px = x0 + it.x / S + 1.5, py = y0 + it.y / S + 1.5, pw = it.w / S - 3, ph = it.h / S - 3, col = color(it.ci), partial = it.fill < 0.999;
@@ -47,6 +57,7 @@ export function svgVehicle(v) {
     if (drag) s += '</g>';
   });
   const ry = y0 + Hw + 6;
+  if (depot) return s + '<text x="' + x0 + '" y="' + (ry + 18) + '" style="fill:var(--ink2);font-size:12px">PPL · DPD · UPS · Česká pošta — palety se předávají přepravci, bez vlastního vozidla</text></svg>';
   s += '<line x1="' + x0 + '" y1="' + ry + '" x2="' + (x0 + Lw) + '" y2="' + ry + '" style="stroke:var(--ink2);stroke-width:1.5"/>';
   for (let m = 0; m <= Math.floor(v.L / 1000); m++) {
     const x = x0 + m * 100, major = v.L <= 6000 || m % 2 === 0;
@@ -163,6 +174,16 @@ function vehicleHtml(v) {
   const rm = v.idx != null && !v.items.length ? '<button class="veh-x" data-rmveh="' + v.idx + '" aria-label="Odebrat vozidlo">×</button>' : '';
   return '<article class="panel veh' + (over ? ' over' : '') + '"><header><h3>' + esc(v.title) + ', korba ' + fmtM(v.L) + ' × ' + fmtM(v.W) + ' m</h3><p>' + (v.items.length ? v.items.length + ' ' + palWord(v.items.length) + ', ' + fmtKg(v.kg) + ' (' + load + ' % nosnosti' + (over ? ', přetíženo!' : '') + ')' : 'prázdné – přetáhněte sem palety') + rm + '</p></header><ul class="legend">' + legend + '</ul><div class="plan">' + svgVehicle(v) + '</div></article>';
 }
+function depotHtml(d, rules) {
+  const nonEuro = [...new Set(d.items.filter(p => !p.euro).map(p => p.code))];
+  const issues = [];
+  if (d.items.length > rules.gMax) issues.push(d.items.length + ' palet, limit sběrné služby je ' + rules.gMax);
+  if (nonEuro.length) issues.push('nejsou europalety: ' + nonEuro.join(', '));
+  const rm = !d.items.length ? '<button class="veh-x" data-rmveh="' + d.idx + '" aria-label="Odebrat sběrnou službu">×</button>' : '';
+  return '<article class="panel veh depot' + (issues.length ? ' over' : '') + '"><header><h3>Sběrná služba – předávka přepravci</h3><p>' +
+    (d.items.length ? d.items.length + ' ' + palWord(d.items.length) + ', ' + fmtKg(d.kg) + (issues.length ? ' – ' + esc(issues.join('; ')) : '') : 'prázdné – přetáhněte sem palety') + rm + '</p></header>' +
+    '<div class="plan">' + svgVehicle(Object.assign({}, d, { lift: false })) + '</div></article>';
+}
 function vehiclePicker(r, vehicles) {
   if (!r.pallets.length) return '';
   const opts = ['<option value="">Automaticky (nejvýhodnější)</option>'].concat(vehicles.map((v, i) =>
@@ -172,7 +193,7 @@ function vehiclePicker(r, vehicles) {
 
 // Printable loading plan: every vehicle drawn from above with its legend.
 export function loadPlanHtml(r, vehicles) {
-  const vs = r.vehicles.filter(v => v.items.length);
+  const vs = r.vehicles.filter(v => v.items.length).concat(r.depot && r.depot.items.length ? [r.depot] : []);
   const body = vs.length ? vs.map(v => {
     const plain = Object.assign({}, v, { idx: null, lift: vehicles[v.vi] && vehicles[v.vi].lift });
     const legend = groupItems(v.items).map(g => '<li><i style="background:' + color(g.ci) + '"></i>' + esc(g.code) + ': ' + g.count + ' ' + palWord(g.count) + ', ' + g.units + ' ks</li>').join('') +
@@ -212,19 +233,21 @@ export function renderDetail(r, { rules, vehicles, isAdmin }) {
     (isAdmin ? 'Přetáhněte na paletu (uloží se kombinace) nebo na volné místo ve vozidle (nový artikl).' : 'Tyto artikly nejsou v číselníku. Požádejte administrátora o doplnění.') + '</p>' +
     unk.map(u => '<div class="unk' + (isAdmin ? '' : ' ro') + '" data-code="' + esc(u.code) + '" data-qty="' + u.qty + '" data-name="' + esc(u.name || '') + '"' + (isAdmin ? ' title="Přetáhněte do vozidla"' : '') + '><div class="unk-top"><b>' + esc(u.code) + '</b><span>' + fmtN(u.qty) + ' ks</span></div>' + (u.name ? '<div class="unk-name">' + esc(u.name) + '</div>' : '') + '</div>').join('') + '</aside>' : '';
   if (r.vehicles.length || r.pallets.length || unk.length) {
-    const opts = vehicles.map((v, i) => '<option value="' + i + '">' + esc(v.name) + ' – ' + String(v.L).replace('.', ',') + ' × ' + String(v.W).replace('.', ',') + ' m</option>').join('');
+    const opts = vehicles.map((v, i) => '<option value="' + i + '">' + esc(v.name) + ' – ' + String(v.L).replace('.', ',') + ' × ' + String(v.W).replace('.', ',') + ' m</option>').join('') +
+      (r.depot ? '' : '<option value="depot">Sběrná služba (PPL, DPD, UPS…)</option>');
     h += '<div class="sec-head vis"><h2>Nakládka' + (r.vehicles.length ? ': ' + esc(r.reco || 'žádné vozidlo') : '') + '</h2>' +
       '<div class="vehtools"><select id="addVehSel" aria-label="Vozidlo k přidání">' + opts + '</select><button class="btn" id="addVehBtn">+ Přidat vozidlo</button>' +
       (r.manualOn ? '<button class="btn" id="resetManual">Vrátit automatické rozložení</button>' : '') + '</div></div>';
     h += '<div class="load' + (tray ? ' with-tray' : '') + '"><div class="load-main">';
-    if (r.vehicles.length) h += '<p class="hint drag-hint">Paletu chyťte myší a přetáhněte jinam nebo do jiného vozidla. Dvojklik paletu otočí. Prázdné vozidlo odeberete křížkem.</p>';
+    if (r.vehicles.length || r.depot) h += '<p class="hint drag-hint">Paletu chyťte myší a přetáhněte jinam nebo do jiného vozidla. Dvojklik paletu otočí. Prázdné vozidlo odeberete křížkem.</p>';
     h += r.vehicles.map((v, i) => vehicleHtml(Object.assign({ idx: i }, v, { lift: vehicles[v.vi] && vehicles[v.vi].lift }))).join('');
+    if (r.depot) h += depotHtml(r.depot, rules);
     if (!r.vehicles.length && unk.length) h += '<div class="panel empty-load">Zatím žádné vozidlo. Přidejte vozidlo tlačítkem „+ Přidat vozidlo“ a pak do něj přetáhněte neznámý artikl.</div>';
     h += '</div>' + tray + '</div>';
     h += '<p class="note">Rozložení je orientační: pohled shora, palety nestohujeme, váha je bez vlastních palet. Nakládku a konečné rozhodnutí určuje dopravce.</p>';
   }
   const shipment = [];
-  if (r.mode === 'groupage' && !r.manualOn) r.pallets.forEach(p => shipment.push(Object.assign({ kind: 'paleta' }, p)));
+  if (r.mode === 'groupage' && !r.depot) r.pallets.forEach(p => shipment.push(Object.assign({ kind: 'paleta' }, p)));
   r.parcels.forEach(p => shipment.push(Object.assign({ kind: 'balik' }, p)));
   if (shipment.length) {
     h += '<div class="sec-head vis"><h2>Sběrná služba</h2></div><div class="panel"><p class="hint">' + (r.mode === 'groupage' ? 'Palety' + (r.parcels.length ? ' a balíky' : '') : 'Balíky') + ' předáte přepravci (' + PARCEL_SERVICES + '). Vlastní vozidlo není potřeba.</p><div class="plan">' + svgShipment(shipment) + '</div></div>';
@@ -289,8 +312,8 @@ function unkChip(r) {
 // what to order, as one short text for the list
 function transportText(r) {
   const parts = [];
-  if (r.vehicles.length && r.reco) parts.push(r.reco);
-  if (r.mode === 'groupage' && !r.manualOn) parts.push('Sběrná služba (palety)');
+  if (r.reco) parts.push(r.reco);
+  else if (r.mode === 'groupage') parts.push('Sběrná služba (palety)');
   if (r.parcels && r.parcels.length) parts.push('Sběrná služba (' + r.parcels.length + ' ' + balWord(r.parcels.length) + ')');
   return parts.length ? ' · ' + esc(parts.join(' + ')) : '';
 }

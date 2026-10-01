@@ -2,7 +2,7 @@ import { clone, toNum } from './core/util.js';
 import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, SAMPLE } from './core/defaults.js';
 import { parseOrders, rowsToOrderText } from './core/parse.js';
 import { solve } from './core/solve.js';
-import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle, replaceVehicle } from './core/manual.js';
+import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle, replaceVehicle, DEPOT } from './core/manual.js';
 import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, mergeBy, toCsv } from './io/importTable.js';
 import { renderKpis, renderPriorities, renderList, renderDetail, requestText, loadPlanHtml } from './ui/orders.js';
 import { ringilHtml } from './ui/ringil.js';
@@ -62,11 +62,17 @@ function recalc() {
   state.results = new Map();
   state.forced.forEach((vi, id) => { if (!(vi < state.vehicles.length)) state.forced.delete(id); });
   state.orders.forEach(o => state.results.set(o.id, solve(o, ctx(o.id))));
+  state.manual.forEach((m, id) => { if (!m.touched) state.manual.delete(id); });
   if (!state.orders.has(state.sel)) state.sel = state.orders.size ? state.orders.keys().next().value : null;
   renderOverview();
 }
 // result as shown: with the operator's manual loading plan applied
-function view(id) { const r = state.results.get(id); return r ? viewOf(r, state.manual.get(id), state.vehicles) : null; }
+function view(id) {
+  const r = state.results.get(id); if (!r) return null;
+  // groupage orders always get the handover area so their pallets can be dragged
+  if (!state.manual.has(id) && r.mode === 'groupage') state.manual.set(id, fromResult(r));
+  return viewOf(r, state.manual.get(id), state.vehicles);
+}
 function views() { return new Map([...state.results.keys()].map(id => [id, view(id)])); }
 function renderOverview() {
   const vs = views(), res = [...vs.values()];
@@ -183,7 +189,12 @@ function flash(text) {
 $('#detail').addEventListener('click', e => {
   const id = state.sel; if (!id) return;
   if (e.target.id === 'addVehBtn') {
-    const r = state.results.get(id), vi = Number($('#addVehSel').value);
+    const r = state.results.get(id), sv = $('#addVehSel').value, vi = sv === DEPOT ? DEPOT : Number(sv);
+    if (vi === DEPOT) {
+      if (view(id).depot) { flash('Sběrná služba už v zakázce je.'); return; }
+      keepScroll(() => addVehicle(manualOf(id), state.vehicles, DEPOT));
+      return;
+    }
     // an overloaded vehicle is replaced: its pallets move to the new one and the old one goes away
     const over = view(id).overweight || (view(id).vehicles || []).filter(v => v.kg > v.maxKg + 1e-9);
     if (over.length) {

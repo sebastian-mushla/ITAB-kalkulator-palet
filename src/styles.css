@@ -338,3 +338,5 @@ dialog.dlg-wide{max-width:560px}
 .rg-copy.done{color:var(--green);border-color:var(--green)}
 .rg-row.copied .rg-val{color:var(--green)}
 #drBody{display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow:auto}
+.veh.depot{border-style:dashed;border-color:color-mix(in srgb,var(--green) 55%,var(--line))}
+.veh.depot h3{color:var(--green)}

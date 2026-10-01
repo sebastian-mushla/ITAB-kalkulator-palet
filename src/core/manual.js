@@ -3,11 +3,29 @@
 import { EPS } from './util.js';
 import { recoText } from './solve.js';
 
-const dims = (vehicles, vi) => { const d = vehicles[vi] || {}; return { L: (d.L || 0) * 1000, W: (d.W || 0) * 1000 }; };
+// 'depot' = handover area for the groupage carrier (PPL, DPD, UPS, Česká pošta): a floor, not a truck
+export const DEPOT = 'depot';
+const DEPOT_W = 2400, DEPOT_L = 40000;
+const dims = (vehicles, vi) => {
+  if (vi === DEPOT) return { L: DEPOT_L, W: DEPOT_W };
+  const d = vehicles[vi] || {}; return { L: (d.L || 0) * 1000, W: (d.W || 0) * 1000 };
+};
 const overlaps = (a, b) => a.x < b.x + b.w - EPS && b.x < a.x + a.w - EPS && a.y < b.y + b.h - EPS && b.y < a.y + a.h - EPS;
 
+function layoutDepot(pallets) {
+  const items = [];
+  pallets.forEach((p, i) => {
+    const it = Object.assign({ id: p.id != null ? p.id : i }, p, { w: p.pl, h: p.pw });
+    const pos = placeNear(DEPOT_L, DEPOT_W, items, it, 0, 0, it.rot ? [[p.pl, p.pw], [p.pw, p.pl]] : [[p.pl, p.pw]]);
+    if (pos) items.push(Object.assign(it, { x: pos.x, y: pos.y, w: pos.w, h: pos.h }));
+  });
+  return items;
+}
+
 export function fromResult(r) {
-  return { vehicles: r.vehicles.map(v => ({ vi: v.vi, items: v.items.map(i => Object.assign({}, i)) })) };
+  const m = { touched: false, vehicles: r.vehicles.map(v => ({ vi: v.vi, items: v.items.map(i => Object.assign({}, i)) })) };
+  if (r.mode === 'groupage') m.vehicles.push({ vi: DEPOT, items: layoutDepot(r.pallets) });
+  return m;
 }
 
 // Nearest free spot to (wantX, wantY) for a w × h pallet (optionally also turned).
@@ -46,6 +64,7 @@ export function movePallet(manual, vehicles, from, pid, to, x, y) {
   const { L, W } = dims(vehicles, dst.vi);
   const pos = placeNear(L, W, others, it, x, y, orientsOf(it, true));
   if (!pos) return false;
+  manual.touched = true;
   src.items.splice(k, 1);
   dst.items.push(Object.assign({}, it, { x: pos.x, y: pos.y, w: pos.w, h: pos.h, turned: pos.w !== it.pl }));
   return true;
@@ -58,12 +77,15 @@ export function rotatePallet(manual, vehicles, v, pid) {
   const cx = it.x + it.w / 2, cy = it.y + it.h / 2;
   const pos = placeNear(L, W, veh.items.filter(i => i !== it), it, cx - it.h / 2, cy - it.w / 2, orientsOf(it, false));
   if (!pos) return false;
+  manual.touched = true;
   Object.assign(it, { x: pos.x, y: pos.y, w: pos.w, h: pos.h, turned: pos.w !== it.pl });
   return true;
 }
 
 // Add an empty vehicle; when the order had none yet (groupage), its pallets are loaded into it.
 export function addVehicle(manual, vehicles, vi, pallets) {
+  manual.touched = true;
+  if (vi === DEPOT) { if (!manual.vehicles.some(v => v.vi === DEPOT)) manual.vehicles.push({ vi: DEPOT, items: [] }); return; }
   if (!manual.vehicles.length && pallets && pallets.length) {
     const { L, W } = dims(vehicles, vi);
     let cur = { vi, items: [] }; manual.vehicles.push(cur);
@@ -92,12 +114,14 @@ export function replaceVehicle(manual, vehicles, v, vi) {
     placed.push(Object.assign({}, it, { x: pos.x, y: pos.y, w: pos.w, h: pos.h, turned: pos.w !== it.pl }));
   }
   manual.vehicles[v] = { vi, items: placed };
+  manual.touched = true;
   return true;
 }
 
 export function removeVehicle(manual, v) {
   if (!manual.vehicles[v] || manual.vehicles[v].items.length) return false;
   manual.vehicles.splice(v, 1);
+  manual.touched = true;
   return true;
 }
 
@@ -105,16 +129,26 @@ export function removeVehicle(manual, v) {
 export function viewOf(r, manual, vehicles) {
   if (!manual) return r;
   const counter = new Map();
-  const vs = manual.vehicles.map((m, idx) => {
+  let depot = null;
+  const all = manual.vehicles.map((m, idx) => {
+    if (m.vi === DEPOT) {
+      const maxX = m.items.reduce((s, i) => Math.max(s, i.x + i.w), 0);
+      depot = { idx, vi: DEPOT, type: DEPOT, name: 'Sběrná služba', title: 'Sběrná služba', L: Math.max(4800, Math.ceil((maxX + 1300) / 100) * 100), W: DEPOT_W, maxKg: Infinity, items: m.items, kg: m.items.reduce((s, i) => s + i.kg, 0) };
+      return null;
+    }
     const d = vehicles[m.vi] || { name: 'Vozidlo', L: 0, W: 0, kg: 0, type: 'jine' };
     const n = (counter.get(m.vi) || 0) + 1; counter.set(m.vi, n);
     return { idx, vi: m.vi, type: d.type, name: d.name, n, title: d.name + ' ' + n, L: d.L * 1000, W: d.W * 1000, maxKg: d.kg, lift: d.lift, items: m.items, kg: m.items.reduce((s, i) => s + i.kg, 0) };
   });
+  const vs = all.filter(Boolean);
   const used = vs.filter(v => v.items.length);
   const overweight = vs.filter(v => v.kg > v.maxKg + 1e-9);
-  const mode = r.mode === 'empty' ? 'empty' : (r.oversize && r.oversize.length ? 'warn' : 'trucks');
+  const dn = depot ? depot.items.length : 0;
+  const mode = r.mode === 'empty' ? 'empty' : (r.oversize && r.oversize.length ? 'warn' : (used.length ? 'trucks' : (dn ? 'groupage' : 'trucks')));
+  const reco = [recoText(used), dn ? 'sběrná služba (' + dn + ' ' + (dn === 1 ? 'paleta' : dn <= 4 ? 'palety' : 'palet') + ')' : ''].filter(Boolean).join(' + ');
+  const tag = manual.touched ? ' (ručně)' : '';
   return Object.assign({}, r, {
-    vehicles: vs, reco: recoText(used), manualOn: true, overweight, mode,
-    stat: used.length + ' ' + (used.length === 1 ? 'vozidlo' : used.length >= 2 && used.length <= 4 ? 'vozidla' : 'vozidel') + ' (ručně)'
+    vehicles: vs, depot, reco, manualOn: !!manual.touched, overweight, mode,
+    stat: mode === 'groupage' ? 'Sběrná služba' + tag : used.length + ' ' + (used.length === 1 ? 'vozidlo' : used.length >= 2 && used.length <= 4 ? 'vozidla' : 'vozidel') + (dn ? ' + sběrná' : '') + tag
   });
 }

@@ -16,13 +16,13 @@ export function packListHtml(r, names) {
 
   let body = '';
   const vehicles = r.vehicles.filter(v => v.items.length);
-  if (vehicles.length && r.mode !== 'groupage') {
+  const groupage = r.depot ? r.depot.items : (!vehicles.length ? r.pallets : []);
+  {
     vehicles.forEach(v => {
       body += '<h2>' + esc(v.title) + ' <small>' + v.items.length + ' palet, ' + fmtN(v.kg) + ' kg</small></h2><table>' + head + '<tbody>' + palletRows(v.items.slice().sort((a, b) => a.x - b.x || a.y - b.y)) + '</tbody></table>';
     });
-  } else if (r.pallets.length) {
-    body += '<h2>Sběrná služba <small>' + r.pallets.length + ' palet</small></h2><table>' + head + '<tbody>' + palletRows(r.pallets) + '</tbody></table>';
   }
+  if (groupage.length) body += '<h2>Sběrná služba <small>' + groupage.length + ' palet</small></h2><table>' + head + '<tbody>' + palletRows(groupage) + '</tbody></table>';
   if (r.parcels.length) {
     const m = new Map();
     r.parcels.forEach(p => { const g = m.get(p.code) || { p, n: 0, units: 0, kg: 0 }; g.n++; g.units += p.units; g.kg += p.kg; m.set(p.code, g); });
