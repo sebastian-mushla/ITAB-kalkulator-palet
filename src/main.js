@@ -5,6 +5,7 @@ import { solve } from './core/solve.js';
 import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle, replaceVehicle } from './core/manual.js';
 import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, mergeBy, toCsv } from './io/importTable.js';
 import { renderKpis, renderPriorities, renderList, renderDetail, requestText } from './ui/orders.js';
+import { ringilHtml } from './ui/ringil.js';
 import { requireLogin, loadSettings, saveSetting, signOut, changePassword, listProfiles, setRole, adminUsers } from './auth.js';
 import { esc } from './core/util.js';
 import { renderCatalog, renderVehicles, renderCombos, renderRules, importReport } from './ui/settings.js';
@@ -302,6 +303,20 @@ function askArticle(u) {
 $('#daPack').addEventListener('change', e => { $('#daPerLabel').textContent = e.target.value === 'balik' ? 'Kusů v balíku' : 'Kusů na paletě'; });
 $('#detail').addEventListener('pointercancel', e => endDrag(e, true));
 
+// ---------- Ringil ----------
+$('#detail').addEventListener('click', e => {
+  if (e.target.id !== 'ringilBtn') return;
+  const r = view(state.sel); if (!r) return;
+  $('#drTitle').textContent = 'Údaje pro Ringil – zakázka ' + r.id;
+  $('#drBody').innerHTML = ringilHtml(r);
+  $('#dlgRingil').showModal();
+});
+$('#drBody').addEventListener('click', e => {
+  const b = e.target.closest('.rg-copy'); if (!b) return;
+  const v = b.getAttribute('data-copy');
+  const ok = () => { b.textContent = '✓ Zkopírováno'; b.classList.add('done'); b.closest('.rg-row').classList.add('copied'); };
+  try { navigator.clipboard.writeText(v).then(ok, () => flash('Kopírování se nepodařilo, označte hodnotu ručně.')); } catch (x) { flash('Kopírování se nepodařilo.'); }
+});
 $('#detail').addEventListener('click', e => {
   if (e.target.id !== 'copyBtn') return;
   const r = view(state.sel); if (!r) return;
