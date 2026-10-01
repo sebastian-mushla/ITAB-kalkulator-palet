@@ -5,10 +5,11 @@ import { findColumns } from '../io/importTable.js';
 export function parseOrders(text) {
   const orders = new Map(), problems = [];
   let first = true, cur = null;
-  function add(id, code, qty) {
+  function add(id, code, qty, name) {
     if (!orders.has(id)) orders.set(id, { id, lines: new Map() });
     const o = orders.get(id), k = code.toLowerCase();
-    if (o.lines.has(k)) o.lines.get(k).qty += qty; else o.lines.set(k, { code, qty });
+    if (o.lines.has(k)) { const l = o.lines.get(k); l.qty += qty; if (!l.name && name) l.name = name; }
+    else o.lines.set(k, { code, qty, name: name || '' });
   }
   text.split(/\r?\n/).forEach((raw, idx) => {
     const line = raw.trim(); if (!line) return;
@@ -20,7 +21,7 @@ export function parseOrders(text) {
       if (!cur) { problems.push('řádek ' + (idx + 1) + ': chybí hlavička zakázky (SO číslo)'); return; }
       const q = toNum(rw[3]);
       if (!isFinite(q) || q % 1 !== 0 || q <= 0) { problems.push('řádek ' + (idx + 1) + ': množství musí být celé číslo větší než nula'); return; }
-      add(cur, rw[1], q); return;
+      add(cur, rw[1], q, (rw[2] || '').trim()); return;
     }
     const sep = line.indexOf(';') >= 0 ? ';' : (line.indexOf('\t') >= 0 ? '\t' : ',');
     const p = line.split(sep).map(s => s.trim().replace(/^"(.*)"$/, '$1'));
@@ -31,7 +32,7 @@ export function parseOrders(text) {
     const qty = toNum(qCell);
     if (!isFinite(qty)) { if (isFirst) return; problems.push('řádek ' + (idx + 1) + ': množství „' + qCell + '“ není číslo'); return; }
     if (qty % 1 !== 0 || qty <= 0) { problems.push('řádek ' + (idx + 1) + ': množství musí být celé číslo větší než nula'); return; }
-    add(p[0], p[1], qty);
+    add(p[0], p[1], qty, p.slice(2, -1).join(' ').trim());
   });
   return { orders, problems };
 }
@@ -39,6 +40,7 @@ export function parseOrders(text) {
 const ORDER_FIELDS = {
   order: ['zakazka', 'objednavka', 'order', 'so', 'заказ', 'doklad'],
   code: ['artikl', 'artikel', 'article', 'артикул', 'sku', 'kod', 'code', 'polozka'],
+  name: ['nazev', 'name', 'popis', 'название', 'description'],
   qty: ['mnozstvi', 'quantity', 'qty', 'pocet', 'количество', 'kusu', 'ks', 'pcs']
 };
 
@@ -51,7 +53,7 @@ export function rowsToOrderText(rows) {
     if (cols.order != null && cols.code != null && cols.qty != null) {
       return rows.slice(hi + 1)
         .filter(r => r.some(c => String(c).trim() !== ''))
-        .map(r => [r[cols.order], r[cols.code], r[cols.qty]].map(c => String(c == null ? '' : c).trim()).join(';'))
+        .map(r => [r[cols.order], r[cols.code]].concat(cols.name != null ? [r[cols.name]] : [], [r[cols.qty]]).map(c => String(c == null ? '' : c).trim()).join(';'))
         .join('\n');
     }
   }

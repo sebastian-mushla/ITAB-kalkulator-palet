@@ -183,6 +183,17 @@ cases.push(['Vložená tabulka se 4 sloupci (název uprostřed)', () => {
   assert(res.problems.length === 0 && o.lines.get('v06').qty === 3 && o.lines.get('new-a').qty === 4, res.problems.join('; '));
 }]);
 
+cases.push(['Názvy artiklů ze zakázky (ERP, vložená tabulka, Excel)', () => {
+  const erp = parseOrders('SO 1\nr10 XX-1 drzak displeje 5').orders.get('1').lines.get('xx-1');
+  assert(erp.name === 'drzak displeje', 'erp: ' + erp.name);
+  const tab = parseOrders('2\tNEW-A\tDržák displeje\t4').orders.get('2').lines.get('new-a');
+  assert(tab.name === 'Držák displeje' && tab.qty === 4, 'tab: ' + JSON.stringify(tab));
+  const xl = parseOrders(rowsToOrderText([['Zakázka', 'Artikl', 'Název', 'Množství'], ['3', 'NEW-B', 'Kryt', 10]])).orders.get('3').lines.get('new-b');
+  assert(xl.name === 'Kryt' && xl.qty === 10, 'xlsx: ' + JSON.stringify(xl));
+  const r = solve(parseOrders('2\tNEW-A\tDržák displeje\t4').orders.get('2'), ctx);
+  assert(r.unknown[0].name === 'Držák displeje', 'unknown name');
+}]);
+
 export function runAll() {
   return cases.map(([name, fn]) => {
     try { fn(); return { name, ok: true }; } catch (e) { return { name, ok: false, msg: e.message }; }

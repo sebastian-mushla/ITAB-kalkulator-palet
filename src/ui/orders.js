@@ -20,7 +20,7 @@ export function icon(n) {
 export function svgVehicle(v) {
   const S = 10, x0 = 86, y0 = 6, Lw = v.L / S, Hw = v.W / S, lift = v.lift ? 26 : 0, vbW = x0 + Lw + 14 + lift, vbH = y0 + Hw + 36;
   const drag = v.idx != null;
-  let s = '<svg viewBox="0 0 ' + vbW + ' ' + vbH + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Schéma nakládky: ' + esc(v.title) + '"' + (drag ? ' class="veh-svg" data-v="' + v.idx + '" data-x0="' + x0 + '" data-y0="' + y0 + '" data-s="' + S + '"' : '') + ' style="min-width:' + Math.max(320, Math.round(vbW * 0.62)) + 'px;max-width:' + Math.round(vbW * 1.15) + 'px">';
+  let s = '<svg viewBox="0 0 ' + vbW + ' ' + vbH + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Schéma nakládky: ' + esc(v.title) + '"' + (drag ? ' class="veh-svg" data-v="' + v.idx + '" data-x0="' + x0 + '" data-y0="' + y0 + '" data-s="' + S + '"' : '') + ' style="min-width:' + Math.min(560, Math.max(320, Math.round(vbW * 0.62))) + 'px;max-width:' + Math.round(vbW * 1.15) + 'px">';
   const ch = Hw * 0.78, cy = y0 + (Hw - ch) / 2;
   s += '<path d="M 12 ' + (cy + ch * 0.25) + ' L 30 ' + cy + ' L ' + (x0 - 6) + ' ' + cy + ' L ' + (x0 - 6) + ' ' + (cy + ch) + ' L 30 ' + (cy + ch) + ' L 12 ' + (cy + ch * 0.75) + ' Z" style="fill:var(--truck);stroke:var(--truck-line);stroke-width:2"/>';
   s += '<rect x="24" y="' + (cy + ch * 0.2) + '" width="9" height="' + (ch * 0.6) + '" style="fill:var(--ink2);fill-opacity:.55"/>';
@@ -190,7 +190,7 @@ export function renderDetail(r, { rules, vehicles, isAdmin }) {
   const unk = r.unknown || [];
   const tray = unk.length ? '<aside class="tray" aria-label="Neznámé artikly"><h3>Neznámé artikly</h3><p class="hint">' +
     (isAdmin ? 'Přetáhněte na paletu (uloží se kombinace) nebo na volné místo ve vozidle (nový artikl).' : 'Tyto artikly nejsou v číselníku. Požádejte administrátora o doplnění.') + '</p>' +
-    unk.map(u => '<div class="unk' + (isAdmin ? '' : ' ro') + '" data-code="' + esc(u.code) + '" data-qty="' + u.qty + '"' + (isAdmin ? ' title="Přetáhněte do vozidla"' : '') + '><b>' + esc(u.code) + '</b><span>' + fmtN(u.qty) + ' ks</span></div>').join('') + '</aside>' : '';
+    unk.map(u => '<div class="unk' + (isAdmin ? '' : ' ro') + '" data-code="' + esc(u.code) + '" data-qty="' + u.qty + '" data-name="' + esc(u.name || '') + '"' + (isAdmin ? ' title="Přetáhněte do vozidla"' : '') + '><div class="unk-top"><b>' + esc(u.code) + '</b><span>' + fmtN(u.qty) + ' ks</span></div>' + (u.name ? '<div class="unk-name">' + esc(u.name) + '</div>' : '') + '</div>').join('') + '</aside>' : '';
   if (r.vehicles.length || r.pallets.length || unk.length) {
     const opts = vehicles.map((v, i) => '<option value="' + i + '">' + esc(v.name) + ' – ' + String(v.L).replace('.', ',') + ' × ' + String(v.W).replace('.', ',') + ' m</option>').join('');
     h += '<div class="sec-head vis"><h2>Nakládka' + (r.vehicles.length ? ': ' + esc(r.reco || 'žádné vozidlo') : '') + '</h2>' +

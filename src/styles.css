@@ -291,7 +291,13 @@ body{background:
 .unk.dragging{opacity:.3}
 .veh-svg .pal.drop-host rect{stroke:var(--primary)!important;stroke-width:4px!important}
 .empty-load{color:var(--ink2)}
-@media (max-width:900px){.load.with-tray{grid-template-columns:minmax(0,1fr)}.tray{position:static;order:-1}}
+@media (max-width:1200px){
+  .load.with-tray{grid-template-columns:minmax(0,1fr)}
+  .tray{order:-1;top:8px;z-index:5;display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px;box-shadow:var(--shadow)}
+  .tray h3,.tray .hint{flex-basis:100%}
+  .tray .hint{margin-bottom:2px}
+  .unk{margin:0;min-width:150px}
+}
 /* dialogs */
 dialog.dlg{border:0;padding:0;border-radius:16px;max-width:440px;width:calc(100% - 32px);background:var(--panel);color:var(--ink);box-shadow:0 24px 60px -20px rgba(40,30,90,.5)}
 dialog.dlg::backdrop{background:rgba(30,25,60,.35);backdrop-filter:blur(2px)}
@@ -308,3 +314,9 @@ dialog.dlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
 .rgrid label.rule-bool{grid-column:1/-1;display:flex;align-items:flex-start;gap:10px}
 .rgrid label.rule-bool span{margin:0}
 .rgrid label.rule-bool input{width:auto;margin-top:3px}
+.unk{flex-direction:column;align-items:stretch;gap:2px}
+.unk-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.unk-name{font-size:12.5px;color:var(--ink2);line-height:1.3}
+.dlg-name{color:var(--ink2);font-weight:500}
+dialog.dlg input[readonly]{opacity:.75;cursor:not-allowed}
+.ro-name{display:inline-block;padding:6px 2px;color:var(--ink)}

@@ -74,7 +74,7 @@ function renderOverview() {
 }
 function saveOrderList() {
   const lines = [];
-  state.orders.forEach(o => o.lines.forEach(l => lines.push(o.id + ';' + l.code + ';' + l.qty)));
+  state.orders.forEach(o => o.lines.forEach(l => lines.push([o.id, l.code, String(l.name || '').replace(/;/g, ','), l.qty].join(';'))));
   save(KEYS.list, lines.join('\n'));
 }
 // new orders go to the top of the list and the first one opens; older ones stay
@@ -194,7 +194,7 @@ $('#detail').addEventListener('pointerdown', e => {
   const u = e.target.closest('.unk');
   if (u && isAdmin && e.button === 0) {
     const rc = u.getBoundingClientRect();
-    drag = { g: u, unk: { code: u.dataset.code, qty: Number(u.dataset.qty) }, sx: e.clientX, sy: e.clientY, w: Math.min(rc.width, 120), h: 40, color: 'var(--gray)', moved: false };
+    drag = { g: u, unk: { code: u.dataset.code, qty: Number(u.dataset.qty), name: u.dataset.name || '' }, sx: e.clientX, sy: e.clientY, w: Math.min(rc.width, 120), h: 40, color: 'var(--gray)', moved: false };
     u.setPointerCapture(e.pointerId);
     return;
   }
@@ -252,11 +252,13 @@ $('#detail').addEventListener('pointerup', e => endDrag(e, false));
 function relearn() { state.manual.delete(state.sel); recalc(); }
 function askCombo(u, host) {
   const dlg = $('#dlgCombo');
-  $('#dcText').innerHTML = 'Artikl <b>' + esc(u.code) + '</b> (' + u.qty + ' ks) pojede na paletě <b>' + esc(host) + '</b>.<br>Pravidlo: když je v zakázce ' + esc(host) + ' a ' + esc(u.code) + ' je nejvýše ' + u.qty + ' ks, jede na paletách ' + esc(host) + '.';
+  const hostArt = state.catalog.find(a => String(a.code).toLowerCase() === host.toLowerCase());
+  const nm = (code, name) => '<b>' + esc(code) + '</b>' + (name ? ' <span class="dlg-name">' + esc(name) + '</span>' : '');
+  $('#dcText').innerHTML = 'Artikl ' + nm(u.code, u.name) + ' (' + u.qty + ' ks)<br>pojede na paletě ' + nm(host, hostArt && hostArt.name) + '.<br><br>Pravidlo: když je v zakázce ' + esc(host) + ' a ' + esc(u.code) + ' je nejvýše ' + u.qty + ' ks, jede na paletách ' + esc(host) + '.';
   $('#dcKg').value = '';
   dlg.onclose = () => {
     if (dlg.returnValue !== 'yes') return;
-    state.combos.push({ on: true, code: u.code, withCode: host, min: 0, max: u.qty, mode: 'host', host, pl: 0, pw: 0, per: 0, kg: toNum($('#dcKg').value) || 0, name: '', note: 'Uloženo z nakládky' });
+    state.combos.push({ on: true, code: u.code, withCode: host, min: 0, max: u.qty, mode: 'host', host, pl: 0, pw: 0, per: 0, kg: toNum($('#dcKg').value) || 0, name: u.name || '', note: 'Uloženo z nakládky' });
     persist('combos'); drawCombos(); relearn();
     flash('Kombinace uložena.');
   };
@@ -266,6 +268,8 @@ function askArticle(u) {
   const dlg = $('#dlgArticle');
   $('#daTitle').textContent = 'Nový artikl ' + u.code;
   $('#daForm').reset();
+  // names come from the order (ERP / designers) and are not edited here
+  $('#daName').value = u.name || ''; $('#daName').readOnly = !!u.name;
   dlg.onclose = () => {
     if (dlg.returnValue !== 'yes') return;
     const a = { code: u.code, name: $('#daName').value.trim(), pack: $('#daPack').value, pl: toNum($('#daL').value), pw: toNum($('#daW').value), per: Math.max(1, Math.round(toNum($('#daPer').value))), kg: toNum($('#daKg').value) || 0, rot: $('#daRot').checked };
@@ -274,7 +278,7 @@ function askArticle(u) {
     flash('Artikl ' + u.code + ' uložen do číselníku.');
   };
   dlg.returnValue = ''; dlg.showModal();
-  $('#daName').focus();
+  (u.name ? $('#daL') : $('#daName')).focus();
 }
 $('#daPack').addEventListener('change', e => { $('#daPerLabel').textContent = e.target.value === 'balik' ? 'Kusů v balíku' : 'Kusů na paletě'; });
 $('#detail').addEventListener('pointercancel', e => endDrag(e, true));

@@ -25,12 +25,12 @@ export function makePallets(lines, catalog, combos = []) {
       // not in the catalog yet: it can still ride on a host pallet if a Kombinace rule says so
       const r0 = findRule(l.code, l.qty, present, combos);
       if (r0 && r0.mode === 'host') {
-        const a0 = { code: l.code, name: r0.name || '', kg: r0.kg || 0, per: 0, pl: 0, pw: 0, unknown: true };
+        const a0 = { code: l.code, name: r0.name || l.name || '', kg: r0.kg || 0, per: 0, pl: 0, pw: 0, unknown: true };
         const ci = catalog.length + unknown.length + riders.length;
         const row = { code: l.code, name: a0.name, qty: l.qty, kg: l.qty * a0.kg, ci, rule: ruleText(r0) };
         riders.push({ a: a0, idx: ci, qty: l.qty, rule: r0, row }); rows.push(row); return;
       }
-      unknown.push({ code: l.code, qty: l.qty });
+      unknown.push({ code: l.code, qty: l.qty, name: l.name || '' });
       errors.push('Artikl „' + l.code + '“ není v číselníku, nebyl spočítán.'); return;
     }
     let a = catalog[idx];
@@ -58,7 +58,7 @@ export function makePallets(lines, catalog, combos = []) {
     });
     row.onHost = qty - left; row.host = rule.host;
     if (left > 0 && a.unknown) {
-      unknown.push({ code: a.code, qty: left });
+      unknown.push({ code: a.code, qty: left, name: a.name || '' });
       errors.push('Artikl „' + a.code + '“: ' + left + ' ks se nevešlo na palety ' + rule.host + ' a není v číselníku.');
       Object.assign(row, { pack: 'paleta', full: 0, rem: 0, per: 0, fillRem: 0, count: 0 });
     } else if (left > 0) {
