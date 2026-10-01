@@ -303,3 +303,5 @@ dialog.dlg label.inline{flex-direction:row;align-items:center;gap:8px}
 dialog.dlg input,dialog.dlg select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--soft);color:var(--ink)}
 dialog.dlg .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 dialog.dlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
+.ftext .unk-line{color:var(--amber);font-weight:600;font-size:12.5px}
+.feed .chip{flex:none}

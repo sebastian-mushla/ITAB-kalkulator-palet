@@ -253,6 +253,10 @@ export function renderPriorities(res, hidden) {
     items.map(it => '<li><i class="pdot ' + it.c + '"></i><span>' + it.t + '</span><button class="linkbtn ' + (it.c === 'red' ? 'red' : '') + '" ' + (it.id ? 'data-id="' + esc(it.id) + '"' : 'data-view="' + it.view + '"') + '>' + it.a + ' ›</button></li>').join('') + '</ul></section>';
 }
 
+function unkChip(r) {
+  const n = (r.unknown || []).length;
+  return n ? '<span class="unk-line" title="' + esc(r.unknown.map(u => u.code).join(', ')) + '">' + n + ' ' + plural(n, ['nezařazený artikl', 'nezařazené artikly', 'nezařazených artiklů']) + '</span>' : '';
+}
 export function renderList(orders, results, sel, q) {
   const ul = $('#orderList');
   q = (q || '').trim().toLowerCase();
@@ -264,7 +268,7 @@ export function renderList(orders, results, sel, q) {
   if (!ids.length) { ul.innerHTML = '<li class="empty">' + (orders.size ? 'Nic nenalezeno.' : 'Zakázky zatím nejsou.') + '</li>'; return; }
   ul.innerHTML = ids.map(id => {
     const r = results.get(id), c = (r.mode === 'groupage' || r.mode === 'parcels') ? 'green' : (r.mode === 'trucks' ? 'blue' : 'amber');
-    return '<li class="feedrow"><button class="feed" data-id="' + esc(id) + '"' + (id === sel ? ' aria-current="true"' : '') + '><i class="fdot ' + c + '"></i><span class="ftext"><b>Zakázka ' + esc(id) + '</b><span>' + esc(r.listInfo) + (r.vehicles.length ? ' · ' + esc(r.reco) : '') + '</span></span><span class="chip ' + c + '">' + esc(r.stat) + '</span></button>' +
+    return '<li class="feedrow"><button class="feed" data-id="' + esc(id) + '"' + (id === sel ? ' aria-current="true"' : '') + '><i class="fdot ' + c + '"></i><span class="ftext"><b>Zakázka ' + esc(id) + '</b><span>' + esc(r.listInfo) + (r.vehicles.length ? ' · ' + esc(r.reco) : '') + '</span>' + unkChip(r) + '</span><span class="chip ' + c + '">' + esc(r.stat) + '</span></button>' +
       '<button class="feed-x" data-del="' + esc(id) + '" aria-label="Odebrat zakázku ' + esc(id) + '" title="Odebrat ze seznamu">×</button></li>';
   }).join('');
 }
