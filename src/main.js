@@ -26,7 +26,7 @@ const state = {
   combos: Array.isArray(shared.combos) ? shared.combos : clone(DEFAULT_COMBOS),
   rules: Object.assign(clone(DEFAULT_RULES), shared.rules || {}),
   csv: load(KEYS.csv, SAMPLE),
-  orders: new Map(), results: new Map(), forced: new Map(), manual: new Map(), isAdmin, sel: null, prioHidden: false,
+  orders: new Map(), results: new Map(), forced: new Map(), manual: new Map(), done: new Set(load('itab.done.v1', [])), isAdmin, sel: null, prioHidden: false,
   catView: { q: '', page: 0 }
 };
 
@@ -69,7 +69,7 @@ function renderOverview() {
   const vs = views(), res = [...vs.values()];
   renderKpis(res);
   renderPriorities(res, state.prioHidden);
-  renderList(state.orders, vs, state.sel, $('#q').value);
+  renderList(state.orders, vs, state.sel, $('#q').value, state.done);
   renderDetail(vs.get(state.sel), state);
 }
 function saveOrderList() {
@@ -78,9 +78,11 @@ function saveOrderList() {
   save(KEYS.list, lines.join('\n'));
 }
 // new orders go to the top of the list and the first one opens; older ones stay
-function importOrders(text, open) {
+function importOrders(text, open, initial) {
   const res = parseOrders(text);
   const fresh = [...res.orders.keys()];
+  // a new import clears the orders marked as done
+  if (fresh.length && !initial) { state.done.forEach(id => { state.orders.delete(id); state.forced.delete(id); state.manual.delete(id); }); state.done.clear(); save('itab.done.v1', []); }
   fresh.forEach(id => { state.forced.delete(id); state.manual.delete(id); state.orders.delete(id); });
   state.orders = new Map([...res.orders, ...state.orders]);
   state.prioHidden = false;
@@ -92,6 +94,7 @@ function importOrders(text, open) {
 }
 function removeOrder(id) {
   state.orders.delete(id); state.results.delete(id); state.forced.delete(id); state.manual.delete(id);
+  if (state.done.delete(id)) save('itab.done.v1', [...state.done]);
   if (state.sel === id) state.sel = state.orders.size ? state.orders.keys().next().value : null;
   saveOrderList();
   renderOverview();
@@ -116,12 +119,18 @@ function goDetail() {
 }
 function select(id) { state.sel = id; renderOverview(); goDetail(); }
 
-$('#q').addEventListener('input', () => { showView('orders'); renderList(state.orders, views(), state.sel, $('#q').value); });
+$('#q').addEventListener('input', () => { showView('orders'); renderList(state.orders, views(), state.sel, $('#q').value, state.done); });
 $('#prio').addEventListener('click', e => {
   if (e.target.id === 'prioHide') { state.prioHidden = true; renderPriorities([], true); return; }
   const b = e.target.closest('button[data-id],button[data-view]'); if (!b) return;
   if (b.getAttribute('data-view')) { showView(b.getAttribute('data-view')); return; }
   select(b.getAttribute('data-id'));
+});
+$('#orderList').addEventListener('change', e => {
+  const id = e.target.getAttribute('data-done'); if (id == null) return;
+  if (e.target.checked) state.done.add(id); else state.done.delete(id);
+  save('itab.done.v1', [...state.done]);
+  renderOverview();
 });
 $('#orderList').addEventListener('click', e => {
   const x = e.target.closest('.feed-x');
@@ -517,4 +526,4 @@ const td = new Date().toLocaleDateString('cs-CZ', { weekday: 'long', day: 'numer
 $('#today').textContent = td.charAt(0).toUpperCase() + td.slice(1);
 $('#csv').value = state.csv;
 drawCatalog(); drawVehicles(); drawCombos(); renderRules(state.rules);
-importOrders(load(KEYS.list, null) || state.csv);
+importOrders(load(KEYS.list, null) || state.csv, false, true);

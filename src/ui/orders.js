@@ -266,20 +266,25 @@ function unkChip(r) {
   const n = (r.unknown || []).length;
   return n ? '<span class="unk-line" title="' + esc(r.unknown.map(u => u.code).join(', ')) + '">' + n + ' ' + plural(n, ['nezařazený artikl', 'nezařazené artikly', 'nezařazených artiklů']) + '</span>' : '';
 }
-export function renderList(orders, results, sel, q) {
+export function renderList(orders, results, sel, q, done) {
+  done = done || new Set();
   const ul = $('#orderList');
   q = (q || '').trim().toLowerCase();
   const ids = [...orders.keys()].filter(id => {
     if (!q || id.toLowerCase().includes(q)) return true;
     return [...orders.get(id).lines.values()].some(l => l.code.toLowerCase().includes(q));
   });
+  // finished orders go to the bottom
+  ids.sort((a, b) => (done.has(a) ? 1 : 0) - (done.has(b) ? 1 : 0));
   $('#orderCount').textContent = zak(ids.length);
   if (!ids.length) { ul.innerHTML = '<li class="empty">' + (orders.size ? 'Nic nenalezeno.' : 'Zakázky zatím nejsou.') + '</li>'; return; }
   ul.innerHTML = ids.map(id => {
     const r0 = results.get(id), total = orders.get(id).lines.size;
     const r = Object.assign({}, r0, { total, known: total - new Set((r0.unknown || []).map(u => u.code.toLowerCase())).size });
     const c = (r.mode === 'groupage' || r.mode === 'parcels') ? 'green' : (r.mode === 'trucks' ? 'blue' : 'amber');
-    return '<li class="feedrow"><button class="feed" data-id="' + esc(id) + '"' + (id === sel ? ' aria-current="true"' : '') + '>' + ring(r.known, r.total) + '<span class="ftext"><b>Zakázka ' + esc(id) + '</b><span>' + esc(r.listInfo) + (r.vehicles.length ? ' · ' + esc(r.reco) : '') + '</span>' + unkChip(r) + '</span><span class="chip ' + c + '">' + esc(r.stat) + '</span></button>' +
+    const full = r.known === r.total, isDone = done.has(id);
+    const tick = '<label class="feed-done" title="' + (full ? 'Označit jako vyřízenou' : 'Nejdřív zařaďte všechny artikly') + '"><input type="checkbox" data-done="' + esc(id) + '"' + (isDone ? ' checked' : '') + (full ? '' : ' disabled') + ' aria-label="Zakázka ' + esc(id) + ' vyřízena"></label>';
+    return '<li class="feedrow' + (isDone ? ' done' : '') + '">' + tick + '<button class="feed" data-id="' + esc(id) + '"' + (id === sel ? ' aria-current="true"' : '') + '>' + ring(r.known, r.total) + '<span class="ftext"><b>Zakázka ' + esc(id) + '</b><span>' + esc(r.listInfo) + (r.vehicles.length ? ' · ' + esc(r.reco) : '') + '</span>' + unkChip(r) + '</span><span class="chip ' + c + '">' + esc(r.stat) + '</span></button>' +
       '<button class="feed-x" data-del="' + esc(id) + '" aria-label="Odebrat zakázku ' + esc(id) + '" title="Odebrat ze seznamu">×</button></li>';
   }).join('');
 }

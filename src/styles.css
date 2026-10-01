@@ -321,3 +321,8 @@ dialog.dlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
 dialog.dlg input[readonly]{opacity:.75;cursor:not-allowed}
 .ro-name{display:inline-block;padding:6px 2px;color:var(--ink)}
 .feed .ring{flex:none}
+.feed-done{display:flex;align-items:center;padding:0 2px 0 6px;cursor:pointer}
+.feed-done input{width:18px;height:18px;accent-color:var(--green);cursor:pointer}
+.feed-done input:disabled{cursor:not-allowed;opacity:.35}
+.feedrow.done .feed{opacity:.5;filter:grayscale(1)}
+.feedrow.done .feed[aria-current="true"]{opacity:.75}
