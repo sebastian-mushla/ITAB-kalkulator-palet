@@ -1,5 +1,6 @@
 // Acceptance tests from CLAUDE.md. Run in the browser (tests/index.html) or with `node --test tests/`.
 import { parseOrders, rowsToOrderText } from '../src/core/parse.js';
+import { fromResult, replaceVehicle, viewOf } from '../src/core/manual.js';
 import { solve } from '../src/core/solve.js';
 import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, SAMPLE } from '../src/core/defaults.js';
 import { parseCsvRows, rowsToCatalog, rowsToVehicles, rowsToCombos, mergeBy } from '../src/io/importTable.js';
@@ -192,6 +193,18 @@ cases.push(['Názvy artiklů ze zakázky (ERP, vložená tabulka, Excel)', () =>
   assert(xl.name === 'Kryt' && xl.qty === 10, 'xlsx: ' + JSON.stringify(xl));
   const r = solve(parseOrders('2\tNEW-A\tDržák displeje\t4').orders.get('2'), ctx);
   assert(r.unknown[0].name === 'Držák displeje', 'unknown name');
+}]);
+
+cases.push(['Přetížené vozidlo → nové vozidlo převezme všechny palety, staré zmizí', () => {
+  const r = solve(parseOrders('X;V-POL;300').orders.get('X'), Object.assign({}, ctx, { rules: Object.assign({}, DEFAULT_RULES, { gMax: 0 }) }));
+  const m = fromResult(r);
+  m.vehicles[0].items.forEach(i => { i.kg = 700; });          // simulate overload in a 1000 kg van
+  const before = viewOf(r, m, DEFAULT_VEHICLES);
+  assert(before.overweight.length === 1, 'not overloaded');
+  assert(replaceVehicle(m, DEFAULT_VEHICLES, 0, 0), 'replace failed');
+  const after = viewOf(r, m, DEFAULT_VEHICLES);
+  assert(after.vehicles.length === 1 && after.vehicles[0].type === 'kamion' && after.vehicles[0].items.length === 2 && !after.overweight.length, after.reco);
+  checkLayout(after);
 }]);
 
 export function runAll() {

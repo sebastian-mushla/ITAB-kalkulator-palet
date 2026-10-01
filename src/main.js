@@ -2,7 +2,7 @@ import { clone, toNum } from './core/util.js';
 import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, SAMPLE } from './core/defaults.js';
 import { parseOrders, rowsToOrderText } from './core/parse.js';
 import { solve } from './core/solve.js';
-import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle } from './core/manual.js';
+import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle, replaceVehicle } from './core/manual.js';
 import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, mergeBy, toCsv } from './io/importTable.js';
 import { renderKpis, renderPriorities, renderList, renderDetail, requestText } from './ui/orders.js';
 import { requireLogin, loadSettings, saveSetting, signOut, changePassword, listProfiles, setRole, adminUsers } from './auth.js';
@@ -172,6 +172,16 @@ $('#detail').addEventListener('click', e => {
   const id = state.sel; if (!id) return;
   if (e.target.id === 'addVehBtn') {
     const r = state.results.get(id), vi = Number($('#addVehSel').value);
+    // an overloaded vehicle is replaced: its pallets move to the new one and the old one goes away
+    const over = view(id).overweight || (view(id).vehicles || []).filter(v => v.kg > v.maxKg + 1e-9);
+    if (over.length) {
+      const target = over[0];
+      if (state.vehicles[vi] && target.kg > state.vehicles[vi].kg + 1e-9) { flash('Nové vozidlo unese jen ' + state.vehicles[vi].kg + ' kg, náklad má ' + Math.round(target.kg) + ' kg.'); return; }
+      let ok = false;
+      keepScroll(() => { ok = replaceVehicle(manualOf(id), state.vehicles, target.idx, vi); });
+      flash(ok ? target.title + ' nahrazeno: palety přesunuty do nového vozidla.' : 'Palety z ' + target.title + ' se do nového vozidla nevejdou.');
+      return;
+    }
     keepScroll(() => {
       const fresh = !state.manual.has(id);
       const m = manualOf(id);

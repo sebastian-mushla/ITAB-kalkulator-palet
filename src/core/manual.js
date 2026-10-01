@@ -78,6 +78,23 @@ export function addVehicle(manual, vehicles, vi, pallets) {
   manual.vehicles.push({ vi, items: [] });
 }
 
+// Put all pallets of vehicle `v` into a new vehicle `vi` and drop the old one. Returns false if they do not all fit.
+export function replaceVehicle(manual, vehicles, v, vi) {
+  const old = manual.vehicles[v]; if (!old) return false;
+  const { L, W } = dims(vehicles, vi), cap = (vehicles[vi] || {}).eup;
+  if (cap > 0 && old.items.length > cap) return false;
+  const placed = [];
+  const order = old.items.slice().sort((a, b) => b.w * b.h - a.w * a.h);
+  for (const it of order) {
+    const orients = it.rot && it.w !== it.h ? [[it.pl, it.pw], [it.pw, it.pl]] : [[it.w, it.h]];
+    const pos = placeNear(L, W, placed, it, 0, 0, orients);
+    if (!pos) return false;
+    placed.push(Object.assign({}, it, { x: pos.x, y: pos.y, w: pos.w, h: pos.h, turned: pos.w !== it.pl }));
+  }
+  manual.vehicles[v] = { vi, items: placed };
+  return true;
+}
+
 export function removeVehicle(manual, v) {
   if (!manual.vehicles[v] || manual.vehicles[v].items.length) return false;
   manual.vehicles.splice(v, 1);
