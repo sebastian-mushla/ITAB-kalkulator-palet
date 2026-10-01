@@ -266,6 +266,14 @@ function unkChip(r) {
   const n = (r.unknown || []).length;
   return n ? '<span class="unk-line" title="' + esc(r.unknown.map(u => u.code).join(', ')) + '">' + n + ' ' + plural(n, ['nezařazený artikl', 'nezařazené artikly', 'nezařazených artiklů']) + '</span>' : '';
 }
+// what to order, as one short text for the list
+function transportText(r) {
+  const parts = [];
+  if (r.vehicles.length && r.reco) parts.push(r.reco);
+  if (r.mode === 'groupage' && !r.manualOn) parts.push('Sběrná služba (palety)');
+  if (r.parcels && r.parcels.length) parts.push('Sběrná služba (' + r.parcels.length + ' ' + balWord(r.parcels.length) + ')');
+  return parts.length ? ' · ' + esc(parts.join(' + ')) : '';
+}
 export function renderList(orders, results, sel, q, done) {
   done = done || new Set();
   const ul = $('#orderList');
@@ -284,7 +292,7 @@ export function renderList(orders, results, sel, q, done) {
     const c = (r.mode === 'groupage' || r.mode === 'parcels') ? 'green' : (r.mode === 'trucks' ? 'blue' : 'amber');
     const full = r.known === r.total, isDone = done.has(id);
     const tick = '<label class="feed-done" title="' + (full ? 'Označit jako vyřízenou' : 'Nejdřív zařaďte všechny artikly') + '"><input type="checkbox" data-done="' + esc(id) + '"' + (isDone ? ' checked' : '') + (full ? '' : ' disabled') + ' aria-label="Zakázka ' + esc(id) + ' vyřízena"></label>';
-    return '<li class="feedrow' + (isDone ? ' done' : '') + '">' + tick + '<button class="feed" data-id="' + esc(id) + '"' + (id === sel ? ' aria-current="true"' : '') + '>' + ring(r.known, r.total) + '<span class="ftext"><b>Zakázka ' + esc(id) + '</b><span>' + esc(r.listInfo) + (r.vehicles.length ? ' · ' + esc(r.reco) : '') + '</span>' + unkChip(r) + '</span><span class="chip ' + c + '">' + esc(r.stat) + '</span></button>' +
+    return '<li class="feedrow' + (isDone ? ' done' : '') + '">' + tick + '<button class="feed" data-id="' + esc(id) + '"' + (id === sel ? ' aria-current="true"' : '') + '>' + ring(r.known, r.total) + '<span class="ftext"><b>Zakázka ' + esc(id) + '</b><span>' + esc(r.listInfo) + transportText(r) + '</span>' + unkChip(r) + '</span><span class="chip ' + c + '">' + esc(r.stat) + '</span></button>' +
       '<button class="feed-x" data-del="' + esc(id) + '" aria-label="Odebrat zakázku ' + esc(id) + '" title="Odebrat ze seznamu">×</button></li>';
   }).join('');
 }
