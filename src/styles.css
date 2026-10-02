@@ -348,3 +348,5 @@ dialog.dlg-wide{max-width:560px}
 .unk-name{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .unk-name.none{font-style:italic;opacity:.7}
 @media (max-width:1200px){.load.with-tray{grid-template-columns:minmax(0,1fr)}.unk{flex:0 1 calc(12ch + 120px)}}
+.veh header .bal{flex-basis:100%;font-size:12.5px;color:var(--ink2)}
+.veh header .bal.warn{color:var(--amber);font-weight:600}

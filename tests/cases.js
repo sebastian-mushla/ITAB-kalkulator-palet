@@ -1,6 +1,7 @@
 // Acceptance tests from CLAUDE.md. Run in the browser (tests/index.html) or with `node --test tests/`.
 import { parseOrders, rowsToOrderText } from '../src/core/parse.js';
 import { fromResult, replaceVehicle, viewOf } from '../src/core/manual.js';
+import { loadStats } from '../src/core/packing.js';
 import { solve } from '../src/core/solve.js';
 import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, SAMPLE } from '../src/core/defaults.js';
 import { parseCsvRows, rowsToCatalog, rowsToVehicles, rowsToCombos, mergeBy } from '../src/io/importTable.js';
@@ -205,6 +206,22 @@ cases.push(['Přetížené vozidlo → nové vozidlo převezme všechny palety, 
   const after = viewOf(r, m, DEFAULT_VEHICLES);
   assert(after.vehicles.length === 1 && after.vehicles[0].type === 'kamion' && after.vehicles[0].items.length === 2 && !after.overweight.length, after.reco);
   checkLayout(after);
+}]);
+
+cases.push(['Rozložení váhy: těžké palety u kabiny, levá/pravá strana vyvážená', () => {
+  const r = solve(parseOrders('B;V-POL;' + (156 * 10) + '\nB;V06;4').orders.get('B'), ctx);
+  checkLayout(r);
+  r.vehicles.forEach(v => {
+    const usedL = Math.max(...v.items.map(i => i.x + i.w)), st = loadStats(v.items, v.W);
+    assert(st.cg <= usedL / 2 + 1, v.title + ': těžiště ' + Math.round(st.cg) + ' mm, polovina ' + usedL / 2);
+  });
+  // same-size pallets of different weight: heavy ones go to the cab and both sides even out
+  const catalog = DEFAULT_CATALOG.concat([{ code: 'LEH', name: 'Lehké', pack: 'paleta', pl: 1200, pw: 800, per: 1, kg: 40, rot: true }]);
+  const r2 = solve(parseOrders('C;V-POL;' + (156 * 9) + '\nC;LEH;9').orders.get('C'), Object.assign({}, ctx, { catalog }));
+  checkLayout(r2);
+  const v = r2.vehicles[0], usedL = Math.max(...v.items.map(i => i.x + i.w)), st = loadStats(v.items, v.W);
+  assert(st.cg < usedL * 0.4, 'těžiště ' + Math.round(st.cg) + ' z ' + usedL);
+  assert(Math.abs(st.leftPct - 50) <= 10, 'vlevo ' + st.leftPct + ' %');
 }]);
 
 export function runAll() {

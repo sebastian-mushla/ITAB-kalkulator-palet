@@ -1,5 +1,6 @@
 import { esc, plural, fmtM, fmtKg, fmtN, color, palWord, balWord, vehWord } from '../core/util.js';
 import { groupItems } from '../core/solve.js';
+import { loadStats } from '../core/packing.js';
 
 const $ = s => document.querySelector(s);
 const ldmText = r => r.ldm.toLocaleString('cs-CZ', { maximumFractionDigits: 1 });
@@ -171,8 +172,10 @@ function vehicleHtml(v) {
   const legend = groupItems(v.items).map(g => '<li><i class="sw" style="background:' + color(g.ci) + '"></i>' + esc(g.code) + ': ' + g.count + ' ' + palWord(g.count) + ', ' + g.units + ' ks</li>').join('') +
     extrasOf(v.items).map(e => '<li><i class="sw" style="background:' + color(e.ci) + '"></i>' + esc(e.code) + ': ' + e.units + ' ks na paletách ' + esc(e.host) + '</li>').join('');
   const load = v.maxKg ? Math.round(v.kg / v.maxKg * 100) : 0, over = v.kg > v.maxKg;
+  const st = loadStats(v.items, v.W);
+  const bal = st ? '<span class="bal' + (Math.abs(st.leftPct - 50) > 10 ? ' warn' : '') + '" title="Těžiště nákladu a rozložení váhy mezi levou a pravou stranu">těžiště ' + fmtM(st.cg) + ' m od kabiny · L ' + st.leftPct + ' % / P ' + (100 - st.leftPct) + ' %</span>' : '';
   const rm = v.idx != null && !v.items.length ? '<button class="veh-x" data-rmveh="' + v.idx + '" aria-label="Odebrat vozidlo">×</button>' : '';
-  return '<article class="panel veh' + (over ? ' over' : '') + '"><header><h3>' + esc(v.title) + ', korba ' + fmtM(v.L) + ' × ' + fmtM(v.W) + ' m</h3><p>' + (v.items.length ? v.items.length + ' ' + palWord(v.items.length) + ', ' + fmtKg(v.kg) + ' (' + load + ' % nosnosti' + (over ? ', přetíženo!' : '') + ')' : 'prázdné – přetáhněte sem palety') + rm + '</p></header><ul class="legend">' + legend + '</ul><div class="plan">' + svgVehicle(v) + '</div></article>';
+  return '<article class="panel veh' + (over ? ' over' : '') + '"><header><h3>' + esc(v.title) + ', korba ' + fmtM(v.L) + ' × ' + fmtM(v.W) + ' m</h3><p>' + (v.items.length ? v.items.length + ' ' + palWord(v.items.length) + ', ' + fmtKg(v.kg) + ' (' + load + ' % nosnosti' + (over ? ', přetíženo!' : '') + ')' : 'prázdné – přetáhněte sem palety') + rm + '</p>' + bal + '</header><ul class="legend">' + legend + '</ul><div class="plan">' + svgVehicle(v) + '</div></article>';
 }
 function depotHtml(d, rules) {
   const nonEuro = [...new Set(d.items.filter(p => !p.euro).map(p => p.code))];
