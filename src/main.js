@@ -264,7 +264,8 @@ function endDrag(e, cancel) {
   if (d.unk) {
     const hostG = over && over.closest('.pal');
     if (hostG) {
-      const v = view(state.sel), veh = v.vehicles[Number(hostG.dataset.v)];
+      const v = view(state.sel), vi = Number(hostG.dataset.v);
+      const veh = v.vehicles.find(x => x.idx === vi) || v.vehicles[vi] || (v.depot && v.depot.idx === vi ? v.depot : null);
       const hp = veh && veh.items.find(i => i.id === Number(hostG.dataset.p));
       if (hp) askCombo(d.unk, hp.code);
     } else if (svg) askArticle(d.unk);
