@@ -112,11 +112,23 @@ let timer = null;
 function later() { clearTimeout(timer); timer = setTimeout(recalc, 250); }
 
 // ---------- navigation ----------
-const VIEWS = ['orders', 'catalog', 'combos', 'vehicles', 'rules', 'users'];
+const VIEWS = ['orders', 'catalog', 'combos', 'vehicles', 'rules', 'users', 'help'];
+// help page shows the current rule values
+function renderHelp() {
+  const r = state.rules;
+  document.querySelectorAll('[data-help]').forEach(el => {
+    const k = el.getAttribute('data-help');
+    if (k === 'oneVeh') el.innerHTML = r.oneVeh !== false
+      ? '<b>Jedna zakázka = jedno vozidlo</b> (zapnuto na záložce Pravidla): pokud se celá zakázka vejde do jednoho vozidla, vezmeme nejlevnější takové vozidlo, i kdyby několik menších vyšlo levněji.'
+      : '<b>Jedna zakázka = jedno vozidlo je vypnuto</b>: hledáme nejlevnější kombinaci vozidel, i když jich bude víc.';
+    else el.textContent = String(r[k]).replace('.', ',');
+  });
+}
 function showView(v) {
   VIEWS.forEach(x => {
     const on = x === v;
     $('#view-' + x).hidden = !on;
+    if (on && x === 'help') renderHelp();
     $('#tab-' + x).setAttribute('aria-selected', on ? 'true' : 'false');
   });
 }

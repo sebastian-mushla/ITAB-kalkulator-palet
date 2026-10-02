@@ -38,6 +38,7 @@ document.documentElement.setAttribute('data-theme',t);})();
       <button class="tab" role="tab" id="tab-vehicles" aria-selected="false" data-view="vehicles"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h12v10H2z"/><path d="M14 9h4l4 4v3h-8z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>Vozidla</button>
       <button class="tab" role="tab" id="tab-users" aria-selected="false" data-view="users"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/></svg>Uživatelé</button>
       <button class="tab" role="tab" id="tab-rules" aria-selected="false" data-view="rules"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Pravidla</button>
+      <button class="tab" role="tab" id="tab-help" aria-selected="false" data-view="help"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17h.01"/></svg>Jak to funguje</button>
     </nav>
   </aside>
   <div class="main">
@@ -156,6 +157,52 @@ document.documentElement.setAttribute('data-theme',t);})();
           <p class="hint">Heslo předejte člověku sami. Po přihlášení si ho změní tlačítkem „Změnit heslo“ nahoře.</p>
           <div id="userReport"></div>
           <div class="tscroll"><table><thead><tr><th>E-mail</th><th>Role</th><th>Založen</th><th></th></tr></thead><tbody id="userBody"></tbody></table></div>
+        </div>
+      </section>
+
+      <section id="view-help" hidden>
+        <div class="pagehead"><div><h1>Jak to funguje</h1><p>Podle čeho kalkulátor počítá palety, vybírá vozidla a skládá nakládku.</p></div></div>
+        <div class="help">
+          <section class="card"><h2>1. Palety ze zakázky</h2>
+            <p>U každého artiklu z číselníku známe rozměr palety, kolik kusů se na ni vejde a váhu kusu. Množství ze zakázky se rozdělí na plné palety a nejvýše jednu neúplnou (zbytek). Stejné artikly v jedné zakázce se sečtou.</p>
+            <p>Váha se počítá bez vlastní váhy palet. Palety na sebe nestohujeme.</p>
+            <p>Artikl s balením „balík“ nejede na paletě, ale jako balíky sběrnou službou.</p></section>
+          <section class="card"><h2>2. Kombinace artiklů</h2>
+            <p>Na záložce Kombinace jsou výjimky. Pravidla se zkoušejí shora dolů a použije se první, které sedí (artikl, „když je v zakázce“ a rozsah množství).</p>
+            <ul><li><b>Na paletě artiklu</b> – kusy jedou na paletách jiného artiklu (např. V06). Rozměr palety se nemění, přičte se jen váha. Co se nevejde (max ks na paletu), jede normálně.</li>
+            <li><b>Na jiné paletě</b> – artikl dostane v této situaci jiný rozměr palety a počet kusů.</li>
+            <li><b>Jako balík</b> – artikl jede balíky.</li></ul></section>
+          <section class="card"><h2>3. Sběrná služba nebo vlastní vozidlo</h2>
+            <p>Palety jdou sběrnou službou (PPL, DPD, UPS, Česká pošta), jen když jsou všechny europalety 120 × 80 cm a je jich nejvýše <b data-help="gMax"></b>. Jinak se objedná vozidlo.</p>
+            <p>Balík smí vážit nejvýše <b data-help="pKg"></b> kg a mít nejdelší stranu nejvýše <b data-help="pL"></b> m. Těžší nebo delší balík označíme „Zkontrolovat“.</p>
+            <p>Nadrozměr: paleta delší než <b data-help="oL"></b> m nebo širší než <b data-help="oW"></b> m – upozorníme, ověřte u dopravce.</p></section>
+          <section class="card"><h2>4. Výběr vozidla</h2>
+            <p data-help="oneVeh"></p>
+            <p>Vozidlo „unese“ zakázku, když se palety vejdou na korbu (pohled shora, s otáčením), celková váha je do nosnosti a počet palet do „Max palet“. Cena na záložce Vozidla je relativní: čím nižší, tím raději vozidlo volíme.</p>
+            <p>Když se zakázka nevejde do žádného jednoho vozidla, rozdělí se do více vozidel tak, aby součet cen byl co nejnižší.</p>
+            <p>Na detailu zakázky můžete v poli „Vozidlo“ vybrat konkrétní vozidlo ručně – pak počítáme jen s ním.</p></section>
+          <section class="card"><h2>5. Rozložení na korbě</h2>
+            <p>Palety skládáme shora (2D) od čela korby. Zkoušíme stovky pořadí a natočení palet a bereme nejlepší výsledek. Výsledek je pokaždé stejný (není náhodný).</p>
+            <p><b>Rozložení váhy:</b> těžké palety dáváme ke kabině, palety stejného rozměru prohazujeme tak, aby levá a pravá strana vážila podobně. V záhlaví vozidla vidíte těžiště (metry od kabiny) a poměr levá/pravá. Při rozdílu nad 10 % je údaj oranžový. Palety různé šířky (např. 130 a 80 cm) někdy vyrovnat nejdou.</p>
+            <p>LDM (ložné metry) je odhad: plocha palet ÷ šířka korby.</p></section>
+          <section class="card"><h2>6. Ruční úpravy nakládky</h2>
+            <ul><li><b>Přetažení:</b> paletu chyťte myší a pusťte jinam nebo do jiného vozidla. Když se tam nevejde, najdeme nejbližší volné místo; když nikde, paleta zůstane, kde byla.</li>
+            <li><b>Dvojklik</b> paletu otočí (pokud se otáčet smí a vejde se).</li>
+            <li><b>+ Přidat vozidlo</b> přidá prázdné vozidlo. Když je některé vozidlo <b>přetížené</b>, tlačítko ho místo toho <b>nahradí</b>: všechny jeho palety se přesunou do nového vozidla a staré zmizí (jen když nové vozidlo unese váhu a palety se vejdou).</li>
+            <li><b>Sběrná služba</b> je zelená plocha „Předávka“. Palety mezi ní a vozidly lze přetahovat.</li>
+            <li>„Vrátit automatické rozložení“ zahodí ruční změny. Ruční rozložení se neukládá – po obnovení stránky platí znovu výpočet.</li></ul></section>
+          <section class="card"><h2>7. Učení: neznámé artikly</h2>
+            <p>Artikly, které nejsou v číselníku, jsou vpravo jako šedé bloky (kód, množství, název ze zakázky). Administrátor je přetáhne:</p>
+            <ul><li><b>na paletu</b> – artikl pojede na této paletě; se zaškrtnutím „Zapamatovat“ se uloží kombinace pro další zakázky (platí, dokud je kusů nejvýše tolik jako teď), bez zaškrtnutí jen pro tuto zakázku;</li>
+            <li><b>na volné místo ve vozidle</b> – otevře se formulář nového artiklu (rozměry, kusy na paletě, váha) a artikl se uloží do číselníku.</li></ul>
+            <p>Kroužek u zakázky ukazuje, kolik artiklů ze zakázky už je zařazeno. Zakázku lze odškrtnout jako vyřízenou až při 100 %.</p></section>
+          <section class="card"><h2>8. Ringil a tisk</h2>
+            <ul><li><b>Objednat dopravu (Ringil)</b> – hodnoty do formuláře Ringilu s tlačítkem Kopírovat u každého pole. Vozidlo = ložné metry (obsazená délka korby), sběrná služba = europalety, balíky = krabice. Výšku v číselníku nemáme – doplňte ji.</li>
+            <li><b>Tisk pro balení</b> – seznam palet po vozidlech: rozměr, artikl, kusy, co je přiloženo navrch.</li>
+            <li><b>Tisk nakládky</b> – nákres všech vozidel shora.</li></ul></section>
+          <section class="card"><h2>9. Uživatelé a data</h2>
+            <p>Administrátor vidí a mění vše (číselník, kombinace, vozidla, pravidla, uživatele). Uživatel jen počítá zakázky na Přehledu. Číselník, kombinace, vozidla a pravidla jsou společné pro všechny. Seznam zakázek a ruční úpravy jsou jen v tomto prohlížeči.</p>
+            <p>Výpočet dělá běžný program přímo v prohlížeči – nepoužívá umělou inteligenci a nic se neodesílá jinam.</p></section>
         </div>
       </section>
 
