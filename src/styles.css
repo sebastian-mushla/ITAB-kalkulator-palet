@@ -340,3 +340,11 @@ dialog.dlg-wide{max-width:560px}
 #drBody{display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow:auto}
 .veh.depot{border-style:dashed;border-color:color-mix(in srgb,var(--green) 55%,var(--line))}
 .veh.depot h3{color:var(--green)}
+/* unknown boxes sized for ~12-character codes */
+.load.with-tray{grid-template-columns:minmax(0,1fr) 260px}
+.unk{min-width:calc(12ch + 90px)}
+.unk-top b{white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.unk-top span{white-space:nowrap}
+.unk-name{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.unk-name.none{font-style:italic;opacity:.7}
+@media (max-width:1200px){.load.with-tray{grid-template-columns:minmax(0,1fr)}.unk{flex:0 1 calc(12ch + 120px)}}
