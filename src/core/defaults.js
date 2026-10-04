@@ -19,13 +19,13 @@ export const DEFAULT_VEHICLES = [
   { name: 'Plachťák 3,5 t (8 palet)', type: 'plachta', L: 4.8, W: 2.2, kg: 1100, eup: 8, lift: false, cost: 0.35 },
   { name: 'Dodávka 3,5 t s hydraulickým čelem', type: 'celo', L: 4.2, W: 2.1, kg: 900, eup: 8, lift: true, cost: 0.4 },
   { name: 'Dodávka 3,5 t (skříň)', type: 'dodavka', L: 3.7, W: 1.75, kg: 1100, eup: 5, lift: false, cost: 0.25 },
-  { name: 'Sólo 7,5 t (15 palet)', type: 'solo', L: 6.0, W: 2.45, kg: 2800, eup: 15, lift: true, cost: 0.55 },
-  { name: 'Sólo 12 t (17 palet)', type: 'solo', L: 7.2, W: 2.45, kg: 5500, eup: 17, lift: true, cost: 0.7 },
-  { name: 'Sólo 18 t (20 palet)', type: 'solo', L: 8.2, W: 2.45, kg: 9000, eup: 20, lift: false, cost: 0.8 }
+  { name: 'Nákladní auto 7,5 t (15 palet)', type: 'solo', L: 6.0, W: 2.45, kg: 2800, eup: 15, lift: true, cost: 0.55 },
+  { name: 'Nákladní auto 12 t (17 palet)', type: 'solo', L: 7.2, W: 2.45, kg: 5500, eup: 17, lift: true, cost: 0.7 },
+  { name: 'Nákladní auto 18 t (20 palet)', type: 'solo', L: 8.2, W: 2.45, kg: 9000, eup: 20, lift: false, cost: 0.8 }
 ];
 
 export const VEHICLE_TYPES = [
-  ['kamion', 'Kamion'], ['plachta', 'Plachťák'], ['celo', 'Dodávka s čelem'], ['dodavka', 'Dodávka'], ['solo', 'Sólo (nákladní auto)'], ['jine', 'Jiné']
+  ['kamion', 'Kamion'], ['plachta', 'Plachťák'], ['celo', 'Dodávka s čelem'], ['dodavka', 'Dodávka'], ['solo', 'Nákladní auto (sólo)'], ['jine', 'Jiné']
 ];
 
 export const DEFAULT_RULES = { oneVeh: true, mix: true, lrTol: 60, cgMin: 35, cgMax: 60, heavyShare: 50, gMax: 3, oL: 2.4, oW: 1.2, pKg: 31.5, pL: 1.2 };
