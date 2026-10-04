@@ -70,7 +70,7 @@ document.documentElement.setAttribute('data-theme',t);})();
           </section>
           <section class="card">
             <div class="cardhead"><h2>Zakázky</h2><span class="muted" id="orderCount"></span></div>
-            <ul class="feedlist" id="orderList"></ul>
+            <div class="otable-wrap" id="orderList"></div>
           </section>
         </div>
         <section id="detail" aria-live="polite"></section>
@@ -235,6 +235,8 @@ document.documentElement.setAttribute('data-theme',t);})();
             <li><b>+ Přidat vozidlo</b> přidá prázdné vozidlo. Když je některé vozidlo <b>přetížené</b>, tlačítko ho místo toho <b>nahradí</b>: všechny jeho palety se přesunou do nového vozidla a staré zmizí (jen když nové vozidlo unese váhu a palety se vejdou).</li>
             <li><b>Sběrná služba</b> je zelená plocha „Předávka“. Palety mezi ní a vozidly lze přetahovat.</li>
             <li>„Vrátit automatické rozložení“ zahodí ruční změny. Ruční rozložení se neukládá – po obnovení stránky platí znovu výpočet.</li></ul></section>
+          <section class="card"><h2>6b. Seznam zakázek</h2>
+            <p>Stav se nastavuje sám: <b>Čeká na zařazení</b> (v zakázce jsou neznámé artikly) → <b>Připravená</b> → <b>Rozpracovaná</b> (ručně upravené palety nebo nakládka) → <b>Doprava objednána</b> (tlačítko v okně Ringil) → <b>Vyřízená</b> (zaškrtnutí). Kliknutím na záhlaví sloupce seřadíte (znovu = obráceně, potřetí = zrušit), trychtýřem filtrujete.</p></section>
           <section class="card"><h2>7. Úprava palet</h2>
             <p><b>Víc věcí najednou:</b> Shift + klik označí víc neznámých artiklů, palet na ploše nebo palet ve vozidlech. Přetažením kterékoli označené se přesunou všechny (artikly do jednoho okna, palety na cílovou paletu nebo do vozidla). Esc výběr zruší.</p>
             <p>Kliknutím na paletu v kalkulátoru otevřete její obsah. Kusy libovolného artiklu přesunete na jinou paletu zakázky nebo na novou paletu stejného typu, paletě můžete změnit typ a prázdnou paletu smazat. Malé palety lze <b>přetáhnout jednu na druhou</b>: přeloží se tolik kusů, kolik se na cílovou paletu vejde (do 100 % a do nosnosti), zbytek zůstane na původní paletě. Po první úpravě se palety zakázky „zmrazí“ – dál je mění jen obsluha. Kusy, které nejsou na žádné paletě, se objeví vpravo jako bloky k rozložení. Tlačítko „Vrátit automatický výpočet palet“ úpravy zahodí.</p></section>
@@ -268,7 +270,7 @@ document.documentElement.setAttribute('data-theme',t);})();
     <h2 id="drTitle">Údaje pro Ringil</h2>
     <p>Klikněte na „Kopírovat“ a vložte do stejného pole v Ringilu (Cmd + V). Zkopírovaná pole se označí.</p>
     <div id="drBody"></div>
-    <div class="acts"><button class="btn primary" value="close">Hotovo</button></div>
+    <div class="acts"><button type="button" class="btn" id="drOrdered">Označit: doprava objednána</button><button class="btn primary" value="close">Hotovo</button></div>
   </form>
 </dialog>
 <dialog class="dlg dlg-wide" id="dlgPalEdit">

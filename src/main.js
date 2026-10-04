@@ -8,6 +8,7 @@ import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle
 import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, rowsToPallets, mergeBy, toCsv } from './io/importTable.js';
 import { renderKpis, renderPriorities, renderList, renderDetail, renderDock, requestText, loadPlanHtml, palOption } from './ui/orders.js';
 import { ringilHtml } from './ui/ringil.js';
+import { renderOrderTable, statusOf, transportOf } from './ui/ordertable.js';
 import { packListHtml } from './ui/packlist.js';
 import { requireLogin, loadSettings, saveSetting, signOut, changePassword, listProfiles, setRole, adminUsers } from './auth.js';
 import { esc } from './core/util.js';
@@ -33,7 +34,8 @@ const state = {
   pallets: Array.isArray(shared.pallets) && shared.pallets.length ? shared.pallets : clone(DEFAULT_PALLETS),
   rules: Object.assign(clone(DEFAULT_RULES), shared.rules || {}),
   csv: load(KEYS.csv, SAMPLE),
-  orders: new Map(), results: new Map(), forced: new Map(), manual: new Map(), board: new Map(), plan: new Map(), oneOff: new Map(), done: new Set(load('itab.done.v1', [])), isAdmin, sel: null, prioHidden: false,
+  orders: new Map(), results: new Map(), forced: new Map(), manual: new Map(), board: new Map(), plan: new Map(),
+  ordered: new Set(load('itab.ordered.v1', [])), listUi: Object.assign({ sort: { key: null, dir: 'asc' }, filters: {} }, load('itab.listui.v1', {}), { open: null }), oneOff: new Map(), done: new Set(load('itab.done.v1', [])), isAdmin, sel: null, prioHidden: false,
   catView: { q: '', page: 0 }
 };
 
@@ -89,7 +91,7 @@ function renderOverview() {
   const vs = views(), res = [...vs.values()];
   renderKpis(res);
   renderPriorities(res, state.prioHidden);
-  renderList(state.orders, vs, state.sel, $('#q').value, state.done);
+  drawOrderTable(vs);
   renderDetail(vs.get(state.sel), state);
   renderList(state.orders, vs, state.sel, '', state.done, '#dockList', '#dockCount');
   renderDock(vs.get(state.sel), state);
@@ -118,6 +120,7 @@ function importOrders(text, open, initial) {
 function removeOrder(id) {
   state.orders.delete(id); state.results.delete(id); state.forced.delete(id); state.manual.delete(id); state.board.delete(id); state.plan.delete(id); state.oneOff.delete(id);
   if (state.done.delete(id)) save('itab.done.v1', [...state.done]);
+  if (state.ordered.delete(id)) save('itab.ordered.v1', [...state.ordered]);
   if (state.sel === id) state.sel = state.orders.size ? state.orders.keys().next().value : null;
   saveOrderList();
   renderOverview();
@@ -154,7 +157,39 @@ function goDetail() {
 }
 function select(id) { state.sel = id; renderOverview(); goDetail(); }
 
-$('#q').addEventListener('input', () => { showView('orders'); renderList(state.orders, views(), state.sel, $('#q').value, state.done); });
+$('#q').addEventListener('input', () => { showView('orders'); drawOrderTable(views()); });
+
+// ---------- order table: status, sorting, filters ----------
+function drawOrderTable(vs) {
+  const q = ($('#q').value || '').trim().toLowerCase();
+  const edited = id => !!(state.plan.has(id) || (state.manual.get(id) && state.manual.get(id).touched));
+  const rows = [...state.orders.keys()].filter(id => !q || id.toLowerCase().includes(q) || [...state.orders.get(id).lines.values()].some(l => l.code.toLowerCase().includes(q))).map(id => {
+    const r = vs.get(id), total = state.orders.get(id).lines.size;
+    return { id, r, total, known: total - new Set((r.unknown || []).map(u => u.code.toLowerCase())).size, pallets: r.pallets.length, parcels: r.parcels.length, kg: r.kg, transport: transportOf(r), status: statusOf(r, id, { done: state.done, ordered: state.ordered, edited }) };
+  });
+  renderOrderTable($('#orderList'), $('#orderCount'), rows, state.listUi, state.sel);
+}
+function saveListUi() { save('itab.listui.v1', { sort: state.listUi.sort, filters: state.listUi.filters }); drawOrderTable(views()); }
+$('#orderList').addEventListener('click', e => {
+  const ui = state.listUi;
+  const so = e.target.closest('[data-sort]');
+  if (so) { const k = so.dataset.sort; ui.sort = ui.sort.key !== k ? { key: k, dir: 'asc' } : ui.sort.dir === 'asc' ? { key: k, dir: 'desc' } : { key: null, dir: 'asc' }; saveListUi(); return; }
+  const fi = e.target.closest('[data-filt]');
+  if (fi) { ui.open = ui.open === fi.dataset.filt ? null : fi.dataset.filt; drawOrderTable(views()); const inp = $('.fpop input'); if (inp) inp.focus(); return; }
+  if (e.target.closest('[data-fclose]')) { ui.open = null; drawOrderTable(views()); return; }
+  const fc = e.target.closest('[data-fclear]');
+  if (fc) { const k = fc.dataset.fclear; delete ui.filters[k]; delete ui.filters[k + 'Min']; delete ui.filters[k + 'Max']; ui.open = null; saveListUi(); return; }
+}, true);
+$('#orderList').addEventListener('change', e => {
+  const ui = state.listUi;
+  if (e.target.dataset.fs != null) { const set = new Set(ui.filters.status || []); if (e.target.checked) set.add(e.target.dataset.fs); else set.delete(e.target.dataset.fs); ui.filters.status = [...set]; saveListUi(); return; }
+  if (e.target.dataset.f != null) { ui.filters[e.target.dataset.f] = e.target.value; saveListUi(); }
+});
+$('#orderList').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.dataset.f != null) { e.preventDefault(); e.target.blur(); } });
+$('#orderCount').addEventListener('click', e => { if (e.target.dataset.fclearall) { state.listUi.filters = {}; saveListUi(); } });
+document.addEventListener('click', e => {
+  if (state.listUi.open && !e.target.closest('.fpop') && !e.target.closest('[data-filt]')) { state.listUi.open = null; drawOrderTable(views()); }
+});
 $('#prio').addEventListener('click', e => {
   if (e.target.id === 'prioHide') { state.prioHidden = true; renderPriorities([], true); return; }
   const b = e.target.closest('button[data-id],button[data-view]'); if (!b) return;
@@ -170,7 +205,8 @@ $('#orderList').addEventListener('change', e => {
 $('#orderList').addEventListener('click', e => {
   const x = e.target.closest('.feed-x');
   if (x) { removeOrder(x.getAttribute('data-del')); return; }
-  const b = e.target.closest('.feed'); if (b) select(b.getAttribute('data-id'));
+  if (e.target.closest('thead') || e.target.matches('input')) return;
+  const b = e.target.closest('.orow'); if (b) select(b.getAttribute('data-id'));
 });
 
 // ---------- order import ----------
@@ -673,7 +709,15 @@ onBoth('click', e => {
   const r = view(state.sel); if (!r) return;
   $('#drTitle').textContent = 'Údaje pro Ringil – zakázka ' + r.id;
   $('#drBody').innerHTML = ringilHtml(r);
+  $('#drOrdered').textContent = state.ordered.has(r.id) ? 'Zrušit „doprava objednána“' : 'Označit: doprava objednána';
   $('#dlgRingil').showModal();
+});
+$('#drOrdered').addEventListener('click', () => {
+  const id = state.sel;
+  if (state.ordered.has(id)) state.ordered.delete(id); else state.ordered.add(id);
+  save('itab.ordered.v1', [...state.ordered]);
+  $('#dlgRingil').close(); renderOverview();
+  flash(state.ordered.has(id) ? 'Zakázka ' + id + ': doprava objednána.' : 'Stav „objednáno“ zrušen.');
 });
 $('#drBody').addEventListener('click', e => {
   const b = e.target.closest('.rg-copy'); if (!b) return;
