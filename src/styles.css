@@ -356,3 +356,29 @@ dialog.dlg-wide{max-width:560px}
 .help p{margin:0 0 8px}
 .help ul{margin:0 0 8px;padding-left:18px}
 .help li{margin-bottom:6px}
+
+/* calculator: pallet board */
+.board{min-height:220px;padding:16px;border-radius:14px;border:2px dashed color-mix(in srgb,var(--primary) 30%,var(--line));background:
+  repeating-linear-gradient(0deg,transparent 0 23px,color-mix(in srgb,var(--line) 70%,transparent) 23px 24px),
+  repeating-linear-gradient(90deg,transparent 0 23px,color-mix(in srgb,var(--line) 70%,transparent) 23px 24px),var(--panel);
+  display:flex;flex-direction:column;gap:16px}
+.board.drop-target{border-color:var(--primary);background-color:var(--primary-t)}
+.board.empty-board{justify-content:center;align-items:center}
+.bgroup-h{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.bgroup-p{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.board-pal{position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1px;padding:4px;border-radius:6px;color:#fff;text-align:center;line-height:1.15;
+  background:linear-gradient(90deg,var(--c) var(--f),color-mix(in srgb,var(--c) 30%,transparent) var(--f));border:2px solid var(--c);box-shadow:0 3px 0 -1px color-mix(in srgb,var(--truck-line) 45%,transparent);text-shadow:0 1px 2px rgba(0,0,0,.35)}
+.board-pal b{font-size:13px}.board-pal span{font-size:11.5px}
+.board-pal em{font-style:normal;font-size:10.5px;background:rgba(0,0,0,.28);border-radius:4px;padding:0 4px;margin-top:2px}
+.board-pal.drop-host{outline:3px solid var(--primary);outline-offset:2px}
+.board-box{padding:8px 10px;border-radius:6px;border:2px dashed var(--c);font-size:12.5px;display:flex;flex-direction:column}
+.go-dock{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;margin:20px 0 8px;padding:16px 20px;border-radius:14px;background:var(--soft);border:1px solid var(--line)}
+.btn.big{font-size:16px;padding:12px 22px}
+.btn.big:disabled{background:var(--gray);box-shadow:none}
+/* loading tab */
+.dockgrid{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:16px;align-items:start}
+.dockgrid > .card{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto}
+#dockList .feed-x,#dockList .feed-done{display:none}
+#dock{min-width:0}
+.warn-box{border-color:var(--amber);background:var(--amber-t);color:var(--amber);font-weight:600;margin:0 0 12px}
+@media (max-width:1000px){.dockgrid{grid-template-columns:minmax(0,1fr)}.dockgrid > .card{position:static;max-height:none}}

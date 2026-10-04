@@ -118,7 +118,7 @@ export function requestText(r) {
   if (r.parcels.length) L.push('Balíky: sběrná služba (' + PARCEL_SERVICES + '), ' + r.parcels.length + ' ' + balWord(r.parcels.length));
   return L.join('\n');
 }
-function decisionHtml(r, rules) {
+function decisionHtml(r, rules, acts) {
   if (r.mode === 'empty') return '<div class="decision empty"><div><h2>Není co počítat</h2><p>Žádný artikl ze zakázky nebyl nalezen v číselníku. Zkontrolujte artikly nebo je přidejte na záložce „Číselník artiklů“.</p></div></div>';
   let h2, p, cls = r.mode, btn = true;
   const parcelNote = r.parcels.length && r.pallets.length ? ' Navíc ' + r.parcels.length + ' ' + balWord(r.parcels.length) + ' sběrnou službou.' : '';
@@ -143,7 +143,7 @@ function decisionHtml(r, rules) {
     h2 = 'Zkontrolovat zakázku';
     p = why.join('. ') + '.';
   }
-  return '<div class="decision ' + cls + '"><div><h2>' + esc(h2) + '</h2><p>' + esc(p) + '</p></div>' + (btn ? '<div class="dec-acts"><button class="btn primary" id="ringilBtn">Objednat dopravu (Ringil)</button><button class="btn primary" id="packBtn">Tisk pro balení</button><button class="btn" id="loadPrintBtn">Tisk nakládky</button><button class="btn" id="copyBtn">Zkopírovat text</button></div>' : '') + '</div>';
+  return '<div class="decision ' + cls + '"><div><h2>' + esc(h2) + '</h2><p>' + esc(p) + '</p></div>' + (btn && acts ? '<div class="dec-acts"><button class="btn primary" id="ringilBtn">Objednat dopravu (Ringil)</button><button class="btn primary" id="packBtn">Tisk pro balení</button><button class="btn" id="loadPrintBtn">Tisk nakládky</button><button class="btn" id="copyBtn">Zkopírovat text</button></div>' : '') + '</div>';
 }
 function compositionHtml(r) {
   const body = r.rows.map(x => {
@@ -214,10 +214,42 @@ export function loadPlanHtml(r, vehicles) {
     '<h1>Nakládka – zakázka ' + esc(r.id) + '</h1><div class="meta">' + new Date().toLocaleDateString('cs-CZ') + (r.reco ? ' · ' + esc(r.reco) : '') + ' · ' + fmtKg(r.kg) + ' · pohled shora, přední čelo vlevo</div>' + body + '</body></html>';
 }
 
-export function renderDetail(r, { rules, vehicles, isAdmin }) {
+function unknownTray(r, isAdmin) {
+  const unk = r.unknown || [];
+  return unk.length ? '<aside class="tray" aria-label="Neznámé artikly"><h3>Neznámé artikly</h3><p class="hint">' +
+    (isAdmin ? 'Přetáhněte na paletu (artikl pojede s ní) nebo na volné místo (nový artikl do číselníku).' : 'Tyto artikly nejsou v číselníku. Požádejte administrátora o doplnění.') + '</p>' +
+    unk.map(u => '<div class="unk' + (isAdmin ? '' : ' ro') + '" data-code="' + esc(u.code) + '" data-qty="' + u.qty + '" data-name="' + esc(u.name || '') + '"' + (isAdmin ? ' title="Přetáhněte na paletu nebo na volné místo"' : '') + '><div class="unk-top"><b>' + esc(u.code) + '</b><span>' + fmtN(u.qty) + ' ks</span></div>' + '<div class="unk-name' + (u.name ? '' : ' none') + '" title="' + esc(u.name || '') + '">' + esc(u.name || 'bez názvu v zakázce') + '</div>' + '</div>').join('') + '</aside>' : '';
+}
+
+// All pallets of the order as blocks (size to scale), grouped by article; drop target for learning.
+function palletBoardHtml(r) {
+  const S = 0.07; // px per mm
+  const groups = new Map();
+  r.pallets.forEach(p => { if (!groups.has(p.code)) groups.set(p.code, []); groups.get(p.code).push(p); });
+  let h = '';
+  groups.forEach((list, code) => {
+    h += '<div class="bgroup"><div class="bgroup-h"><i class="sw" style="background:' + color(list[0].ci) + '"></i><b>' + esc(code) + '</b> <span class="muted">' + list.length + ' ' + palWord(list.length) + ' · ' + Math.round(list[0].pl / 10) + ' × ' + Math.round(list[0].pw / 10) + ' cm</span></div><div class="bgroup-p">' +
+      list.map(p => {
+        const w = Math.max(64, p.pl * S), hh = Math.max(46, p.pw * S), partial = p.fill < 0.999, col = color(p.ci);
+        return '<div class="board-pal" data-code="' + esc(p.code) + '" style="width:' + w.toFixed(0) + 'px;height:' + hh.toFixed(0) + 'px;--c:' + col + ';--f:' + (partial ? Math.round(p.fill * 100) : 100) + '%" title="' + esc(p.code) + ', ' + p.units + ' ks – sem lze pustit neznámý artikl">' +
+          '<b>' + esc(p.code) + '</b><span>' + fmtN(p.units) + ' ks' + (partial ? ' · ' + Math.round(p.fill * 100) + ' %' : '') + '</span>' +
+          (p.extra ? '<em>+ ' + esc(p.extra.map(e => e.code + ' ' + e.units + ' ks').join(', ')) + '</em>' : '') + '</div>';
+      }).join('') + '</div></div>';
+  });
+  if (r.parcels.length) {
+    const m = new Map();
+    r.parcels.forEach(p => { const g = m.get(p.code) || { p, n: 0 }; g.n++; m.set(p.code, g); });
+    h += '<div class="bgroup"><div class="bgroup-h"><b>Balíky</b> <span class="muted">' + r.parcels.length + ' ' + balWord(r.parcels.length) + ' – sběrná služba</span></div><div class="bgroup-p">' +
+      [...m.values()].map(g => '<div class="board-box" style="--c:' + color(g.p.ci) + '"><b>' + esc(g.p.code) + '</b><span>' + g.n + '× ' + balWord(1) + '</span></div>').join('') + '</div></div>';
+  }
+  return '<div class="board' + (h ? '' : ' empty-board') + '" aria-label="Palety zakázky">' + (h || '<p class="muted">Zatím žádná paleta. Pusťte sem neznámý artikl a doplňte ho do číselníku.</p>') + '</div>';
+}
+
+// ---------- tab 1: calculator ----------
+export function renderDetail(r, { rules, isAdmin }) {
   const el = $('#detail');
   if (!r) { el.innerHTML = '<div class="empty">Vložte zakázky do importu a klikněte na „Spočítat“.</div>'; return; }
-  let h = '<div class="sec-head"><h2>Detail zakázky ' + esc(r.id) + '</h2>' + vehiclePicker(r, vehicles) + '</div>' + decisionHtml(r, rules);
+  let h = '<div class="sec-head"><h2>Detail zakázky ' + esc(r.id) + '</h2></div>' + decisionHtml(r, rules, false);
   if (r.pallets.length || r.parcels.length) {
     h += '<div class="stats">';
     if (r.pallets.length) h += '<div><b>' + r.pallets.length + '</b><span>' + palWord(r.pallets.length) + '</span></div>';
@@ -230,30 +262,39 @@ export function renderDetail(r, { rules, vehicles, isAdmin }) {
   h += compositionHtml(r);
   if (r.pallets.length || r.parcels.length) h += '<details class="panel"><summary>Parametry nákladu pro poptávku</summary><table><tbody>' + cargoRows(r).map(x => '<tr><th scope="row">' + esc(x[0]) + '</th><td>' + esc(x[1]) + '</td></tr>').join('') + '</tbody></table><p class="hint">LDM je odhad podle plochy palet: plocha ÷ šířka korby největšího vozidla.</p></details>';
 
-  // visual at the bottom
-  const unk = r.unknown || [];
-  const tray = unk.length ? '<aside class="tray" aria-label="Neznámé artikly"><h3>Neznámé artikly</h3><p class="hint">' +
-    (isAdmin ? 'Přetáhněte na paletu (uloží se kombinace) nebo na volné místo ve vozidle (nový artikl).' : 'Tyto artikly nejsou v číselníku. Požádejte administrátora o doplnění.') + '</p>' +
-    unk.map(u => '<div class="unk' + (isAdmin ? '' : ' ro') + '" data-code="' + esc(u.code) + '" data-qty="' + u.qty + '" data-name="' + esc(u.name || '') + '"' + (isAdmin ? ' title="Přetáhněte do vozidla"' : '') + '><div class="unk-top"><b>' + esc(u.code) + '</b><span>' + fmtN(u.qty) + ' ks</span></div>' + '<div class="unk-name' + (u.name ? '' : ' none') + '" title="' + esc(u.name || '') + '">' + esc(u.name || 'bez názvu v zakázce') + '</div>' + '</div>').join('') + '</aside>' : '';
-  if (r.vehicles.length || r.pallets.length || unk.length) {
+  const tray = unknownTray(r, isAdmin), n = (r.unknown || []).length;
+  h += '<div class="sec-head vis"><h2>Palety zakázky</h2></div>';
+  h += '<div class="load' + (tray ? ' with-tray' : '') + '"><div class="load-main">' + palletBoardHtml(r) + '</div>' + tray + '</div>';
+  const ready = !n && r.mode !== 'empty';
+  h += '<div class="go-dock"><button class="btn primary big" id="goDock"' + (ready ? '' : ' disabled') + '>Přejít k nakládce →</button>' +
+    '<span class="muted">' + (ready ? 'Palety jsou spočítané. V nakládce je rozložíte do vozidel a objednáte dopravu.' : (n ? 'Nejdřív zařaďte ' + n + ' ' + plural(n, ['neznámý artikl', 'neznámé artikly', 'neznámých artiklů']) + '.' : 'Zakázka nemá žádné palety.')) + '</span></div>';
+  el.innerHTML = h;
+}
+
+// ---------- tab 2: loading (docking) ----------
+export function renderDock(r, { rules, vehicles }) {
+  const el = $('#dock');
+  if (!r) { el.innerHTML = '<div class="empty">Vyberte zakázku vlevo nebo ji nejdřív spočítejte v kalkulátoru.</div>'; return; }
+  let h = '<div class="sec-head"><h2>Nakládka – zakázka ' + esc(r.id) + '</h2>' + vehiclePicker(r, vehicles) + '</div>';
+  const n = (r.unknown || []).length;
+  if (n) h += '<div class="panel warn-box">Zakázka má ' + n + ' ' + plural(n, ['nezařazený artikl', 'nezařazené artikly', 'nezařazených artiklů']) + ', které nejsou v nakládce. <button class="linkbtn" id="backCalc">Zařadit v kalkulátoru ›</button></div>';
+  h += decisionHtml(r, rules, true);
+  if (r.vehicles.length || r.pallets.length) {
     const opts = vehicles.map((v, i) => '<option value="' + i + '">' + esc(v.name) + ' – ' + String(v.L).replace('.', ',') + ' × ' + String(v.W).replace('.', ',') + ' m</option>').join('') +
       (r.depot ? '' : '<option value="depot">Sběrná služba (PPL, DPD, UPS…)</option>');
-    h += '<div class="sec-head vis"><h2>Nakládka' + (r.vehicles.length ? ': ' + esc(r.reco || 'žádné vozidlo') : '') + '</h2>' +
+    h += '<div class="sec-head vis"><h2>Vozidla' + (r.reco ? ': ' + esc(r.reco) : '') + '</h2>' +
       '<div class="vehtools"><select id="addVehSel" aria-label="Vozidlo k přidání">' + opts + '</select><button class="btn" id="addVehBtn">+ Přidat vozidlo</button>' +
       (r.manualOn ? '<button class="btn" id="resetManual">Vrátit automatické rozložení</button>' : '') + '</div></div>';
-    h += '<div class="load' + (tray ? ' with-tray' : '') + '"><div class="load-main">';
     if (r.vehicles.length || r.depot) h += '<p class="hint drag-hint">Paletu chyťte myší a přetáhněte jinam nebo do jiného vozidla. Dvojklik paletu otočí. Prázdné vozidlo odeberete křížkem.</p>';
     h += r.vehicles.map((v, i) => vehicleHtml(Object.assign({ idx: i }, v, { lift: vehicles[v.vi] && vehicles[v.vi].lift }))).join('');
     if (r.depot) h += depotHtml(r.depot, rules);
-    if (!r.vehicles.length && unk.length) h += '<div class="panel empty-load">Zatím žádné vozidlo. Přidejte vozidlo tlačítkem „+ Přidat vozidlo“ a pak do něj přetáhněte neznámý artikl.</div>';
-    h += '</div>' + tray + '</div>';
     h += '<p class="note">Rozložení je orientační: pohled shora, palety nestohujeme, váha je bez vlastních palet. Nakládku a konečné rozhodnutí určuje dopravce.</p>';
   }
   const shipment = [];
   if (r.mode === 'groupage' && !r.depot) r.pallets.forEach(p => shipment.push(Object.assign({ kind: 'paleta' }, p)));
   r.parcels.forEach(p => shipment.push(Object.assign({ kind: 'balik' }, p)));
   if (shipment.length) {
-    h += '<div class="sec-head vis"><h2>Sběrná služba</h2></div><div class="panel"><p class="hint">' + (r.mode === 'groupage' ? 'Palety' + (r.parcels.length ? ' a balíky' : '') : 'Balíky') + ' předáte přepravci (' + PARCEL_SERVICES + '). Vlastní vozidlo není potřeba.</p><div class="plan">' + svgShipment(shipment) + '</div></div>';
+    h += '<div class="sec-head vis"><h2>Sběrná služba – balíky</h2></div><div class="panel"><p class="hint">Předáte přepravci (' + PARCEL_SERVICES + ').</p><div class="plan">' + svgShipment(shipment) + '</div></div>';
   }
   if (r.mode !== 'warn' && r.mode !== 'empty') h += '<details><summary>Text poptávky</summary><textarea id="reqText" readonly>' + esc(requestText(r)) + '</textarea></details>';
   el.innerHTML = h;
@@ -320,9 +361,9 @@ function transportText(r) {
   if (r.parcels && r.parcels.length) parts.push('Sběrná služba (' + r.parcels.length + ' ' + balWord(r.parcels.length) + ')');
   return parts.length ? ' · ' + esc(parts.join(' + ')) : '';
 }
-export function renderList(orders, results, sel, q, done) {
+export function renderList(orders, results, sel, q, done, ulSel, countSel) {
   done = done || new Set();
-  const ul = $('#orderList');
+  const ul = $(ulSel || '#orderList');
   q = (q || '').trim().toLowerCase();
   const ids = [...orders.keys()].filter(id => {
     if (!q || id.toLowerCase().includes(q)) return true;
@@ -330,7 +371,7 @@ export function renderList(orders, results, sel, q, done) {
   });
   // finished orders go to the bottom
   ids.sort((a, b) => (done.has(a) ? 1 : 0) - (done.has(b) ? 1 : 0));
-  $('#orderCount').textContent = zak(ids.length);
+  $(countSel || '#orderCount').textContent = zak(ids.length);
   if (!ids.length) { ul.innerHTML = '<li class="empty">' + (orders.size ? 'Nic nenalezeno.' : 'Zakázky zatím nejsou.') + '</li>'; return; }
   ul.innerHTML = ids.map(id => {
     const r0 = results.get(id), total = orders.get(id).lines.size;

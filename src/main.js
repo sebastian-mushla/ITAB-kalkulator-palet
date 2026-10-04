@@ -4,7 +4,7 @@ import { parseOrders, rowsToOrderText } from './core/parse.js';
 import { solve } from './core/solve.js';
 import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle, replaceVehicle, DEPOT } from './core/manual.js';
 import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, mergeBy, toCsv } from './io/importTable.js';
-import { renderKpis, renderPriorities, renderList, renderDetail, requestText, loadPlanHtml } from './ui/orders.js';
+import { renderKpis, renderPriorities, renderList, renderDetail, renderDock, requestText, loadPlanHtml } from './ui/orders.js';
 import { ringilHtml } from './ui/ringil.js';
 import { packListHtml } from './ui/packlist.js';
 import { requireLogin, loadSettings, saveSetting, signOut, changePassword, listProfiles, setRole, adminUsers } from './auth.js';
@@ -12,6 +12,8 @@ import { esc } from './core/util.js';
 import { renderCatalog, renderVehicles, renderCombos, renderRules, importReport } from './ui/settings.js';
 
 const $ = s => document.querySelector(s);
+// calculator (#detail) and loading (#dock) share the same click / drag handlers
+function onBoth(type, fn) { $('#detail').addEventListener(type, fn); $('#dock').addEventListener(type, fn); }
 const KEYS = { list: 'itab.orderlist.v1', catalog: 'itab.catalog.v1', vehicles: 'itab.vehicles.v1', rules: 'itab.rules.v1', combos: 'itab.combos.v1', csv: 'itab.orders.v1' };
 function load(key, def) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
 function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* storage full or blocked */ } }
@@ -80,6 +82,8 @@ function renderOverview() {
   renderPriorities(res, state.prioHidden);
   renderList(state.orders, vs, state.sel, $('#q').value, state.done);
   renderDetail(vs.get(state.sel), state);
+  renderList(state.orders, vs, state.sel, '', state.done, '#dockList', '#dockCount');
+  renderDock(vs.get(state.sel), state);
 }
 function saveOrderList() {
   const lines = [];
@@ -112,7 +116,7 @@ let timer = null;
 function later() { clearTimeout(timer); timer = setTimeout(recalc, 250); }
 
 // ---------- navigation ----------
-const VIEWS = ['orders', 'catalog', 'combos', 'vehicles', 'rules', 'users', 'help'];
+const VIEWS = ['orders', 'dock', 'catalog', 'combos', 'vehicles', 'rules', 'users', 'help'];
 // help page shows the current rule values
 function renderHelp() {
   const r = state.rules;
@@ -175,7 +179,7 @@ const drop = $('#dropZone');
 drop.addEventListener('drop', e => { const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) orderFile(f); });
 
 // ---------- detail ----------
-$('#detail').addEventListener('change', e => {
+onBoth('change', e => {
   if (e.target.id !== 'forceVeh') return;
   const id = state.sel, v = e.target.value;
   if (v === '') state.forced.delete(id); else state.forced.set(id, Number(v));
@@ -184,6 +188,17 @@ $('#detail').addEventListener('change', e => {
   state.results.set(id, solve(o, ctx(id)));
   renderOverview();
 });
+// ---------- calculator ↔ loading ----------
+onBoth('click', e => {
+  if (e.target.id === 'goDock') { showView('dock'); scrollTo(0, 0); }
+  if (e.target.id === 'backCalc') { showView('orders'); goDetail(); }
+});
+$('#dockBack').addEventListener('click', () => { showView('orders'); });
+$('#dockList').addEventListener('click', e => {
+  const b = e.target.closest('.feed'); if (!b) return;
+  state.sel = b.getAttribute('data-id'); renderOverview();
+});
+
 // ---------- manual loading ----------
 function manualOf(id) {
   if (!state.manual.has(id)) state.manual.set(id, fromResult(state.results.get(id)));
@@ -198,7 +213,7 @@ function flash(text) {
   el.textContent = text; el.hidden = false;
   flashMsg = setTimeout(() => { el.hidden = true; }, 2600);
 }
-$('#detail').addEventListener('click', e => {
+onBoth('click', e => {
   const id = state.sel; if (!id) return;
   if (e.target.id === 'addVehBtn') {
     const r = state.results.get(id), sv = $('#addVehSel').value, vi = sv === DEPOT ? DEPOT : Number(sv);
@@ -228,14 +243,14 @@ $('#detail').addEventListener('click', e => {
   const rm = e.target.getAttribute('data-rmveh');
   if (rm != null) { keepScroll(() => removeVehicle(manualOf(id), Number(rm))); return; }
 });
-$('#detail').addEventListener('dblclick', e => {
+onBoth('dblclick', e => {
   const g = e.target.closest('.pal'); if (!g) return;
   const id = state.sel;
   keepScroll(() => { if (!rotatePallet(manualOf(id), state.vehicles, Number(g.dataset.v), Number(g.dataset.p))) flash('Otočená se paleta nevejde nebo ji nelze otáčet.'); });
 });
 // drag a pallet: a floating copy follows the pointer, the drop point in the target body is converted to mm
 let drag = null;
-$('#detail').addEventListener('pointerdown', e => {
+onBoth('pointerdown', e => {
   const u = e.target.closest('.unk');
   if (u && isAdmin && e.button === 0) {
     const rc = u.getBoundingClientRect();
@@ -248,7 +263,7 @@ $('#detail').addEventListener('pointerdown', e => {
   drag = { g, from: Number(g.dataset.v), pid: Number(g.dataset.p), sx: e.clientX, sy: e.clientY, w: rect.width, h: rect.height, color: g.querySelector('rect').style.fill, moved: false, svg };
   g.setPointerCapture(e.pointerId);
 });
-$('#detail').addEventListener('pointermove', e => {
+onBoth('pointermove', e => {
   if (!drag) return;
   if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 5) return;
   if (!drag.moved) {
@@ -259,21 +274,24 @@ $('#detail').addEventListener('pointermove', e => {
   }
   drag.ghost.style.left = (e.clientX - drag.w / 2) + 'px';
   drag.ghost.style.top = (e.clientY - drag.h / 2) + 'px';
-  document.querySelectorAll('.veh-svg.drop-target,.pal.drop-host').forEach(x => x.classList.remove('drop-target', 'drop-host'));
+  document.querySelectorAll('.drop-target,.drop-host').forEach(x => x.classList.remove('drop-target', 'drop-host'));
   const over = document.elementFromPoint(e.clientX, e.clientY);
-  const host = drag.unk && over && over.closest('.pal');
+  const host = drag.unk && over && (over.closest('.pal') || over.closest('.board-pal'));
   if (host) host.classList.add('drop-host');
-  else { const t = over && over.closest('.veh-svg'); if (t) t.classList.add('drop-target'); }
+  else { const t = over && (over.closest('.veh-svg') || (drag.unk && over.closest('.board'))); if (t) t.classList.add('drop-target'); }
 });
 function endDrag(e, cancel) {
   if (!drag) return;
   const d = drag; drag = null;
   if (d.ghost) d.ghost.remove();
   d.g.classList.remove('dragging');
-  document.querySelectorAll('.veh-svg.drop-target,.pal.drop-host').forEach(x => x.classList.remove('drop-target', 'drop-host'));
+  document.querySelectorAll('.drop-target,.drop-host').forEach(x => x.classList.remove('drop-target', 'drop-host'));
   if (cancel || !d.moved) return;
   const over = document.elementFromPoint(e.clientX, e.clientY), svg = over && over.closest('.veh-svg');
   if (d.unk) {
+    const boardPal = over && over.closest('.board-pal');
+    if (boardPal) { askCombo(d.unk, boardPal.dataset.code); return; }
+    if (over && over.closest('.board')) { askArticle(d.unk); return; }
     const hostG = over && over.closest('.pal');
     if (hostG) {
       const v = view(state.sel), vi = Number(hostG.dataset.v);
@@ -292,7 +310,7 @@ function endDrag(e, cancel) {
   const x = (p.x - Number(svg.dataset.x0)) * S - it.w / 2, y = (p.y - Number(svg.dataset.y0)) * S - it.h / 2;
   keepScroll(() => { if (!movePallet(m, state.vehicles, d.from, d.pid, to, x, y)) flash('Sem se paleta nevejde.'); });
 }
-$('#detail').addEventListener('pointerup', e => endDrag(e, false));
+onBoth('pointerup', e => endDrag(e, false));
 
 // ---------- learning: save a combination or a new article from the drop ----------
 function relearn() { state.manual.delete(state.sel); recalc(); }
@@ -332,10 +350,10 @@ function askArticle(u) {
 }
 $('#dcRemember').addEventListener('change', e => { $('#dcRule').hidden = !e.target.checked; });
 $('#daPack').addEventListener('change', e => { $('#daPerLabel').textContent = e.target.value === 'balik' ? 'Kusů v balíku' : 'Kusů na paletě'; });
-$('#detail').addEventListener('pointercancel', e => endDrag(e, true));
+onBoth('pointercancel', e => endDrag(e, true));
 
 // ---------- packing list ----------
-$('#detail').addEventListener('click', e => {
+onBoth('click', e => {
   if (e.target.id !== 'packBtn') return;
   const r = view(state.sel); if (!r) return;
   const names = new Map(state.catalog.map(a => [String(a.code).toLowerCase(), a.name || '']));
@@ -346,7 +364,7 @@ $('#detail').addEventListener('click', e => {
   w.focus(); setTimeout(() => w.print(), 300);
 });
 
-$('#detail').addEventListener('click', e => {
+onBoth('click', e => {
   if (e.target.id !== 'loadPrintBtn') return;
   const r = view(state.sel); if (!r) return;
   const w = window.open('', '_blank');
@@ -356,7 +374,7 @@ $('#detail').addEventListener('click', e => {
 });
 
 // ---------- Ringil ----------
-$('#detail').addEventListener('click', e => {
+onBoth('click', e => {
   if (e.target.id !== 'ringilBtn') return;
   const r = view(state.sel); if (!r) return;
   $('#drTitle').textContent = 'Údaje pro Ringil – zakázka ' + r.id;
@@ -369,7 +387,7 @@ $('#drBody').addEventListener('click', e => {
   const ok = () => { b.textContent = '✓ Zkopírováno'; b.classList.add('done'); b.closest('.rg-row').classList.add('copied'); };
   try { navigator.clipboard.writeText(v).then(ok, () => flash('Kopírování se nepodařilo, označte hodnotu ručně.')); } catch (x) { flash('Kopírování se nepodařilo.'); }
 });
-$('#detail').addEventListener('click', e => {
+onBoth('click', e => {
   if (e.target.id !== 'copyBtn') return;
   const r = view(state.sel); if (!r) return;
   const btn = e.target;

@@ -32,7 +32,8 @@ document.documentElement.setAttribute('data-theme',t);})();
   <aside class="nav">
     <div class="brand"><span class="logo"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></span><span>ITAB Expedice</span></div>
     <nav class="tabs" role="tablist" aria-label="Hlavní navigace">
-      <button class="tab" role="tab" id="tab-orders" aria-selected="true" data-view="orders"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Přehled</button>
+      <button class="tab" role="tab" id="tab-orders" aria-selected="true" data-view="orders"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Kalkulátor palet</button>
+      <button class="tab" role="tab" id="tab-dock" aria-selected="false" data-view="dock"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h12v10H2z"/><path d="M14 9h4l4 4v3h-8z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>Nakládka</button>
       <button class="tab" role="tab" id="tab-catalog" aria-selected="false" data-view="catalog"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>Číselník artiklů</button>
       <button class="tab" role="tab" id="tab-combos" aria-selected="false" data-view="combos"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="13" width="18" height="8" rx="1.5"/><rect x="6" y="5" width="7" height="8" rx="1.5"/><path d="M16 5v6M13 8h6"/></svg>Kombinace</button>
       <button class="tab" role="tab" id="tab-vehicles" aria-selected="false" data-view="vehicles"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h12v10H2z"/><path d="M14 9h4l4 4v3h-8z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>Vozidla</button>
@@ -72,6 +73,20 @@ document.documentElement.setAttribute('data-theme',t);})();
           </section>
         </div>
         <section id="detail" aria-live="polite"></section>
+      </section>
+
+      <section id="view-dock" hidden>
+        <div class="pagehead">
+          <div><h1>Nakládka</h1><p>Palety ze spočítaných zakázek rozložte do vozidel a objednejte dopravu.</p></div>
+          <button class="btn" id="dockBack">← Zpět ke kalkulátoru</button>
+        </div>
+        <div class="dockgrid">
+          <section class="card">
+            <div class="cardhead"><h2>Zakázky</h2><span class="muted" id="dockCount"></span></div>
+            <ul class="feedlist" id="dockList"></ul>
+          </section>
+          <section id="dock" aria-live="polite"></section>
+        </div>
       </section>
 
       <section id="view-catalog" hidden>
@@ -185,23 +200,24 @@ document.documentElement.setAttribute('data-theme',t);})();
             <p>Palety skládáme shora (2D) od čela korby. Zkoušíme stovky pořadí a natočení palet a bereme nejlepší výsledek. Výsledek je pokaždé stejný (není náhodný).</p>
             <p><b>Rozložení váhy:</b> těžké palety dáváme ke kabině, palety stejného rozměru prohazujeme tak, aby levá a pravá strana vážila podobně. V záhlaví vozidla vidíte těžiště (metry od kabiny) a poměr levá/pravá. Při rozdílu nad 10 % je údaj oranžový. Palety různé šířky (např. 130 a 80 cm) někdy vyrovnat nejdou.</p>
             <p>LDM (ložné metry) je odhad: plocha palet ÷ šířka korby.</p></section>
-          <section class="card"><h2>6. Ruční úpravy nakládky</h2>
+          <section class="card"><h2>6. Nakládka (záložka Nakládka)</h2>
+            <p>V kalkulátoru se spočítají palety. Tlačítkem „Přejít k nakládce“ (aktivní, až jsou všechny artikly zařazené) přejdete na záložku Nakládka, kde palety rozložíte do vozidel, objednáte dopravu a vytisknete podklady.</p>
             <ul><li><b>Přetažení:</b> paletu chyťte myší a pusťte jinam nebo do jiného vozidla. Když se tam nevejde, najdeme nejbližší volné místo; když nikde, paleta zůstane, kde byla.</li>
             <li><b>Dvojklik</b> paletu otočí (pokud se otáčet smí a vejde se).</li>
             <li><b>+ Přidat vozidlo</b> přidá prázdné vozidlo. Když je některé vozidlo <b>přetížené</b>, tlačítko ho místo toho <b>nahradí</b>: všechny jeho palety se přesunou do nového vozidla a staré zmizí (jen když nové vozidlo unese váhu a palety se vejdou).</li>
             <li><b>Sběrná služba</b> je zelená plocha „Předávka“. Palety mezi ní a vozidly lze přetahovat.</li>
             <li>„Vrátit automatické rozložení“ zahodí ruční změny. Ruční rozložení se neukládá – po obnovení stránky platí znovu výpočet.</li></ul></section>
           <section class="card"><h2>7. Učení: neznámé artikly</h2>
-            <p>Artikly, které nejsou v číselníku, jsou vpravo jako šedé bloky (kód, množství, název ze zakázky). Administrátor je přetáhne:</p>
+            <p>V kalkulátoru je pod zakázkou plocha „Palety zakázky“ se všemi paletami. Artikly, které nejsou v číselníku, jsou vedle ní jako šedé bloky (kód, množství, název ze zakázky). Administrátor je přetáhne:</p>
             <ul><li><b>na paletu</b> – artikl pojede na této paletě; se zaškrtnutím „Zapamatovat“ se uloží kombinace pro další zakázky (platí, dokud je kusů nejvýše tolik jako teď), bez zaškrtnutí jen pro tuto zakázku;</li>
-            <li><b>na volné místo ve vozidle</b> – otevře se formulář nového artiklu (rozměry, kusy na paletě, váha) a artikl se uloží do číselníku.</li></ul>
+            <li><b>na volné místo plochy</b> – otevře se formulář nového artiklu (rozměry, kusy na paletě, váha) a artikl se uloží do číselníku.</li></ul>
             <p>Kroužek u zakázky ukazuje, kolik artiklů ze zakázky už je zařazeno. Zakázku lze odškrtnout jako vyřízenou až při 100 %.</p></section>
           <section class="card"><h2>8. Ringil a tisk</h2>
             <ul><li><b>Objednat dopravu (Ringil)</b> – hodnoty do formuláře Ringilu s tlačítkem Kopírovat u každého pole. Vozidlo = ložné metry (obsazená délka korby), sběrná služba = europalety, balíky = krabice. Výšku v číselníku nemáme – doplňte ji.</li>
             <li><b>Tisk pro balení</b> – seznam palet po vozidlech: rozměr, artikl, kusy, co je přiloženo navrch.</li>
             <li><b>Tisk nakládky</b> – nákres všech vozidel shora.</li></ul></section>
           <section class="card"><h2>9. Uživatelé a data</h2>
-            <p>Administrátor vidí a mění vše (číselník, kombinace, vozidla, pravidla, uživatele). Uživatel jen počítá zakázky na Přehledu. Číselník, kombinace, vozidla a pravidla jsou společné pro všechny. Seznam zakázek a ruční úpravy jsou jen v tomto prohlížeči.</p>
+            <p>Administrátor vidí a mění vše (číselník, kombinace, vozidla, pravidla, uživatele). Uživatel jen počítá zakázky (Kalkulátor palet a Nakládka). Číselník, kombinace, vozidla a pravidla jsou společné pro všechny. Seznam zakázek a ruční úpravy jsou jen v tomto prohlížeči.</p>
             <p>Výpočet dělá běžný program přímo v prohlížeči – nepoužívá umělou inteligenci a nic se neodesílá jinam.</p></section>
         </div>
       </section>
