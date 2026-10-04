@@ -397,3 +397,13 @@ dialog.dlg-wide{max-width:560px}
 .bp-x{position:absolute;top:2px;right:2px;width:20px;height:20px;border:0;border-radius:5px;background:rgba(0,0,0,.25);color:#fff;font-size:14px;line-height:1;cursor:pointer;padding:0}
 .board-pal.empty .bp-x{background:var(--line);color:var(--ink2)}
 .addpal{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}.addpal input{flex:1 1 280px;font:inherit;padding:8px 12px;border:1px solid var(--line);border-radius:9px;background:var(--soft);color:var(--ink)}
+.comp-sum{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+.cs{font-size:13px;padding:4px 10px;border-radius:999px;background:var(--soft);color:var(--ink2)}
+.cs.ok{background:var(--green-t);color:var(--green)}.cs.bad{background:var(--amber-t);color:var(--amber);font-weight:600}
+.pt-chip{display:inline-block;font-size:12.5px;padding:3px 8px;border-radius:6px;background:var(--primary-t);color:var(--ink);white-space:nowrap;margin:1px 0}
+.pt-chip b{color:var(--primary)}
+.pt-chip.ride{background:var(--soft);border:1px dashed var(--line)}
+.pt-chip.hand{background:var(--soft);border:1px dashed var(--primary)}
+.pt-chip.parcel{background:var(--soft)}
+.pt-chip.none{background:var(--amber-t);color:var(--amber);font-weight:600}
+tr.unk-row td{background:color-mix(in srgb,var(--amber-t) 55%,transparent)}

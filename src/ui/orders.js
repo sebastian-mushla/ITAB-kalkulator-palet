@@ -146,20 +146,36 @@ function decisionHtml(r, rules, acts) {
   return '<div class="decision ' + cls + '"><div><h2>' + esc(h2) + '</h2><p>' + esc(p) + '</p></div>' + (btn && acts ? '<div class="dec-acts"><button class="btn primary" id="ringilBtn">Objednat dopravu (Ringil)</button><button class="btn" id="loadPrintBtn">Tisk nakládky</button><button class="btn" id="copyBtn">Zkopírovat text</button></div>' : '') + '</div>';
 }
 function compositionHtml(r) {
-  const body = r.rows.map(x => {
+  const cm = mm => Math.round(mm / 10);
+  // which pallet type an article sits on (own pallets, a host article's pallets, or a hand-placed pallet)
+  const palCell = x => {
+    if (x.pack === 'balik') return '<span class="pt-chip parcel">balík ' + cm(x.pl) + ' × ' + cm(x.pw) + ' cm</span>';
+    const chips = [];
+    if (x.count && (x.pal || x.pl)) chips.push('<span class="pt-chip" title="' + esc(x.palName || '') + '">' + (x.pal ? '<b>' + esc(x.pal) + '</b> ' + esc(x.palName || '') : cm(x.pl) + ' × ' + cm(x.pw) + ' cm') + '</span>');
+    if (x.onHost) { const hp = r.pallets.find(p => p.code === x.host); chips.push('<span class="pt-chip ride">na paletě ' + esc(x.host) + (hp && hp.pal ? ' · ' + esc(hp.pal) : '') + '</span>'); }
+    if (x.board) chips.push('<span class="pt-chip hand"><b>' + esc(x.board) + '</b> ručně</span>');
+    return chips.join(' ') || '–';
+  };
+  const known = r.rows.map(x => {
     const parts = [];
     if (x.onHost) parts.push(x.onHost + ' ks na paletách ' + x.host);
-    if (x.board) parts.push(x.qty + ' ks na ručně přidané paletě ' + x.board);
+    if (x.board) parts.push(x.qty + ' ks na ručně přidané paletě');
     if (!x.count) { /* everything rides on host pallets */ }
     else if (x.pack === 'balik') parts.push(x.count + ' ' + balWord(x.count) + ' po ' + x.per + ' ks' + (x.rem ? ' (poslední ' + x.rem + ' ks)' : ''));
     else if (x.per === 1) parts.push(x.full + ' ' + palWord(x.full));
     else {
-      if (x.full > 0) parts.push(x.full + ' ' + plural(x.full, ['plná', 'plné', 'plných']));
-      if (x.rem > 0) parts.push('1 neúplná: ' + x.rem + ' ks, ' + Math.round(x.fillRem * 100) + '%');
+      if (x.full > 0) parts.push(x.full + ' ' + plural(x.full, ['plná', 'plné', 'plných']) + ' po ' + x.per + ' ks');
+      if (x.rem > 0) parts.push('1 neúplná: ' + x.rem + ' ks, ' + Math.round(x.fillRem * 100) + ' %');
     }
-    return '<tr><td><i class="sw" style="background:' + color(x.ci) + '"></i>' + esc(x.code) + '<br><span class="hint">' + esc(x.name || '') + '</span></td><td class="num">' + fmtN(x.qty) + ' ks</td><td>' + esc(parts.join(', ')) + (x.rule ? '<br><span class="rule-note">Pravidlo: ' + esc(x.rule) + '</span>' : '') + '</td><td class="num">' + fmtKg(x.kg) + '</td></tr>';
+    return '<tr><td><i class="sw" style="background:' + color(x.ci) + '"></i>' + esc(x.code) + '<br><span class="hint">' + esc(x.name || '') + '</span></td><td class="num">' + fmtN(x.qty) + ' ks</td><td>' + palCell(x) + '</td><td>' + esc(parts.join(', ')) + (x.rule ? '<br><span class="rule-note">Pravidlo: ' + esc(x.rule) + '</span>' : '') + '</td><td class="num">' + fmtKg(x.kg) + '</td></tr>';
   }).join('');
-  return '<div class="panel"><h3>Složení zakázky</h3><div class="tscroll"><table><thead><tr><th>Artikl</th><th class="num">Množství</th><th>Palety / balíky</th><th class="num">Váha</th></tr></thead><tbody>' + body + '</tbody></table></div></div>';
+  const unk = r.unknown || [];
+  const unknownRows = unk.map(u => '<tr class="unk-row"><td><i class="sw" style="background:var(--gray)"></i>' + esc(u.code) + '<br><span class="hint">' + esc(u.name || '') + '</span></td><td class="num">' + fmtN(u.qty) + ' ks</td><td><span class="pt-chip none">nezařazeno</span></td><td>není v číselníku – zařaďte na ploše níže</td><td class="num">–</td></tr>').join('');
+  const nKnown = new Set(r.rows.map(x => x.code.toLowerCase())).size, nUnk = unk.length, total = nKnown + nUnk;
+  const sum = '<div class="comp-sum"><span class="cs ok">Zařazeno <b>' + nKnown + '</b> z ' + total + ' ' + plural(total, ['artiklu', 'artiklů', 'artiklů']) + '</span>' +
+    (nUnk ? '<span class="cs bad"><b>' + nUnk + '</b> ' + plural(nUnk, ['nezařazený', 'nezařazené', 'nezařazených']) + '</span>' : '<span class="cs ok">vše zařazeno ✓</span>') +
+    '<span class="cs">' + r.pallets.length + ' ' + palWord(r.pallets.length) + (r.tare ? ', z toho tara ' + fmtKg(r.tare) : '') + '</span></div>';
+  return '<div class="panel"><h3>Složení zakázky</h3>' + sum + '<div class="tscroll"><table><thead><tr><th>Artikl</th><th class="num">Množství</th><th>Paleta</th><th>Rozdělení</th><th class="num">Váha</th></tr></thead><tbody>' + unknownRows + known + '</tbody></table></div></div>';
 }
 function extrasOf(items) {
   const m = new Map();

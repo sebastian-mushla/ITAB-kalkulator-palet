@@ -19,7 +19,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     const target = parcel ? parcels : pallets;
     for (let i = 0; i < full; i++) target.push(mk(a.per));
     if (rem > 0) target.push(mk(rem));
-    return Object.assign(row, { pack: parcel ? 'balik' : 'paleta', full, rem, per: a.per, fillRem: rem / a.per, count: full + (rem > 0 ? 1 : 0) });
+    return Object.assign(row, { pack: parcel ? 'balik' : 'paleta', full, rem, per: a.per, fillRem: rem / a.per, count: full + (rem > 0 ? 1 : 0), pal: parcel ? null : (a.pal || null), palName: a.palName || '', pl: a.pl, pw: a.pw });
   }
 
   lines.forEach(l => {
