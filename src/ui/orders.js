@@ -143,7 +143,7 @@ function decisionHtml(r, rules, acts) {
     h2 = 'Zkontrolovat zakázku';
     p = why.join('. ') + '.';
   }
-  return '<div class="decision ' + cls + '"><div><h2>' + esc(h2) + '</h2><p>' + esc(p) + '</p></div>' + (btn && acts ? '<div class="dec-acts"><button class="btn primary" id="ringilBtn">Objednat dopravu (Ringil)</button><button class="btn primary" id="packBtn">Tisk pro balení</button><button class="btn" id="loadPrintBtn">Tisk nakládky</button><button class="btn" id="copyBtn">Zkopírovat text</button></div>' : '') + '</div>';
+  return '<div class="decision ' + cls + '"><div><h2>' + esc(h2) + '</h2><p>' + esc(p) + '</p></div>' + (btn && acts ? '<div class="dec-acts"><button class="btn primary" id="ringilBtn">Objednat dopravu (Ringil)</button><button class="btn" id="loadPrintBtn">Tisk nakládky</button><button class="btn" id="copyBtn">Zkopírovat text</button></div>' : '') + '</div>';
 }
 function compositionHtml(r) {
   const body = r.rows.map(x => {
@@ -266,7 +266,7 @@ export function renderDetail(r, { rules, isAdmin }) {
   h += '<div class="sec-head vis"><h2>Palety zakázky</h2></div>';
   h += '<div class="load' + (tray ? ' with-tray' : '') + '"><div class="load-main">' + palletBoardHtml(r) + '</div>' + tray + '</div>';
   const ready = !n && r.mode !== 'empty';
-  h += '<div class="go-dock"><button class="btn primary big" id="goDock"' + (ready ? '' : ' disabled') + '>Přejít k nakládce →</button>' +
+  h += '<div class="go-dock">' + (r.pallets.length || r.parcels.length ? '<button class="btn big" id="packBtn">Tisk pro balení</button>' : '') + '<button class="btn primary big" id="goDock"' + (ready ? '' : ' disabled') + '>Přejít k nakládce →</button>' +
     '<span class="muted">' + (ready ? 'Palety jsou spočítané. V nakládce je rozložíte do vozidel a objednáte dopravu.' : (n ? 'Nejdřív zařaďte ' + n + ' ' + plural(n, ['neznámý artikl', 'neznámé artikly', 'neznámých artiklů']) + '.' : 'Zakázka nemá žádné palety.')) + '</span></div>';
   el.innerHTML = h;
 }
