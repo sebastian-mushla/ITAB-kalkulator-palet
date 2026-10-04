@@ -5,7 +5,7 @@ import { parseOrders, rowsToOrderText } from './core/parse.js';
 import { solve } from './core/solve.js';
 import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle, replaceVehicle, DEPOT } from './core/manual.js';
 import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, rowsToPallets, mergeBy, toCsv } from './io/importTable.js';
-import { renderKpis, renderPriorities, renderList, renderDetail, renderDock, requestText, loadPlanHtml } from './ui/orders.js';
+import { renderKpis, renderPriorities, renderList, renderDetail, renderDock, requestText, loadPlanHtml, palOption } from './ui/orders.js';
 import { ringilHtml } from './ui/ringil.js';
 import { packListHtml } from './ui/packlist.js';
 import { requireLogin, loadSettings, saveSetting, signOut, changePassword, listProfiles, setRole, adminUsers } from './auth.js';
@@ -248,6 +248,15 @@ onBoth('click', e => {
     return;
   }
   if (e.target.id === 'resetManual') { keepScroll(() => state.manual.delete(id)); return; }
+  if (e.target.id === 'addPalBtn') {
+    const v = $('#palPick').value.trim(), code = v.split(' · ')[0].trim();
+    const t = typeOf(state.pallets, code) || state.pallets.find(p => palOption(p).toLowerCase() === v.toLowerCase());
+    if (!t) { flash(v ? 'Paleta „' + v + '“ v seznamu není. Vyberte ji z nabídky nebo použijte „Jiná paleta…“.' : 'Napište kód, název nebo rozměr a vyberte paletu z nabídky.'); $('#palPick').focus(); return; }
+    addBoardPallet(id, { pal: t.code });
+    flash('Přidána prázdná paleta ' + t.code + '. Přetáhněte na ni materiál.');
+    return;
+  }
+  if (e.target.id === 'newPalBtn') { askPallet(id); return; }
   const rmb = e.target.getAttribute('data-rmb');
   if (rmb) { keepScroll(() => { state.board.set(id, (state.board.get(id) || []).filter(b => b.id !== rmb)); state.manual.delete(id); recalc(); }); return; }
   const rm = e.target.getAttribute('data-rmveh');
@@ -359,9 +368,34 @@ function askCombo(u, host) {
   };
   dlg.returnValue = ''; dlg.showModal();
 }
+function addBoardPallet(id, b) {
+  const list = state.board.get(id) || [];
+  list.push(Object.assign({ id: 'b' + Date.now().toString(36) + list.length, contents: [] }, b));
+  state.board.set(id, list); state.manual.delete(id);
+  keepScroll(recalc);
+}
+function askPallet(id) {
+  const dlg = $('#dlgPallet');
+  dlg.querySelector('form').reset();
+  dlg.querySelector('form').onsubmit = ev => {
+    if (!ev.submitter || ev.submitter.value !== 'yes') return;
+    const t = { name: $('#dpName').value.trim() || 'Jiná paleta', L: toNum($('#dpL').value), W: toNum($('#dpW').value), H: toNum($('#dpH').value) || 0, tare: toNum($('#dpTare').value) || 0, maxKg: toNum($('#dpMax').value) || 0, rot: true };
+    if ($('#dpSave').checked) {
+      t.code = nextCode(state.pallets);
+      state.pallets.push(t); persist('pallets'); drawPallets(); drawCatalog();
+      addBoardPallet(id, { pal: t.code });
+      flash('Uložena nová paleta ' + t.code + ' a přidána na plochu.');
+    } else {
+      t.code = 'JINÁ';
+      addBoardPallet(id, { pal: 'JINÁ', custom: t });
+      flash('Přidána jednorázová paleta (jen tato zakázka).');
+    }
+  };
+  dlg.returnValue = ''; dlg.showModal(); $('#dpName').focus();
+}
 function askMaterial(u, bid) {
   const id = state.sel, list = state.board.get(id) || [], b = list.find(x => x.id === bid); if (!b) return;
-  const t = typeOf(state.pallets, b.pal) || { code: b.pal, name: '' };
+  const t = typeOf(state.pallets, b.pal) || b.custom || { code: b.pal, name: '' };
   const dlg = $('#dlgMaterial');
   $('#dmText').innerHTML = 'Artikl <b>' + esc(u.code) + '</b>' + (u.name ? ' <span class="dlg-name">' + esc(u.name) + '</span>' : '') + ' (' + u.qty + ' ks)<br>na paletu <b>' + esc(t.code) + '</b> <span class="dlg-name">' + esc(t.name) + '</span>.';
   $('#dmUnits').value = u.qty; $('#dmPer').value = u.qty; $('#dmKg').value = '0';
@@ -370,6 +404,11 @@ function askMaterial(u, bid) {
   dlg.querySelector('form').onsubmit = ev => {
     if (!ev.submitter || ev.submitter.value !== 'yes') return;
     const units = Math.max(1, Math.round(toNum($('#dmUnits').value))), per = Math.max(1, Math.round(toNum($('#dmPer').value))), kg = toNum($('#dmKg').value) || 0;
+    if ($('#dmSave').checked && b.custom) {
+      // a one-off pallet becomes a saved type first, so the article can point to it
+      const nt = Object.assign({}, b.custom, { code: nextCode(state.pallets) });
+      state.pallets.push(nt); persist('pallets'); b.pal = nt.code; delete b.custom; t.code = nt.code;
+    }
     if ($('#dmSave').checked) {
       // the article goes to the catalog; the calculator then makes its pallets itself
       state.catalog.push({ code: u.code, name: u.name || '', pack: 'paleta', pal: t.code, per, kg, rot: true });

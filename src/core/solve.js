@@ -23,7 +23,8 @@ export function groupItems(items) {
 // Board pallets: material that is not in the catalog, placed by hand on a pallet type for this order only.
 function addBoardPallets(mp, added, types, ci0) {
   (added || []).forEach((b, k) => {
-    const t = typeOf(types, b.pal), list = (b.contents || []).filter(c => c.units > 0);
+    // a saved pallet type, or a one-off pallet defined only for this order
+    const t = typeOf(types, b.pal) || b.custom, list = (b.contents || []).filter(c => c.units > 0);
     if (!t || !list.length) return;
     const ci = ci0 + 50 + k;
     const [m, ...rest] = list;

@@ -224,6 +224,7 @@ function unknownTray(r, isAdmin) {
 
 // All pallets of the order as blocks (size to scale), grouped by article; drop target for learning.
 // Admin also gets a palette of pallet types to drag onto the board (empty pallet for this order).
+export function palOption(t) { return t.code + ' · ' + t.name + ' · ' + Math.round(t.L / 10) + ' × ' + Math.round(t.W / 10) + ' cm'; }
 function palletBoardHtml(r, isAdmin, board, types) {
   const S = 0.07; // px per mm
   const block = (p, attrs, inner, cls) => {
@@ -242,7 +243,7 @@ function palletBoardHtml(r, isAdmin, board, types) {
   });
   // pallets the operator added by hand
   const manual = (board || []).map(b => {
-    const p = r.pallets.find(x => x.board === b.id), t = (types || []).find(x => x.code === b.pal) || { L: 1200, W: 800, name: b.pal };
+    const p = r.pallets.find(x => x.board === b.id), t = (types || []).find(x => x.code === b.pal) || b.custom || { L: 1200, W: 800, name: b.pal };
     const x = '<button class="bp-x" data-rmb="' + esc(b.id) + '" aria-label="Odebrat paletu">×</button>';
     return p ? block(p, 'data-bid="' + esc(b.id) + '" title="Ručně přidaná paleta ' + esc(b.pal) + '"', label(p) + x)
       : block({ pl: t.L, pw: t.W, fill: 0, ci: 0 }, 'data-bid="' + esc(b.id) + '" title="Prázdná paleta – přetáhněte sem materiál"', '<small>' + esc(b.pal) + '</small><span>prázdná</span>' + x, ' empty');
@@ -254,8 +255,10 @@ function palletBoardHtml(r, isAdmin, board, types) {
     h += '<div class="bgroup"><div class="bgroup-h"><b>Balíky</b> <span class="muted">' + r.parcels.length + ' ' + balWord(r.parcels.length) + ' – sběrná služba</span></div><div class="bgroup-p">' +
       [...m.values()].map(g => '<div class="board-box" style="--c:' + color(g.p.ci) + '"><b>' + esc(g.p.code) + '</b><span>' + g.n + '× ' + balWord(1) + '</span></div>').join('') + '</div></div>';
   }
-  const palette = isAdmin && (types || []).length ? '<div class="ptypes"><span class="muted">Typy palet – přetáhněte na plochu:</span>' +
-    types.map(t => '<div class="ptype" data-pal="' + esc(t.code) + '" title="' + esc(t.name) + ', ' + Math.round(t.L / 10) + ' × ' + Math.round(t.W / 10) + ' cm"><b>' + esc(t.code) + '</b><span>' + esc(t.name) + '</span></div>').join('') + '</div>' : '';
+  // searchable picker instead of dragging: works for thousands of pallet types
+  const palette = isAdmin ? '<div class="addpal"><input type="search" id="palPick" list="palList" placeholder="Hledat paletu: kód, název nebo rozměr…" aria-label="Typ palety">' +
+    '<datalist id="palList">' + (types || []).map(t => '<option value="' + esc(palOption(t)) + '"></option>').join('') + '</datalist>' +
+    '<button class="btn" id="addPalBtn">+ Přidat paletu</button><button class="btn" id="newPalBtn">Jiná paleta…</button></div>' : '';
   return palette + '<div class="board' + (h ? '' : ' empty-board') + '" aria-label="Palety zakázky">' + (h || '<p class="muted">Zatím žádná paleta. Přetáhněte sem typ palety a pak na ni materiál.</p>') + '</div>';
 }
 

@@ -232,7 +232,7 @@ document.documentElement.setAttribute('data-theme',t);})();
             <li><b>Sběrná služba</b> je zelená plocha „Předávka“. Palety mezi ní a vozidly lze přetahovat.</li>
             <li>„Vrátit automatické rozložení“ zahodí ruční změny. Ruční rozložení se neukládá – po obnovení stránky platí znovu výpočet.</li></ul></section>
           <section class="card"><h2>7. Učení: neznámé artikly</h2>
-            <p>V kalkulátoru je pod zakázkou plocha „Palety zakázky“ se všemi paletami. Administrátor na ni může přetáhnout <b>typ palety</b> (PAL-xxxx) – vznikne prázdná paleta – a pak na ni přetáhnout neznámý materiál. V okně zadá, kolik kusů na paletu dává a kolik se jich vejde; buď to uloží do číselníku (artikl pak jede na tomto typu vždy), nebo jen pro tuto zakázku. Artikly, které nejsou v číselníku, jsou vedle ní jako šedé bloky (kód, množství, název ze zakázky). Administrátor je přetáhne:</p>
+            <p>V kalkulátoru je pod zakázkou plocha „Palety zakázky“ se všemi paletami. Administrátor nad ní vyhledá typ palety (kód, název nebo rozměr) a klikne <b>+ Přidat paletu</b> – vznikne prázdná paleta. Paletu, která v seznamu není, přidá tlačítkem <b>Jiná paleta…</b> (se zaškrtnutím „Zapamatovat“ se uloží mezi typy s novým kódem PAL-xxxx, jinak jen pro tuto zakázku). Pak na paletu přetáhne neznámý materiál. V okně zadá, kolik kusů na paletu dává a kolik se jich vejde; buď to uloží do číselníku (artikl pak jede na tomto typu vždy), nebo jen pro tuto zakázku. Artikly, které nejsou v číselníku, jsou vedle ní jako šedé bloky (kód, množství, název ze zakázky). Administrátor je přetáhne:</p>
             <ul><li><b>na paletu</b> – artikl pojede na této paletě; se zaškrtnutím „Zapamatovat“ se uloží kombinace pro další zakázky (platí, dokud je kusů nejvýše tolik jako teď), bez zaškrtnutí jen pro tuto zakázku;</li>
             <li><b>na volné místo plochy</b> – otevře se formulář nového artiklu (rozměry, kusy na paletě, váha) a artikl se uloží do číselníku.</li></ul>
             <p>Kroužek u zakázky ukazuje, kolik artiklů ze zakázky už je zařazeno. Zakázku lze odškrtnout jako vyřízenou až při 100 %.</p></section>
@@ -262,6 +262,18 @@ document.documentElement.setAttribute('data-theme',t);})();
     <p>Klikněte na „Kopírovat“ a vložte do stejného pole v Ringilu (Cmd + V). Zkopírovaná pole se označí.</p>
     <div id="drBody"></div>
     <div class="acts"><button class="btn primary" value="close">Hotovo</button></div>
+  </form>
+</dialog>
+<dialog class="dlg" id="dlgPallet">
+  <form method="dialog">
+    <h2>Jiná paleta</h2>
+    <p>Paleta, která není v seznamu. Po uložení se přidá na plochu této zakázky.</p>
+    <label>Název<input type="text" id="dpName" required placeholder="např. Paleta 200 × 100"></label>
+    <div class="two"><label>Délka, mm<input type="number" id="dpL" min="1" value="1200" required></label><label>Šířka, mm<input type="number" id="dpW" min="1" value="800" required></label></div>
+    <div class="two"><label>Výška, mm<input type="number" id="dpH" min="0" value="144"></label><label>Vlastní váha, kg<input type="number" id="dpTare" min="0" step="any" value="25"></label></div>
+    <label>Max. zatížení, kg (0 = nekontrolovat)<input type="number" id="dpMax" min="0" value="0"></label>
+    <label class="inline"><input type="checkbox" id="dpSave" checked>Zapamatovat – uložit mezi typy palet (dostane kód PAL-xxxx)</label>
+    <div class="acts"><button class="btn" value="no" formnovalidate>Zrušit</button><button class="btn primary" value="yes">Přidat paletu</button></div>
   </form>
 </dialog>
 <dialog class="dlg" id="dlgMaterial">
