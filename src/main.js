@@ -386,7 +386,7 @@ function openPalEditor(id, bid, pi) {
   const filled = P.filter(b => b.contents.some(c => c.units > 0));
   const b = (wasPlan && bid && P.find(x => x.id === bid)) || filled[pi] || P.find(x => x.id === bid);
   if (!b) return;
-  peCur = { id, pid: b.id };
+  peCur = { id, pid: b.id, row: null };
   if (!wasPlan) keepScroll(recalc);
   drawPalEditor();
   $('#dlgPalEdit').showModal();
@@ -399,31 +399,72 @@ function drawPalEditor() {
   const fill = b.contents.filter(c => !c.ride).reduce((s, c) => s + c.units / (c.per || c.units || 1), 0);
   const kg = (t.tare || 0) + b.contents.reduce((s, c) => s + c.units * (c.kg || 0), 0);
   const label = x => { const i = filled.indexOf(x), main = x.contents.find(c => c.units > 0); return (i >= 0 ? 'č. ' + (i + 1) : 'prázdná') + ' · ' + (x.pal || 'JINÁ') + (main ? ' · ' + main.code + ' ' + main.units + ' ks' : ''); };
-  const targets = P.filter(x => x !== b).map(x => '<option value="' + esc(x.id) + '">' + esc(label(x)) + '</option>').join('') + '<option value="new">+ nová paleta stejného typu</option>';
+  const others = P.filter(x => x !== b).map(x => '<option value="' + esc(x.id) + '">' + esc(label(x)) + '</option>').join('');
   $('#peTitle').textContent = (n ? 'Paleta č. ' + n : 'Prázdná paleta') + ' – zakázka ' + id;
+  const cm = mm => Math.round((mm || 0) / 10);
+  // panel for moving pieces of one article: same type / other type from the database / brand new pallet / existing pallet
+  const movePanel = (c, i) => '<div class="pe-move">' +
+    '<label class="pm-qty">Kolik kusů přesunout<input type="number" id="pmQty" min="1" max="' + c.units + '" value="' + c.units + '"></label>' +
+    '<div class="pm-opts">' +
+    '<label class="pm-opt"><input type="radio" name="pmKind" value="same" checked><span><b>Stejná paleta</b><small>nová ' + esc(t.code || '') + ' · ' + esc(t.name || '') + ' (' + cm(t.L) + ' × ' + cm(t.W) + ' cm)</small></span></label>' +
+    '<label class="pm-opt"><input type="radio" name="pmKind" value="other"><span><b>Jiná paleta</b><small>vyhledat v databázi typů palet</small><input type="search" id="pmOther" list="palList2" placeholder="kód, název nebo rozměr…" class="pm-sub"></span></label>' +
+    '<label class="pm-opt"><input type="radio" name="pmKind" value="new"><span><b>Nová paleta</b><small>zadat rozměry palety, která v databázi není</small>' +
+      '<span class="pm-sub pm-grid"><input id="pmName" placeholder="Název (např. Paleta 200 × 100)"><input type="number" id="pmL" placeholder="Délka mm" min="1"><input type="number" id="pmW" placeholder="Šířka mm" min="1"><input type="number" id="pmH" placeholder="Výška mm" min="0"><input type="number" id="pmTare" placeholder="Vlastní váha kg" min="0" step="any"><input type="number" id="pmMax" placeholder="Nosnost kg (0 = ne)" min="0">' +
+      '<label class="inline"><input type="checkbox" id="pmSave" checked> Zapamatovat – uložit mezi typy palet</label></span></span></label>' +
+    (others ? '<label class="pm-opt"><input type="radio" name="pmKind" value="exist"><span><b>Na paletu v zakázce</b><small>přidat k už existující paletě</small><select id="pmExist" class="pm-sub">' + others + '</select></span></label>' : '') +
+    '</div><div class="pm-acts"><button type="button" class="btn" data-pcancel="1">Zpět</button><button type="button" class="btn primary" data-pgo="' + i + '">Přesunout ' + esc(c.code) + '</button></div></div>';
   $('#peBody').innerHTML =
     '<div class="pe-head"><input type="search" id="peType" list="palList2" value="' + esc(t.code ? t.code + ' · ' + t.name : '') + '" aria-label="Typ palety" style="flex:1 1 260px"><datalist id="palList2">' + state.pallets.map(p => '<option value="' + esc(palOption(p)) + '"></option>').join('') + '</datalist><button type="button" class="btn small" id="peTypeBtn">Změnit typ</button></div>' +
-    '<p class="muted">' + Math.round((t.L || 0) / 10) + ' × ' + Math.round((t.W || 0) / 10) + ' cm · ' + Math.round(kg) + ' kg (tara ' + (t.tare || 0) + ' kg)' + (t.maxKg ? ' · nosnost ' + t.maxKg + ' kg' : '') + ' · zaplnění ' + Math.round(fill * 100) + ' %</p>' +
+    '<p class="muted">' + cm(t.L) + ' × ' + cm(t.W) + ' cm · ' + Math.round(kg) + ' kg (tara ' + (t.tare || 0) + ' kg)' + (t.maxKg ? ' · nosnost ' + t.maxKg + ' kg' : '') + ' · zaplnění ' + Math.round(fill * 100) + ' %</p>' +
     '<div class="pe-fill' + (fill > 1.001 || (t.maxKg && kg - (t.tare || 0) > t.maxKg) ? ' over' : '') + '"><i style="width:' + Math.min(100, Math.round(fill * 100)) + '%"></i></div>' +
     (b.contents.length ? b.contents.map((c, i) => '<div class="pe-row"><span><b>' + esc(c.code) + '</b><span class="muted">' + esc(c.name || '') + (c.ride ? ' · navrch' : '') + '</span></span><span>' + c.units + ' ks</span>' +
-      '<select data-pt="' + i + '" aria-label="Kam přesunout">' + targets + '</select><input type="number" min="1" max="' + c.units + '" value="' + c.units + '" data-pq="' + i + '" aria-label="Kolik kusů"><button type="button" class="btn small" data-pm="' + i + '">Přesunout</button></div>').join('')
+      (peCur.row === i ? '' : '<button type="button" class="btn small" data-po="' + i + '">Přesunout…</button>') + '</div>' + (peCur.row === i ? movePanel(c, i) : '')).join('')
       : '<p class="muted">Paleta je prázdná. Přetáhněte na ni materiál na ploše nebo ji smažte.</p>');
   $('#peDelete').hidden = b.contents.some(c => c.units > 0);
 }
 $('#peBody').addEventListener('click', e => {
-  const i = e.target.getAttribute('data-pm');
-  if (i != null) {
-    const { id, pid } = peCur, P = state.plan.get(id), b = P.find(x => x.id === pid), c = b.contents[Number(i)];
-    const to = $('#peBody [data-pt="' + i + '"]').value, q = toNum($('#peBody [data-pq="' + i + '"]').value);
-    const res = moveUnits(P, pid, c.code, q, to);
-    if (res) { state.manual.delete(id); keepScroll(recalc); flash('Přesunuto ' + Math.min(q, c.units + q) + ' ks ' + c.code + '.'); }
+  const po = e.target.getAttribute('data-po');
+  if (po != null) { peCur.row = Number(po); drawPalEditor(); return; }
+  if (e.target.getAttribute('data-pcancel')) { peCur.row = null; drawPalEditor(); return; }
+  const go = e.target.getAttribute('data-pgo');
+  if (go != null) {
+    const { id, pid } = peCur, P = state.plan.get(id), b = P.find(x => x.id === pid), c = b.contents[Number(go)];
+    const q = Math.max(1, Math.min(c.units, Math.round(toNum($('#pmQty').value) || c.units)));
+    const kind = ($('#peBody input[name="pmKind"]:checked') || {}).value;
+    let to = 'new', after = null;
+    if (kind === 'exist') to = $('#pmExist').value;
+    if (kind === 'other') {
+      const v = $('#pmOther').value.trim(), t = typeOf(state.pallets, v.split(' · ')[0].trim());
+      if (!t) { flash('Vyberte typ palety z nabídky.'); $('#pmOther').focus(); return; }
+      after = nid => setPalletType(P, nid, t.code);
+    }
+    if (kind === 'new') {
+      const L = toNum($('#pmL').value), W = toNum($('#pmW').value);
+      if (!(L > 0 && W > 0)) { flash('Zadejte délku a šířku nové palety.'); $('#pmL').focus(); return; }
+      const nt = { name: $('#pmName').value.trim() || 'Paleta ' + Math.round(L / 10) + ' × ' + Math.round(W / 10), L, W, H: toNum($('#pmH').value) || 0, tare: toNum($('#pmTare').value) || 0, maxKg: toNum($('#pmMax').value) || 0, rot: true };
+      if ($('#pmSave').checked) { nt.code = nextCode(state.pallets); state.pallets.push(nt); persist('pallets'); drawPallets(); drawCatalog(); after = nid => setPalletType(P, nid, nt.code); }
+      else { nt.code = 'JINÁ'; after = nid => setPalletType(P, nid, 'JINÁ', nt); }
+    }
+    const nid = moveUnits(P, pid, c.code, q, to);
+    if (!nid) { flash('Přesun se nepovedl.'); return; }
+    if (after) after(nid);
+    peCur.row = null;
+    state.manual.delete(id); keepScroll(recalc);
+    flash('Přesunuto ' + q + ' ks ' + c.code + '.');
     drawPalEditor();
+    return;
   }
   if (e.target.id === 'peTypeBtn') {
     const v = $('#peType').value.trim(), code = v.split(' · ')[0].trim(), t = typeOf(state.pallets, code);
     if (!t) { flash('Vyberte typ palety z nabídky.'); return; }
     setPalletType(state.plan.get(peCur.id), peCur.pid, t.code); state.manual.delete(peCur.id); keepScroll(recalc); drawPalEditor();
   }
+});
+// show the extra fields only for the chosen option
+$('#peBody').addEventListener('change', e => {
+  if (e.target.name !== 'pmKind') return;
+  const f = { other: '#pmOther', new: '#pmL', exist: '#pmExist' }[e.target.value];
+  if (f && $(f)) $(f).focus();
 });
 $('#peDelete').addEventListener('click', () => {
   if (removePallet(state.plan.get(peCur.id), peCur.pid)) { state.manual.delete(peCur.id); keepScroll(recalc); }
