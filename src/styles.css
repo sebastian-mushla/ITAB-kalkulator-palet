@@ -385,3 +385,6 @@ dialog.dlg-wide{max-width:560px}
 .btn.print{display:inline-flex;align-items:center;gap:10px;background:var(--green);color:#fff;border-color:var(--green);box-shadow:0 8px 20px -8px color-mix(in srgb,var(--green) 70%,transparent)}
 .btn.print:hover{background:color-mix(in srgb,var(--green) 85%,#000)}
 :root[data-theme="dark"] .btn.print{color:#0E1120}
+.dims{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}.dims input{width:80px!important;min-width:0!important}
+.pal-code{font-variant-numeric:tabular-nums;color:var(--primary)}
+#view-pallets td:nth-child(2) input{min-width:220px}

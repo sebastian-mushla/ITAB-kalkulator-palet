@@ -37,11 +37,13 @@ create policy "profiles: admin changes roles" on public.profiles
 
 -- ---------- settings: catalog, vehicles, combos, rules as JSON ----------
 create table if not exists public.settings (
-  key text primary key check (key in ('catalog', 'vehicles', 'combos', 'rules')),
+  key text primary key,
   value jsonb not null,
   updated_at timestamptz not null default now(),
   updated_by uuid references auth.users (id)
 );
+alter table public.settings drop constraint if exists settings_key_check;
+alter table public.settings add constraint settings_key_check check (key in ('catalog', 'vehicles', 'combos', 'rules', 'pallets'));
 alter table public.settings enable row level security;
 drop policy if exists "settings: logged-in users read" on public.settings;
 create policy "settings: logged-in users read" on public.settings

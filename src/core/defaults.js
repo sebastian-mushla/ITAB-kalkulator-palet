@@ -1,8 +1,15 @@
 // pack: 'paleta' = goes on its own pallets, 'balik' = parcel (no pallet), pl/pw are then the parcel size.
 export const DEFAULT_CATALOG = [
-  { code: 'V06', name: 'Kabina', pack: 'paleta', pl: 2450, pw: 1300, per: 1, kg: 200, rot: true },
-  { code: 'V04', name: 'Dopravník', pack: 'paleta', pl: 3500, pw: 800, per: 1, kg: 200, rot: true },
-  { code: 'V-POL', name: 'Police', pack: 'paleta', pl: 1200, pw: 800, per: 156, kg: 3, rot: true }
+  { code: 'V06', name: 'Kabina', pack: 'paleta', pal: 'PAL-0002', per: 1, kg: 200, rot: true },
+  { code: 'V04', name: 'Dopravník', pack: 'paleta', pal: 'PAL-0003', per: 1, kg: 200, rot: true },
+  { code: 'V-POL', name: 'Police', pack: 'paleta', pal: 'PAL-0001', per: 156, kg: 3, rot: true }
+];
+
+// Level 2: pallet types. L, W, H in mm, tare = own weight kg, maxKg = max load (0 = not checked).
+export const DEFAULT_PALLETS = [
+  { code: 'PAL-0001', name: 'Europaleta', L: 1200, W: 800, H: 144, tare: 25, maxKg: 1500, rot: true },
+  { code: 'PAL-0002', name: 'Paleta kabina 245 × 130', L: 2450, W: 1300, H: 150, tare: 0, maxKg: 0, rot: true },
+  { code: 'PAL-0003', name: 'Paleta dopravník 350 × 80', L: 3500, W: 800, H: 150, tare: 0, maxKg: 0, rot: true }
 ];
 
 // L, W in metres. eup = max pallets on board (0 = no limit). cost = relative price, lower wins.
@@ -17,9 +24,10 @@ export const VEHICLE_TYPES = [
   ['kamion', 'Kamion'], ['plachta', 'Plachťák'], ['celo', 'Dodávka s čelem'], ['dodavka', 'Dodávka'], ['jine', 'Jiné']
 ];
 
-export const DEFAULT_RULES = { oneVeh: true, gMax: 3, oL: 2.4, oW: 1.2, pKg: 31.5, pL: 1.2 };
+export const DEFAULT_RULES = { oneVeh: true, mix: true, gMax: 3, oL: 2.4, oW: 1.2, pKg: 31.5, pL: 1.2 };
 export const RULE_FIELDS = [
   ['oneVeh', 'Jedna zakázka jede jedním vozidlem, pokud se vejde (i když by víc menších vozidel vyšlo levněji)', 'bool'],
+  ['mix', 'Neúplné palety stejného typu skládat dohromady (smíšená paleta, do 100 % a do nosnosti palety)', 'bool'],
   ['gMax', 'Sběrná služba: maximum europalet', '1'],
   ['pKg', 'Balík: maximální váha, kg', '0.5'],
   ['pL', 'Balík: nejdelší strana, m', '0.05'],

@@ -12,7 +12,8 @@ export function filterCatalog(catalog, q) {
   return idx.filter(i => String(catalog[i].code).toLowerCase().includes(q) || String(catalog[i].name || '').toLowerCase().includes(q));
 }
 
-export function renderCatalog(catalog, view) {
+export function renderCatalog(catalog, view, pallets) {
+  pallets = pallets || [];
   const list = filterCatalog(catalog, view.q), pages = Math.max(1, Math.ceil(list.length / PAGE));
   view.page = Math.min(view.page, pages - 1);
   const slice = list.slice(view.page * PAGE, view.page * PAGE + PAGE);
@@ -22,7 +23,10 @@ export function renderCatalog(catalog, view) {
     return '<tr><td><i class="sw" style="background:' + color(i) + '"></i><input type="text" data-i="' + i + '" data-f="code" value="' + esc(a.code) + '" aria-label="Artikl"></td>' +
       '<td>' + (a.name ? '<span class="ro-name" title="Název z ERP, nelze měnit">' + esc(a.name) + '</span>' : '<input type="text" data-i="' + i + '" data-f="name" value="" aria-label="Název" placeholder="doplnit">') + '</td>' +
       '<td><select data-i="' + i + '" data-f="pack" aria-label="Balení"><option value="paleta"' + (a.pack !== 'balik' ? ' selected' : '') + '>paleta</option><option value="balik"' + (a.pack === 'balik' ? ' selected' : '') + '>balík</option></select></td>' +
-      num('pl') + num('pw') + num('per', 1, 1) + num('kg') +
+      (a.pack === 'balik'
+        ? '<td><span class="dims"><input type="number" min="1" data-i="' + i + '" data-f="pl" value="' + (a.pl || '') + '" aria-label="Délka balíku, mm"> × <input type="number" min="1" data-i="' + i + '" data-f="pw" value="' + (a.pw || '') + '" aria-label="Šířka balíku, mm"> mm</span></td>'
+        : '<td><select data-i="' + i + '" data-f="pal" aria-label="Typ palety">' + (a.pal ? '' : '<option value="">– vyberte –</option>') + pallets.map(p => '<option value="' + esc(p.code) + '"' + (p.code === a.pal ? ' selected' : '') + '>' + esc(p.code) + ' · ' + esc(p.name) + ' (' + Math.round(p.L / 10) + '×' + Math.round(p.W / 10) + ')</option>').join('') + '</select></td>') +
+      num('per', 1, 1) + num('kg') +
       '<td><input type="checkbox" data-i="' + i + '" data-f="rot"' + (a.rot ? ' checked' : '') + ' aria-label="Lze otáčet"></td>' +
       '<td><button class="btn small" data-del="' + i + '">Smazat</button></td></tr>';
   }).join('') || '<tr><td colspan="9" class="empty">Nic nenalezeno.</td></tr>';
@@ -30,6 +34,19 @@ export function renderCatalog(catalog, view) {
   $('#catPager').innerHTML = pages > 1
     ? '<button class="btn small" data-page="' + (view.page - 1) + '"' + (view.page === 0 ? ' disabled' : '') + '>‹ Předchozí</button><span class="muted">Strana ' + (view.page + 1) + ' z ' + pages + '</span><button class="btn small" data-page="' + (view.page + 1) + '"' + (view.page >= pages - 1 ? ' disabled' : '') + '>Další ›</button>'
     : '';
+}
+
+export function renderPallets(pallets, catalog) {
+  const used = code => catalog.filter(a => a.pal === code).length;
+  $('#palBody').innerHTML = pallets.map((p, i) => {
+    const num = (f, step) => '<td><input type="number" min="0" step="' + step + '" data-i="' + i + '" data-f="' + f + '" value="' + (p[f] == null ? '' : p[f]) + '"></td>';
+    const n = used(p.code);
+    return '<tr><td><b class="pal-code">' + esc(p.code) + '</b></td><td><input type="text" data-i="' + i + '" data-f="name" value="' + esc(p.name || '') + '" aria-label="Název"></td>' +
+      num('L', '1') + num('W', '1') + num('H', '1') + num('tare', 'any') + num('maxKg', '1') +
+      '<td><input type="checkbox" data-i="' + i + '" data-f="rot"' + (p.rot !== false ? ' checked' : '') + ' aria-label="Lze otáčet"></td>' +
+      '<td class="num">' + n + '</td>' +
+      '<td><button class="btn small" data-del="' + i + '"' + (n ? ' disabled title="Typ používají artikly"' : '') + '>Smazat</button></td></tr>';
+  }).join('') || '<tr><td colspan="10" class="empty">Žádný typ palety.</td></tr>';
 }
 
 export function renderVehicles(vehicles) {

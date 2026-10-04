@@ -1,15 +1,16 @@
 import { clone, toNum } from './core/util.js';
-import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, SAMPLE } from './core/defaults.js';
+import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, DEFAULT_PALLETS, SAMPLE } from './core/defaults.js';
+import { migrateCatalog, nextCode, typeOf } from './core/palletTypes.js';
 import { parseOrders, rowsToOrderText } from './core/parse.js';
 import { solve } from './core/solve.js';
 import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle, replaceVehicle, DEPOT } from './core/manual.js';
-import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, mergeBy, toCsv } from './io/importTable.js';
+import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, rowsToPallets, mergeBy, toCsv } from './io/importTable.js';
 import { renderKpis, renderPriorities, renderList, renderDetail, renderDock, requestText, loadPlanHtml } from './ui/orders.js';
 import { ringilHtml } from './ui/ringil.js';
 import { packListHtml } from './ui/packlist.js';
 import { requireLogin, loadSettings, saveSetting, signOut, changePassword, listProfiles, setRole, adminUsers } from './auth.js';
 import { esc } from './core/util.js';
-import { renderCatalog, renderVehicles, renderCombos, renderRules, importReport } from './ui/settings.js';
+import { renderCatalog, renderPallets, renderVehicles, renderCombos, renderRules, importReport } from './ui/settings.js';
 
 const $ = s => document.querySelector(s);
 // calculator (#detail) and loading (#dock) share the same click / drag handlers
@@ -28,6 +29,7 @@ const state = {
   catalog: Array.isArray(shared.catalog) && shared.catalog.length ? shared.catalog : clone(DEFAULT_CATALOG),
   vehicles: Array.isArray(shared.vehicles) && shared.vehicles.length ? shared.vehicles : clone(DEFAULT_VEHICLES),
   combos: Array.isArray(shared.combos) ? shared.combos : clone(DEFAULT_COMBOS),
+  pallets: Array.isArray(shared.pallets) && shared.pallets.length ? shared.pallets : clone(DEFAULT_PALLETS),
   rules: Object.assign(clone(DEFAULT_RULES), shared.rules || {}),
   csv: load(KEYS.csv, SAMPLE),
   orders: new Map(), results: new Map(), forced: new Map(), manual: new Map(), oneOff: new Map(), done: new Set(load('itab.done.v1', [])), isAdmin, sel: null, prioHidden: false,
@@ -44,6 +46,12 @@ if (isAdmin && !me.demo) {
   });
 }
 
+// articles that still carry pallet sizes get a pallet type (PAL-xxxx)
+{
+  const m = migrateCatalog(state.catalog, state.pallets);
+  if (m.changed) { state.catalog = m.catalog; state.pallets = m.types; if (isAdmin && !me.demo) setTimeout(() => { persist('pallets'); persist('catalog'); }, 0); }
+}
+
 // admin edits go to the shared database; plain users cannot write (RLS)
 function persist(name) {
   if (!isAdmin || me.demo) return;
@@ -58,7 +66,7 @@ function persist(name) {
 // ---------- calculation ----------
 function ctx(id) {
   // one-off moves (not remembered) apply only to that order and win over saved rules
-  return { catalog: state.catalog, vehicles: state.vehicles, rules: state.rules, combos: (state.oneOff.get(id) || []).concat(state.combos), forced: state.forced.has(id) ? state.forced.get(id) : null };
+  return { catalog: state.catalog, vehicles: state.vehicles, pallets: state.pallets, rules: state.rules, combos: (state.oneOff.get(id) || []).concat(state.combos), forced: state.forced.has(id) ? state.forced.get(id) : null };
 }
 function recalc() {
   state.results = new Map();
@@ -116,7 +124,7 @@ let timer = null;
 function later() { clearTimeout(timer); timer = setTimeout(recalc, 250); }
 
 // ---------- navigation ----------
-const VIEWS = ['orders', 'dock', 'catalog', 'combos', 'vehicles', 'rules', 'users', 'help'];
+const VIEWS = ['orders', 'dock', 'catalog', 'pallets', 'combos', 'vehicles', 'rules', 'users', 'help'];
 // help page shows the current rule values
 function renderHelp() {
   const r = state.rules;
@@ -432,8 +440,15 @@ function bindTable(body, list, name, rerender) {
 }
 
 // ---------- catalog ----------
-const drawCatalog = () => renderCatalog(state.catalog, state.catView);
+const drawCatalog = () => renderCatalog(state.catalog, state.catView, state.pallets);
 bindTable($('#catBody'), () => state.catalog, 'catalog', drawCatalog);
+$('#catBody').addEventListener('change', e => {
+  if (e.target.getAttribute('data-f') !== 'pack') return;
+  const a = state.catalog[e.target.getAttribute('data-i')];
+  if (a.pack === 'balik' && !(a.pl > 0)) { a.pl = 400; a.pw = 300; }
+  if (a.pack !== 'balik' && !a.pal && state.pallets[0]) a.pal = state.pallets[0].code;
+  persist('catalog'); drawCatalog();
+});
 $('#catSearch').addEventListener('input', e => { state.catView.q = e.target.value; state.catView.page = 0; drawCatalog(); });
 $('#catPager').addEventListener('click', e => { const p = e.target.getAttribute('data-page'); if (p == null) return; state.catView.page = Number(p); drawCatalog(); });
 $('#catAdd').addEventListener('click', () => {
@@ -446,8 +461,8 @@ $('#catReset').addEventListener('click', () => {
   state.catalog = clone(DEFAULT_CATALOG); persist('catalog'); drawCatalog(); recalc(); $('#catReport').innerHTML = '';
 });
 $('#catExport').addEventListener('click', () => download('ciselnik-artiklu.csv',
-  [['artikl', 'nazev', 'baleni', 'delka_mm', 'sirka_mm', 'ks_na_palete', 'vaha_kusu_kg', 'lze_otacet']]
-    .concat(state.catalog.map(a => [a.code, a.name, a.pack || 'paleta', a.pl, a.pw, a.per, String(a.kg).replace('.', ','), a.rot ? 'ano' : 'ne']))));
+  [['artikl', 'nazev', 'baleni', 'paleta', 'delka_mm', 'sirka_mm', 'ks_na_palete', 'vaha_kusu_kg', 'lze_otacet']]
+    .concat(state.catalog.map(a => [a.code, a.name, a.pack || 'paleta', a.pack === 'balik' ? '' : (a.pal || ''), a.pack === 'balik' ? a.pl : '', a.pack === 'balik' ? a.pw : '', a.per, String(a.kg).replace('.', ','), a.rot ? 'ano' : 'ne']))));
 $('#catFile').addEventListener('change', async e => {
   const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
   try {
@@ -455,10 +470,39 @@ $('#catFile').addEventListener('change', async e => {
     let merged = null;
     if (res.items.length) {
       merged = replace ? { list: res.items } : mergeBy(state.catalog, res.items, a => String(a.code).trim().toLowerCase());
-      state.catalog = merged.list; persist('catalog'); drawCatalog(); recalc();
+      const m = migrateCatalog(merged.list, state.pallets);
+      state.catalog = m.catalog; if (m.types.length !== state.pallets.length) { state.pallets = m.types; persist('pallets'); drawPallets(); }
+      persist('catalog'); drawCatalog(); recalc();
     }
     importReport($('#catReport'), res, merged, replace);
   } catch (err) { $('#catReport').innerHTML = '<p class="problems">' + err.message + '</p>'; }
+});
+
+// ---------- pallet types ----------
+const drawPallets = () => renderPallets(state.pallets, state.catalog);
+bindTable($('#palBody'), () => state.pallets, 'pallets', drawPallets);
+$('#palBody').addEventListener('input', () => drawCatalogLater());
+let catTimer = null;
+function drawCatalogLater() { clearTimeout(catTimer); catTimer = setTimeout(drawCatalog, 400); }
+$('#palAdd').addEventListener('click', () => {
+  state.pallets.push({ code: nextCode(state.pallets), name: 'Nová paleta', L: 1200, W: 800, H: 144, tare: 25, maxKg: 0, rot: true });
+  persist('pallets'); drawPallets(); drawCatalog();
+});
+$('#palExport').addEventListener('click', () => download('palety.csv',
+  [['kod', 'nazev', 'delka_mm', 'sirka_mm', 'vyska_mm', 'vlastni_vaha_kg', 'max_zatizeni_kg', 'lze_otacet']]
+    .concat(state.pallets.map(p => [p.code, p.name, p.L, p.W, p.H || '', String(p.tare || 0).replace('.', ','), p.maxKg || '', p.rot !== false ? 'ano' : 'ne']))));
+$('#palFile').addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const { rows } = await readFileRows(f), res = rowsToPallets(rows);
+    let merged = null;
+    if (res.items.length) {
+      res.items.forEach(p => { if (!p.code) p.code = nextCode(state.pallets.concat(res.items.filter(x => x.code))); });
+      merged = mergeBy(state.pallets, res.items, p => p.code.toLowerCase());
+      state.pallets = merged.list; persist('pallets'); drawPallets(); drawCatalog(); recalc();
+    }
+    importReport($('#palReport'), res, merged, false);
+  } catch (err) { $('#palReport').innerHTML = '<p class="problems">' + err.message + '</p>'; }
 });
 
 // ---------- vehicles ----------
@@ -558,7 +602,7 @@ $('#passBtn').addEventListener('click', async () => {
   alert(err ? 'Heslo se nezměnilo: ' + err : 'Heslo změněno.');
 });
 if (!isAdmin) {
-  ['catalog', 'combos', 'vehicles', 'rules', 'users'].forEach(v => { $('#tab-' + v).hidden = true; });
+  ['catalog', 'pallets', 'combos', 'vehicles', 'rules', 'users'].forEach(v => { $('#tab-' + v).hidden = true; });
 }
 async function drawUsers() {
   const body = $('#userBody');
@@ -610,5 +654,5 @@ if (isAdmin) {
 const td = new Date().toLocaleDateString('cs-CZ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 $('#today').textContent = td.charAt(0).toUpperCase() + td.slice(1);
 $('#csv').value = state.csv;
-drawCatalog(); drawVehicles(); drawCombos(); renderRules(state.rules);
+drawCatalog(); drawPallets(); drawVehicles(); drawCombos(); renderRules(state.rules);
 importOrders(load(KEYS.list, null) || state.csv, false, true);

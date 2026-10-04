@@ -1,9 +1,11 @@
 import { isEuro } from './util.js';
 import { findRule, ruleText } from './combos.js';
+import { resolveArticle, typeOf } from './palletTypes.js';
 
 // Splits order lines into full pallets + one partial pallet per article, or into parcels for pack = 'balik'.
 // combos (Kombinace tab) can override this per order; see combos.js.
-export function makePallets(lines, catalog, combos = []) {
+// types = pallet types (level 2); opts.mix = put leftovers of different articles on one pallet of the same type
+export function makePallets(lines, catalog, combos = [], types = [], opts = {}) {
   const pallets = [], parcels = [], errors = [], rows = [], unknown = [];
   const index = new Map(catalog.map((a, i) => [String(a.code).trim().toLowerCase(), i]));
   const present = new Set(lines.map(l => l.code.toLowerCase()));
@@ -12,7 +14,8 @@ export function makePallets(lines, catalog, combos = []) {
   function build(a, idx, qty, row) {
     const full = Math.floor(qty / a.per), rem = qty % a.per;
     const parcel = a.pack === 'balik';
-    const mk = units => ({ code: a.code, units, fill: units / a.per, kg: units * (a.kg || 0), pl: a.pl, pw: a.pw, rot: !!a.rot, euro: !parcel && isEuro(a), ci: idx });
+    const tare = parcel ? 0 : (a.tare || 0);
+    const mk = units => ({ code: a.code, units, fill: units / a.per, kg: tare + units * (a.kg || 0), tare, pl: a.pl, pw: a.pw, rot: !!a.rot, euro: !parcel && isEuro(a), ci: idx, pal: parcel ? null : (a.pal || null), palName: a.palName || '', palH: a.palH || 0, maxKg: a.maxKg || 0 });
     const target = parcel ? parcels : pallets;
     for (let i = 0; i < full; i++) target.push(mk(a.per));
     if (rem > 0) target.push(mk(rem));
@@ -33,11 +36,13 @@ export function makePallets(lines, catalog, combos = []) {
       unknown.push({ code: l.code, qty: l.qty, name: l.name || '' });
       errors.push('Artikl „' + l.code + '“ není v číselníku, nebyl spočítán.'); return;
     }
-    let a = catalog[idx];
+    let a = resolveArticle(catalog[idx], types);
     const rule = findRule(a.code, l.qty, present, combos);
     const row = { code: a.code, name: a.name, qty: l.qty, kg: l.qty * (a.kg || 0), ci: idx, rule: rule ? ruleText(rule) : null };
     if (rule && rule.mode === 'host') { riders.push({ a, idx, qty: l.qty, rule, row }); rows.push(row); return; }
-    if (rule && rule.mode === 'pallet') a = Object.assign({}, a, { pack: 'paleta', pl: rule.pl || a.pl, pw: rule.pw || a.pw, per: rule.per || a.per });
+    if (rule && rule.mode === 'pallet') a = rule.pal && typeOf(types, rule.pal)
+      ? resolveArticle(Object.assign({}, a, { pack: 'paleta', pal: rule.pal, per: rule.per || a.per }), types)
+      : Object.assign({}, a, { pack: 'paleta', pal: null, palName: '', tare: 0, pl: rule.pl || a.pl, pw: rule.pw || a.pw, per: rule.per || a.per });
     if (rule && rule.mode === 'parcel') a = Object.assign({}, a, { pack: 'balik', pl: rule.pl || a.pl, pw: rule.pw || a.pw, per: rule.per || a.per });
     if (!(a.per > 0) || !(a.pl > 0) || !(a.pw > 0)) { errors.push('U artiklu „' + a.code + '“ chybí rozměry nebo počet kusů.'); return; }
     rows.push(build(a, idx, l.qty, row));
@@ -66,7 +71,21 @@ export function makePallets(lines, catalog, combos = []) {
       build(a, idx, left, row);
     } else Object.assign(row, { pack: 'paleta', full: 0, rem: 0, per: a.per, fillRem: 0, count: 0 });
   });
-  return { pallets, parcels, errors, rows, unknown };
+  return { pallets: opts.mix === false ? pallets : mixLeftovers(pallets), parcels, errors, rows, unknown };
+}
+
+// Leftover (partial) pallets of the same pallet type are combined while fill ≤ 100 % and weight ≤ the type's max load.
+function mixLeftovers(pallets) {
+  const full = pallets.filter(p => !(p.fill < 0.999) || !p.pal), part = pallets.filter(p => p.fill < 0.999 && p.pal);
+  part.sort((a, b) => b.fill - a.fill);
+  const out = [];
+  part.forEach(p => {
+    const host = out.find(h => h.pal === p.pal && h.fill + p.fill <= 1 + 1e-9 && (!(h.maxKg > 0) || h.kg + p.kg - p.tare <= h.maxKg + 1e-9));
+    if (!host) { out.push(p); return; }
+    host.extra = (host.extra || []).concat([{ code: p.code, units: p.units, ci: p.ci, mixed: true }], p.extra || []);
+    host.fill += p.fill; host.kg += p.kg - p.tare;
+  });
+  return full.concat(out);
 }
 const low = s => String(s == null ? '' : s).trim().toLowerCase();
 

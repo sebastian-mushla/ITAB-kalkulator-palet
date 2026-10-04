@@ -19,13 +19,15 @@ export function groupItems(items) {
 }
 
 // Pure: order + catalog + vehicles + rules -> result. `forced` = vehicle index chosen by the user.
-export function solve(o, { catalog, vehicles, rules, combos = [], forced = null }) {
-  const mp = makePallets([...o.lines.values()], catalog, combos);
+export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], forced = null }) {
+  const mp = makePallets([...o.lines.values()], catalog, combos, pallets, { mix: rules.mix !== false });
   const r = {
     id: o.id, pallets: mp.pallets, parcels: mp.parcels, errors: mp.errors, rows: mp.rows, unknown: mp.unknown,
     kg: 0, units: 0, groupage: null, parcelInfo: null, vehicles: [], oversize: [], mode: 'empty', reco: '', forced
   };
-  r.kg = mp.rows.reduce((s, x) => s + x.kg, 0);
+  // goods + own weight of the pallets
+  r.kg = mp.rows.reduce((s, x) => s + x.kg, 0) + mp.pallets.reduce((s, p) => s + (p.tare || 0), 0);
+  r.tare = mp.pallets.reduce((s, p) => s + (p.tare || 0), 0);
   r.units = mp.rows.reduce((s, x) => s + x.qty, 0);
   const pool = prepareVehicles(vehicles);
   const widest = pool.slice().sort((a, b) => b.Lmm * b.Wmm - a.Lmm * a.Wmm)[0];

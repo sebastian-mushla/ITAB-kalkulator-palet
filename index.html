@@ -35,6 +35,7 @@ document.documentElement.setAttribute('data-theme',t);})();
       <button class="tab" role="tab" id="tab-orders" aria-selected="true" data-view="orders"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Kalkulátor palet</button>
       <button class="tab" role="tab" id="tab-dock" aria-selected="false" data-view="dock"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h12v10H2z"/><path d="M14 9h4l4 4v3h-8z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>Nakládka</button>
       <button class="tab" role="tab" id="tab-catalog" aria-selected="false" data-view="catalog"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>Číselník artiklů</button>
+      <button class="tab" role="tab" id="tab-pallets" aria-selected="false" data-view="pallets"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="6" rx="1"/><path d="M5 13v4M12 13v4M19 13v4M3 17h18"/></svg>Palety</button>
       <button class="tab" role="tab" id="tab-combos" aria-selected="false" data-view="combos"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="13" width="18" height="8" rx="1.5"/><rect x="6" y="5" width="7" height="8" rx="1.5"/><path d="M16 5v6M13 8h6"/></svg>Kombinace</button>
       <button class="tab" role="tab" id="tab-vehicles" aria-selected="false" data-view="vehicles"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h12v10H2z"/><path d="M14 9h4l4 4v3h-8z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>Vozidla</button>
       <button class="tab" role="tab" id="tab-users" aria-selected="false" data-view="users"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/></svg>Uživatelé</button>
@@ -105,7 +106,7 @@ document.documentElement.setAttribute('data-theme',t);})();
           </div>
           <div class="tscroll">
             <table>
-              <thead><tr><th>Artikl</th><th>Název</th><th>Balení</th><th>Délka, mm</th><th>Šířka, mm</th><th>Kusů na paletě / v balíku</th><th>Váha kusu, kg</th><th>Lze otáčet</th><th></th></tr></thead>
+              <thead><tr><th>Artikl</th><th>Název</th><th>Balení</th><th>Typ palety / rozměr balíku</th><th>Kusů na paletě / v balíku</th><th>Váha kusu, kg</th><th>Lze otáčet</th><th></th></tr></thead>
               <tbody id="catBody"></tbody>
             </table>
           </div>
@@ -113,6 +114,25 @@ document.documentElement.setAttribute('data-theme',t);})();
           <div class="row">
             <button class="btn" id="catAdd">Přidat artikl</button>
             <button class="btn" id="catReset">Vrátit ukázku</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-pallets" hidden>
+        <div class="pagehead"><div><h1>Palety</h1><p>Typy palet (PAL-xxxx): rozměr, výška, vlastní váha a nosnost. Artikly v číselníku říkají, na jakém typu jedou a kolik kusů se na něj vejde.</p></div></div>
+        <div class="card cat">
+          <div class="toolbar">
+            <button class="btn primary" id="palAdd">Přidat typ palety</button>
+            <label class="btn">Nahrát CSV / Excel<input type="file" id="palFile" accept=".csv,.txt,.tsv,.xlsx,.xls,.ods" hidden></label>
+            <button class="btn" id="palExport">Stáhnout CSV</button>
+          </div>
+          <p class="hint">Struktura: <b>vozidlo</b> → <b>paleta</b> (PAL-xxxx) → <b>materiál</b> (artikly). Vlastní váha palety se přičítá k váze nákladu. Max. zatížení 0 = nekontroluje se. Typ, který používají artikly, nejde smazat.</p>
+          <div id="palReport"></div>
+          <div class="tscroll">
+            <table>
+              <thead><tr><th>Kód</th><th>Název</th><th>Délka, mm</th><th>Šířka, mm</th><th>Výška, mm</th><th>Vlastní váha, kg</th><th>Max. zatížení, kg</th><th>Lze otáčet</th><th class="num">Artiklů</th><th></th></tr></thead>
+              <tbody id="palBody"></tbody>
+            </table>
           </div>
         </div>
       </section>

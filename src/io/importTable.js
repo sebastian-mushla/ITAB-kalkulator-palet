@@ -94,6 +94,7 @@ export const CATALOG_FIELDS = {
   code: ['artikl', 'article', 'artikel', 'артикул', 'sku', 'kod', 'code', 'cislo artiklu'],
   name: ['nazev', 'name', 'название', 'наименование', 'popis', 'description'],
   pack: ['baleni', 'pack', 'packaging', 'упаковка', 'typ baleni'],
+  pal: ['paleta', 'typ palety', 'pallet type', 'паллета'],
   per: ['units_per_pallet', 'ks na palete', 'kusu na palete', 'ks/paleta', 'per pallet', 'шт на паллете', 'шт на палете', 'per', 'ks', 'pcs'],
   pl: ['pallet_length_mm', 'delka', 'length', 'длина', 'pl'],
   pw: ['pallet_width_mm', 'sirka', 'width', 'ширина', 'pw'],
@@ -110,7 +111,8 @@ export function rowsToCatalog(rows) {
   const hi = headerIndex(rows);
   if (hi < 0) return { items: [], errors: ['Soubor je prázdný.'], cols: {} };
   const cols = findColumns(rows[hi], CATALOG_FIELDS);
-  const missing = ['code', 'per', 'pl', 'pw', 'kg'].filter(k => cols[k] == null);
+  const missing = ['code', 'per', 'kg'].filter(k => cols[k] == null);
+  if (cols.pal == null && (cols.pl == null || cols.pw == null)) missing.push('pal');
   if (missing.length) {
     return { items: [], cols, errors: ['Nenalezeny sloupce: ' + missing.map(k => CATALOG_LABELS[k]).join(', ') + '. Zkontrolujte záhlaví prvního řádku.'] };
   }
@@ -122,20 +124,51 @@ export function rowsToCatalog(rows) {
     const code = String(get(r, 'code')).trim();
     if (!code) { errors.push('řádek ' + line + ': chybí artikl'); return; }
     const per = toNum(get(r, 'per')), pl = toNum(get(r, 'pl')), pw = toNum(get(r, 'pw')), kg = toNum(get(r, 'kg') || 0);
+    const pal = String(get(r, 'pal')).trim().toUpperCase(), pack = packValue(get(r, 'pack'));
     const bad = [];
     if (!(per >= 1) || per % 1 !== 0) bad.push('počet kusů musí být celé číslo ≥ 1');
-    if (!(pl > 0)) bad.push('délka musí být > 0');
-    if (!(pw > 0)) bad.push('šířka musí být > 0');
+    if (!pal || pack === 'balik') {
+      if (!(pl > 0)) bad.push('chybí typ palety nebo délka');
+      if (!(pw > 0)) bad.push('chybí typ palety nebo šířka');
+    }
     if (!(kg >= 0)) bad.push('váha není číslo');
     if (bad.length) { errors.push('řádek ' + line + ' (' + code + '): ' + bad.join(', ')); return; }
     items.push({
-      code, name: String(get(r, 'name')).trim(), pack: packValue(get(r, 'pack')),
-      pl, pw, per, kg, rot: toBool(get(r, 'rot'), true)
+      code, name: String(get(r, 'name')).trim(), pack,
+      pal: pack === 'balik' ? undefined : (pal || undefined), pl: pl || undefined, pw: pw || undefined, per, kg, rot: toBool(get(r, 'rot'), true)
     });
   });
   return { items, errors, cols };
 }
-export const CATALOG_LABELS = { code: 'artikl', name: 'název', pack: 'balení', per: 'kusů na paletě', pl: 'délka', pw: 'šířka', kg: 'váha kusu', rot: 'lze otáčet' };
+export const CATALOG_LABELS = { pal: 'typ palety (nebo délka a šířka)', code: 'artikl', name: 'název', pack: 'balení', per: 'kusů na paletě', pl: 'délka', pw: 'šířka', kg: 'váha kusu', rot: 'lze otáčet' };
+
+// ---------- pallet types ----------
+export const PALLET_FIELDS = {
+  code: ['kod', 'code', 'pal', 'kod palety'],
+  name: ['nazev', 'name', 'название', 'typ'],
+  L: ['delka', 'length', 'длина'],
+  W: ['sirka', 'width', 'ширина'],
+  H: ['vyska', 'height', 'высота'],
+  tare: ['vlastni vaha', 'tara', 'tare', 'тара'],
+  maxKg: ['max zatizeni', 'nosnost', 'max kg', 'max'],
+  rot: ['otacet', 'rotatable', 'rot']
+};
+export function rowsToPallets(rows) {
+  const hi = headerIndex(rows);
+  if (hi < 0) return { items: [], errors: ['Soubor je prázdný.'], cols: {} };
+  const cols = findColumns(rows[hi], PALLET_FIELDS);
+  const missing = ['L', 'W'].filter(k => cols[k] == null);
+  if (missing.length) return { items: [], cols, errors: ['Nenalezeny sloupce: délka a šířka palety.'] };
+  const items = [], errors = [];
+  const get = (r, k) => (cols[k] == null ? '' : r[cols[k]]);
+  rows.slice(hi + 1).forEach((r, i) => {
+    if (!r.some(c => String(c).trim() !== '')) return;
+    const p = { code: String(get(r, 'code')).trim().toUpperCase(), name: String(get(r, 'name')).trim(), L: toNum(get(r, 'L')), W: toNum(get(r, 'W')), H: toNum(get(r, 'H') || 0) || 0, tare: toNum(get(r, 'tare') || 0) || 0, maxKg: toNum(get(r, 'maxKg') || 0) || 0, rot: toBool(get(r, 'rot'), true) };
+    if (!(p.L > 0 && p.W > 0)) { errors.push('řádek ' + (hi + i + 2) + ': chybí délka nebo šířka'); return; }
+    items.push(p);
+  });
+  return { items, errors, cols };
+}
 
 // ---------- vehicles ----------
 export const VEHICLE_FIELDS = {

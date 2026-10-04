@@ -3,10 +3,11 @@ import { parseOrders, rowsToOrderText } from '../src/core/parse.js';
 import { fromResult, replaceVehicle, viewOf } from '../src/core/manual.js';
 import { loadStats } from '../src/core/packing.js';
 import { solve } from '../src/core/solve.js';
-import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, SAMPLE } from '../src/core/defaults.js';
+import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, DEFAULT_PALLETS, SAMPLE } from '../src/core/defaults.js';
+import { migrateCatalog } from '../src/core/palletTypes.js';
 import { parseCsvRows, rowsToCatalog, rowsToVehicles, rowsToCombos, mergeBy } from '../src/io/importTable.js';
 
-const ctx = { catalog: DEFAULT_CATALOG, vehicles: DEFAULT_VEHICLES, rules: DEFAULT_RULES, combos: DEFAULT_COMBOS };
+const ctx = { catalog: DEFAULT_CATALOG, vehicles: DEFAULT_VEHICLES, rules: DEFAULT_RULES, combos: DEFAULT_COMBOS, pallets: DEFAULT_PALLETS };
 const RULE_ON = [Object.assign({}, DEFAULT_COMBOS[0], { on: true })];
 const order = t => parseOrders(t).orders.values().next().value;
 const EPS = 0.5;
@@ -31,10 +32,10 @@ function checkLayout(r) {
 }
 
 export const cases = [
-  ['505111: 24 palet, 6920 kg, LDM ~22,8, nadrozměr, 2× kamion', () => {
+  ['505111: 24 palet, 7120 kg (6920 zboží + 8 europalet × 25 kg), LDM ~22,8, nadrozměr, 2× kamion', () => {
     const r = run('505111');
     assert(r.pallets.length === 24, 'palet: ' + r.pallets.length);
-    assert(Math.round(r.kg) === 6920, 'kg: ' + r.kg);
+    assert(Math.round(r.kg) === 7120, 'kg: ' + r.kg);
     assert(Math.abs(r.ldm - 22.8) < 0.1, 'LDM: ' + r.ldm);
     assert(r.big.length === 2, 'nadrozměr: ' + r.big.join(', '));
     assert(!r.groupage.ok, 'sběrná služba by neměla projít');
@@ -44,10 +45,10 @@ export const cases = [
     assert(pol.full === 7 && pol.rem === 148, 'V-POL: ' + pol.full + ' + ' + pol.rem);
     checkLayout(r);
   }],
-  ['505112: 1 europaleta, 468 kg, sběrná služba', () => {
+  ['505112: 1 europaleta, 493 kg (468 + 25), sběrná služba', () => {
     const r = run('505112');
     assert(r.pallets.length === 1 && r.euroCount === 1, 'palet: ' + r.pallets.length);
-    assert(Math.round(r.kg) === 468, 'kg: ' + r.kg);
+    assert(Math.round(r.kg) === 493, 'kg: ' + r.kg);
     assert(r.mode === 'groupage', 'mode: ' + r.mode);
   }],
   ['Ruční volba vozidla: 505112 na plachťáku', () => {
@@ -223,6 +224,25 @@ cases.push(['Rozložení váhy: těžké palety u kabiny, levá/pravá strana vy
   assert(st.cg < usedL * 0.4, 'těžiště ' + Math.round(st.cg) + ' z ' + usedL);
   assert(Math.abs(st.leftPct - 50) <= 10, 'vlevo ' + st.leftPct + ' %');
 }]);
+
+cases.push(
+  ['Palety: migrace starého číselníku na typy PAL-xxxx', () => {
+    const old = [{ code: 'A', pack: 'paleta', pl: 1200, pw: 800, per: 10, kg: 1 }, { code: 'B', pack: 'paleta', pl: 800, pw: 1200, per: 5, kg: 1 }, { code: 'C', pack: 'paleta', pl: 2000, pw: 1000, per: 1, kg: 1 }, { code: 'D', pack: 'balik', pl: 300, pw: 200, per: 1, kg: 1 }];
+    const m = migrateCatalog(old, []);
+    assert(m.types.length === 2 && m.types[0].code === 'PAL-0001' && m.types[0].name === 'Europaleta' && m.types[0].tare === 25, JSON.stringify(m.types));
+    assert(m.catalog[0].pal === 'PAL-0001' && m.catalog[1].pal === 'PAL-0001' && m.catalog[2].pal === 'PAL-0002' && !m.catalog[3].pal, JSON.stringify(m.catalog));
+  }],
+  ['Palety: zbytky různých artiklů na stejném typu → jedna smíšená paleta', () => {
+    const catalog = DEFAULT_CATALOG.concat([{ code: 'SK', name: 'Skener', pack: 'paleta', pal: 'PAL-0001', per: 100, kg: 1, rot: true }]);
+    const r = solve(order('M;V-POL;' + (156 + 78) + '\nM;SK;30'), Object.assign({}, ctx, { catalog, rules: Object.assign({}, DEFAULT_RULES, { gMax: 0 }) }));
+    assert(r.pallets.length === 2, 'palet ' + r.pallets.length);
+    const mixed = r.pallets.find(p => p.extra && p.extra.some(e => e.mixed));
+    assert(mixed && Math.abs(mixed.fill - 0.8) < 0.01, 'fill ' + (mixed && mixed.fill));
+    assert(Math.round(r.kg) === 234 * 3 + 30 + 2 * 25, 'kg ' + r.kg);
+    const off = solve(order('M;V-POL;' + (156 + 78) + '\nM;SK;30'), Object.assign({}, ctx, { catalog, rules: Object.assign({}, DEFAULT_RULES, { gMax: 0, mix: false }) }));
+    assert(off.pallets.length === 3, 'bez míchání ' + off.pallets.length);
+  }]
+);
 
 export function runAll() {
   return cases.map(([name, fn]) => {
