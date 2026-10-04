@@ -433,3 +433,14 @@ dialog.dlg-wide .pe-row{grid-template-columns:minmax(0,1fr) auto auto}
 #detail .board-pal{touch-action:none;user-select:none}
 #detail .board-pal.dragging{opacity:.35}
 .pal-code-in{font-weight:700;color:var(--primary)!important;min-width:110px}
+.lr-rows{display:flex;flex-direction:column;gap:6px;max-height:46vh;overflow:auto}
+.lr,.lr-h{display:grid;grid-template-columns:minmax(0,1.6fr) 70px 110px;gap:8px;align-items:center}
+.lr.m,.lr-h.m{grid-template-columns:minmax(0,1.5fr) 90px 100px 90px}
+.lr-h{font-size:12px;color:var(--ink2);font-weight:600}
+.lr{padding:6px 0;border-bottom:1px dashed var(--line)}
+.lr small{display:block;color:var(--ink2);font-size:12px}
+.lr input{width:100%}
+.unk.selected,.board-pal.selected{outline:3px solid var(--primary);outline-offset:2px}
+.veh-svg .pal.selected rect{stroke:var(--primary)!important;stroke-width:4px!important}
+.sel-bar{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:55;background:var(--panel);border:1px solid var(--primary);border-radius:12px;padding:8px 14px;box-shadow:var(--shadow);font-size:13.5px}
+.drag-ghost .ghost-n{position:absolute;top:-10px;right:-10px;min-width:24px;height:24px;border-radius:12px;background:var(--primary);color:#fff;font-weight:700;font-size:13px;display:grid;place-items:center;padding:0 6px}

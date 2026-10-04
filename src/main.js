@@ -93,6 +93,7 @@ function renderOverview() {
   renderDetail(vs.get(state.sel), state);
   renderList(state.orders, vs, state.sel, '', state.done, '#dockList', '#dockCount');
   renderDock(vs.get(state.sel), state);
+  markSel();
 }
 function saveOrderList() {
   const lines = [];
@@ -262,7 +263,7 @@ onBoth('click', e => {
   if (rmb) { keepScroll(() => { const P = state.plan.get(id); if (P) removePallet(P, rmb); else state.board.set(id, (state.board.get(id) || []).filter(b => b.id !== rmb)); state.manual.delete(id); recalc(); }); return; }
   if (e.target.id === 'resetPlan') { keepScroll(() => { state.plan.delete(id); state.manual.delete(id); recalc(); }); return; }
   const bp = e.target.closest('.board-pal');
-  if (bp && !e.target.closest('.bp-x') && isAdmin && !suppressClick) { openPalEditor(id, bp.dataset.bid, Number(bp.dataset.pi)); return; }
+  if (bp && !e.target.closest('.bp-x') && isAdmin && !suppressClick && !e.shiftKey) { openPalEditor(id, bp.dataset.bid, Number(bp.dataset.pi)); return; }
   const rm = e.target.getAttribute('data-rmveh');
   if (rm != null) { keepScroll(() => removeVehicle(manualOf(id), Number(rm))); return; }
 });
@@ -273,11 +274,40 @@ onBoth('dblclick', e => {
 });
 // drag a pallet: a floating copy follows the pointer, the drop point in the target body is converted to mm
 let drag = null, suppressClick = false;
+// Shift + click selects several unknown articles / board pallets / vehicle pallets; dragging one of them drags all
+const sel = { unk: new Set(), board: new Set(), veh: new Set() };
+const boardKey = el => el.dataset.bid || 'i' + el.dataset.pi;
+const vehKey = el => el.dataset.v + ':' + el.dataset.p;
+function markSel() {
+  document.querySelectorAll('.unk').forEach(el => el.classList.toggle('selected', sel.unk.has(el.dataset.code)));
+  document.querySelectorAll('#detail .board-pal').forEach(el => el.classList.toggle('selected', sel.board.has(boardKey(el))));
+  document.querySelectorAll('.veh-svg .pal').forEach(el => el.classList.toggle('selected', sel.veh.has(vehKey(el))));
+  const n = sel.unk.size + sel.board.size + sel.veh.size;
+  let bar = $('#selBar');
+  if (!bar) { bar = document.createElement('div'); bar.id = 'selBar'; bar.className = 'sel-bar'; document.body.appendChild(bar); bar.addEventListener('click', e => { if (e.target.id === 'selClear') clearSel(); }); }
+  bar.hidden = !n;
+  bar.innerHTML = 'Vybráno: <b>' + n + '</b> – přetáhněte kteroukoli z nich <button class="linkbtn" id="selClear">Zrušit výběr</button>';
+}
+function clearSel() { sel.unk.clear(); sel.board.clear(); sel.veh.clear(); markSel(); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && (sel.unk.size || sel.board.size || sel.veh.size)) clearSel(); });
+const toggle = (set, k) => { if (set.has(k)) set.delete(k); else set.add(k); };
 onBoth('pointerdown', e => {
+  if (e.shiftKey && e.button === 0) {
+    const u0 = e.target.closest('.unk'), b0 = e.target.closest('#detail .board-pal'), v0 = e.target.closest('.veh-svg .pal');
+    if (u0 && isAdmin) { sel.board.clear(); sel.veh.clear(); toggle(sel.unk, u0.dataset.code); }
+    else if (b0 && isAdmin && !e.target.closest('.bp-x')) { sel.unk.clear(); sel.veh.clear(); toggle(sel.board, boardKey(b0)); }
+    else if (v0) { sel.unk.clear(); sel.board.clear(); toggle(sel.veh, vehKey(v0)); }
+    else return;
+    e.preventDefault(); suppressClick = true; setTimeout(() => { suppressClick = false; }, 0);
+    markSel(); return;
+  }
   const bpal = e.target.closest('#detail .board-pal');
   if (bpal && !e.target.closest('.bp-x') && isAdmin && e.button === 0) {
     const rc = bpal.getBoundingClientRect();
-    drag = { g: bpal, boardPal: { bid: bpal.dataset.bid, pi: bpal.dataset.pi }, sx: e.clientX, sy: e.clientY, w: rc.width, h: rc.height, color: getComputedStyle(bpal).getPropertyValue('--c') || 'var(--primary)', moved: false };
+    const group = sel.board.has(boardKey(bpal)) && sel.board.size > 1
+      ? [...document.querySelectorAll('#detail .board-pal')].filter(el => sel.board.has(boardKey(el))).map(el => ({ bid: el.dataset.bid, pi: el.dataset.pi }))
+      : [{ bid: bpal.dataset.bid, pi: bpal.dataset.pi }];
+    drag = { g: bpal, n: group.length, boardPal: group, sx: e.clientX, sy: e.clientY, w: rc.width, h: rc.height, color: getComputedStyle(bpal).getPropertyValue('--c') || 'var(--primary)', moved: false };
     bpal.setPointerCapture(e.pointerId);
     return;
   }
@@ -290,13 +320,16 @@ onBoth('pointerdown', e => {
   const u = e.target.closest('.unk');
   if (u && isAdmin && e.button === 0) {
     const rc = u.getBoundingClientRect();
-    drag = { g: u, unk: { code: u.dataset.code, qty: Number(u.dataset.qty), name: u.dataset.name || '' }, sx: e.clientX, sy: e.clientY, w: Math.min(rc.width, 120), h: 40, color: 'var(--gray)', moved: false };
+    const pick = el => ({ code: el.dataset.code, qty: Number(el.dataset.qty), name: el.dataset.name || '' });
+    const group = sel.unk.has(u.dataset.code) && sel.unk.size > 1 ? [...document.querySelectorAll('.unk')].filter(el => sel.unk.has(el.dataset.code)).map(pick) : [pick(u)];
+    drag = { g: u, n: group.length, unk: group, sx: e.clientX, sy: e.clientY, w: Math.min(rc.width, 120), h: 40, color: 'var(--gray)', moved: false };
     u.setPointerCapture(e.pointerId);
     return;
   }
   const g = e.target.closest('.pal'); if (!g || e.button !== 0) return;
   const svg = g.ownerSVGElement, rect = g.querySelector('rect').getBoundingClientRect();
-  drag = { g, from: Number(g.dataset.v), pid: Number(g.dataset.p), sx: e.clientX, sy: e.clientY, w: rect.width, h: rect.height, color: g.querySelector('rect').style.fill, moved: false, svg };
+  const vgroup = sel.veh.has(vehKey(g)) && sel.veh.size > 1 ? [...sel.veh].map(k => k.split(':').map(Number)) : [[Number(g.dataset.v), Number(g.dataset.p)]];
+  drag = { g, n: vgroup.length, vgroup, from: Number(g.dataset.v), pid: Number(g.dataset.p), sx: e.clientX, sy: e.clientY, w: rect.width, h: rect.height, color: g.querySelector('rect').style.fill, moved: false, svg };
   g.setPointerCapture(e.pointerId);
 });
 onBoth('pointermove', e => {
@@ -306,6 +339,7 @@ onBoth('pointermove', e => {
     drag.moved = true; drag.g.classList.add('dragging');
     drag.ghost = document.createElement('div'); drag.ghost.className = 'drag-ghost';
     Object.assign(drag.ghost.style, { width: drag.w + 'px', height: drag.h + 'px', background: drag.color });
+    if (drag.n > 1) drag.ghost.innerHTML = '<span class="ghost-n">' + drag.n + '</span>';
     document.body.appendChild(drag.ghost);
   }
   drag.ghost.style.left = (e.clientX - drag.w / 2) + 'px';
@@ -333,12 +367,14 @@ function endDrag(e, cancel) {
     const id = state.sel, wasPlan = state.plan.has(id), P = ensurePlan(id);
     const filled = P.filter(b => b.contents.some(c => c.units > 0));
     const pick = el => (wasPlan && el.dataset.bid && P.find(b => b.id === el.dataset.bid)) || filled[Number(el.dataset.pi)] || P.find(b => b.id === el.dataset.bid);
-    const src = d.boardPal.bid && wasPlan ? P.find(b => b.id === d.boardPal.bid) : filled[Number(d.boardPal.pi)] || P.find(b => b.id === d.boardPal.bid);
     const dst = pick(tp);
-    if (!src || !dst || src === dst) return;
-    const res = mergePallets(P, src.id, dst.id, state.pallets);
-    state.manual.delete(id); keepScroll(recalc);
-    flash(!res.moved ? 'Cílová paleta je plná – nic se nepřesunulo.' : 'Přeloženo ' + res.moved + ' ks' + (res.left ? ', ' + res.left + ' ks zůstalo na původní paletě (cílová je plná).' : ', původní paleta zmizela.'));
+    // resolve all sources before merging (merging removes emptied pallets)
+    const srcs = d.boardPal.map(k => (k.bid && wasPlan ? P.find(b => b.id === k.bid) : filled[Number(k.pi)] || P.find(b => b.id === k.bid))).filter(b => b && b !== dst);
+    if (!dst || !srcs.length) return;
+    let moved = 0, left = 0;
+    srcs.forEach(src => { const r1 = mergePallets(P, src.id, dst.id, state.pallets); moved += r1.moved; left += r1.left; });
+    clearSel(); state.manual.delete(id); keepScroll(recalc);
+    flash(!moved ? 'Cílová paleta je plná – nic se nepřesunulo.' : 'Přeloženo ' + moved + ' ks' + (left ? ', ' + left + ' ks zůstalo na původních paletách (cílová je plná).' : (srcs.length > 1 ? ' z ' + srcs.length + ' palet, ty zmizely.' : ', původní paleta zmizela.')));
     return;
   }
   if (d.ptype) {
@@ -355,14 +391,14 @@ function endDrag(e, cancel) {
     if (manualPal) { askMaterial(d.unk, manualPal.dataset.bid); return; }
     const boardPal = over && over.closest('.board-pal');
     if (boardPal) { askCombo(d.unk, boardPal.dataset.code); return; }
-    if (over && over.closest('.board')) { askArticle(d.unk); return; }
+    if (over && over.closest('.board')) { askArticles(d.unk); return; }
     const hostG = over && over.closest('.pal');
     if (hostG) {
       const v = view(state.sel), vi = Number(hostG.dataset.v);
       const veh = v.vehicles.find(x => x.idx === vi) || v.vehicles[vi] || (v.depot && v.depot.idx === vi ? v.depot : null);
       const hp = veh && veh.items.find(i => i.id === Number(hostG.dataset.p));
       if (hp) askCombo(d.unk, hp.code);
-    } else if (svg) askArticle(d.unk);
+    } else if (svg) askArticles(d.unk);
     else flash('Pusťte artikl na paletu nebo na volné místo ve vozidle.');
     return;
   }
@@ -372,26 +408,32 @@ function endDrag(e, cancel) {
   const S = Number(svg.dataset.s), to = Number(svg.dataset.v);
   const m = manualOf(state.sel), it = m.vehicles[d.from].items.find(i => i.id === d.pid);
   const x = (p.x - Number(svg.dataset.x0)) * S - it.w / 2, y = (p.y - Number(svg.dataset.y0)) * S - it.h / 2;
-  keepScroll(() => { if (!movePallet(m, state.vehicles, d.from, d.pid, to, x, y)) flash('Sem se paleta nevejde.'); });
+  let fail = 0;
+  keepScroll(() => { d.vgroup.forEach(([from, pid]) => { if (!movePallet(m, state.vehicles, from, pid, to, x, y)) fail++; }); });
+  if (d.vgroup.length > 1) { clearSel(); flash(fail ? 'Přesunuto ' + (d.vgroup.length - fail) + ' z ' + d.vgroup.length + ' palet, ' + fail + ' se nevešlo.' : 'Přesunuto ' + d.vgroup.length + ' ' + (d.vgroup.length <= 4 ? 'palety' : 'palet') + '.'); }
+  else if (fail) flash('Sem se paleta nevejde.');
 }
 onBoth('pointerup', e => endDrag(e, false));
 
 // ---------- learning: save a combination or a new article from the drop ----------
 function relearn() { state.manual.delete(state.sel); recalc(); }
-function askCombo(u, host) {
+// one or more unknown articles ride on the pallets of article `host`
+function askCombo(list, host) {
   const dlg = $('#dlgCombo');
   const hostArt = state.catalog.find(a => String(a.code).toLowerCase() === host.toLowerCase());
-  const nm = (code, name) => '<b>' + esc(code) + '</b>' + (name ? ' <span class="dlg-name">' + esc(name) + '</span>' : '');
-  $('#dcText').innerHTML = 'Artikl ' + nm(u.code, u.name) + ' (' + u.qty + ' ks)<br>pojede na paletě ' + nm(host, hostArt && hostArt.name) + '.';
-  $('#dcRule').textContent = 'Pravidlo: když je v zakázce ' + host + ' a ' + u.code + ' je nejvýše ' + u.qty + ' ks, jede na paletách ' + host + '.';
-  $('#dcKg').value = ''; $('#dcRemember').checked = true; $('#dcRule').hidden = false;
+  $('#dcTitle').textContent = list.length > 1 ? 'Přesunout ' + list.length + ' artikly na paletu' : 'Přesunout artikl na paletu';
+  $('#dcText').innerHTML = 'Pojedou na paletě <b>' + esc(host) + '</b>' + (hostArt && hostArt.name ? ' <span class="dlg-name">' + esc(hostArt.name) + '</span>' : '') + '.';
+  $('#dcRows').innerHTML = '<div class="lr-h"><span>Artikl</span><span>Kusů</span><span>Váha kusu, kg</span></div>' + list.map((u, i) =>
+    '<div class="lr"><span><b>' + esc(u.code) + '</b><small>' + esc(u.name || '') + '</small></span><span>' + u.qty + ' ks</span><input type="number" min="0" step="any" data-ck="' + i + '" placeholder="neznámá"></div>').join('');
+  $('#dcRule').textContent = 'Pravidlo: když je v zakázce ' + host + ' a artikl je nejvýše tolik kusů jako teď, jede na paletách ' + host + '.';
+  $('#dcRemember').checked = true; $('#dcRule').hidden = false;
   // act on the button press itself; the dialog's close event is not reliable in every browser
   dlg.querySelector('form').onsubmit = ev => {
     if (!ev.submitter || ev.submitter.value !== 'yes') return;
-    const rule = { on: true, code: u.code, withCode: host, min: 0, max: u.qty, mode: 'host', host, pl: 0, pw: 0, per: 0, kg: toNum($('#dcKg').value) || 0, name: u.name || '', note: 'Uloženo z nakládky' };
-    if ($('#dcRemember').checked) { state.combos.push(rule); persist('combos'); drawCombos(); flash('Přesunuto a kombinace uložena.'); }
-    else { const id = state.sel; state.oneOff.set(id, (state.oneOff.get(id) || []).concat([rule])); flash('Přesunuto jen pro tuto zakázku.'); }
-    relearn();
+    const rules = list.map((u, i) => ({ on: true, code: u.code, withCode: host, min: 0, max: u.qty, mode: 'host', host, pl: 0, pw: 0, per: 0, kg: toNum($('#dcRows [data-ck="' + i + '"]').value) || 0, name: u.name || '', note: 'Uloženo z nakládky' }));
+    if ($('#dcRemember').checked) { state.combos.push(...rules); persist('combos'); drawCombos(); flash('Přesunuto ' + rules.length + '× a kombinace uloženy.'); }
+    else { const id = state.sel; state.oneOff.set(id, (state.oneOff.get(id) || []).concat(rules)); flash('Přesunuto jen pro tuto zakázku.'); }
+    clearSel(); relearn();
   };
   dlg.returnValue = ''; dlg.showModal();
 }
@@ -525,41 +567,47 @@ function askPallet(id) {
   };
   dlg.returnValue = ''; dlg.showModal(); $('#dpName').focus();
 }
-function askMaterial(u, bid) {
+// one or more unknown articles onto a hand-made / plan pallet
+function askMaterial(listU, bid) {
   const id = state.sel, P = state.plan.get(id), list = P || state.board.get(id) || [], b = list.find(x => x.id === bid); if (!b) return;
   const t = typeOf(state.pallets, b.pal) || b.custom || { code: b.pal, name: '' };
   const dlg = $('#dlgMaterial');
-  $('#dmText').innerHTML = 'Artikl <b>' + esc(u.code) + '</b>' + (u.name ? ' <span class="dlg-name">' + esc(u.name) + '</span>' : '') + ' (' + u.qty + ' ks)<br>na paletu <b>' + esc(t.code) + '</b> <span class="dlg-name">' + esc(t.name) + '</span>.';
-  $('#dmUnits').value = u.qty; $('#dmPer').value = u.qty; $('#dmKg').value = '0';
+  $('#dmText').innerHTML = 'Na paletu <b>' + esc(t.code) + '</b> <span class="dlg-name">' + esc(t.name || '') + '</span>. Zaplnění se počítá podle „vejde se na paletu“.';
+  $('#dmRows').innerHTML = '<div class="lr-h m"><span>Artikl</span><span>Na tuto paletu</span><span>Vejde se na paletu</span><span>Váha kusu, kg</span></div>' + listU.map((u, i) =>
+    '<div class="lr m"><span><b>' + esc(u.code) + '</b><small>' + esc(u.name || '') + ' · ' + u.qty + ' ks</small></span>' +
+    '<input type="number" min="1" max="' + u.qty + '" step="1" value="' + u.qty + '" data-mu="' + i + '" required><input type="number" min="1" step="1" value="' + u.qty + '" data-mp="' + i + '" required><input type="number" min="0" step="any" value="0" data-mk="' + i + '" required></div>').join('');
   $('#dmSave').checked = true;
-  $('#dmSaveText').textContent = 'Uložit do číselníku: ' + u.code + ' jede na ' + t.code + ' (kusů na paletu podle pole vpravo nahoře)';
+  $('#dmSaveText').textContent = 'Uložit do číselníku: ' + (listU.length > 1 ? 'artikly jedou' : listU[0].code + ' jede') + ' na ' + t.code + ' (kusů na paletu = „vejde se na paletu“)';
   dlg.querySelector('form').onsubmit = ev => {
     if (!ev.submitter || ev.submitter.value !== 'yes') return;
-    const units = Math.max(1, Math.round(toNum($('#dmUnits').value))), per = Math.max(1, Math.round(toNum($('#dmPer').value))), kg = toNum($('#dmKg').value) || 0;
-    if ($('#dmSave').checked && b.custom) {
-      // a one-off pallet becomes a saved type first, so the article can point to it
+    const save = $('#dmSave').checked;
+    if (save && b.custom) {
+      // a one-off pallet becomes a saved type first, so the articles can point to it
       const nt = Object.assign({}, b.custom, { code: nextCode(state.pallets) });
       state.pallets.push(nt); persist('pallets'); b.pal = nt.code; delete b.custom; t.code = nt.code;
     }
-    if ($('#dmSave').checked) {
-      // the article goes to the catalog; the calculator then makes its pallets itself
-      state.catalog.push({ code: u.code, name: u.name || '', pack: 'paleta', pal: t.code, per, kg, rot: true });
-      persist('catalog'); drawCatalog(); drawPallets();
-      if (P) b.contents.push({ code: u.code, name: u.name || '', units: Math.min(units, u.qty), per, kg });
-      else if (!b.contents.length) state.board.set(id, list.filter(x => x !== b));
-      flash('Artikl ' + u.code + ' uložen: ' + t.code + ', ' + per + ' ks na paletu.');
-    } else {
-      b.contents.push({ code: u.code, name: u.name || '', units: Math.min(units, u.qty), per, kg });
-      flash('Položeno ' + Math.min(units, u.qty) + ' ks ' + u.code + ' na ' + t.code + ' (jen tato zakázka).');
-    }
-    state.manual.delete(id); recalc();
+    listU.forEach((u, i) => {
+      const units = Math.min(u.qty, Math.max(1, Math.round(toNum($('#dmRows [data-mu="' + i + '"]').value))));
+      const per = Math.max(1, Math.round(toNum($('#dmRows [data-mp="' + i + '"]').value))), kg = toNum($('#dmRows [data-mk="' + i + '"]').value) || 0;
+      if (save) state.catalog.push({ code: u.code, name: u.name || '', pack: 'paleta', pal: t.code, per, kg, rot: true });
+      // without a plan the catalog makes the pallets itself; with a plan (or without saving) the pieces go on this pallet
+      if (P || !save) b.contents.push({ code: u.code, name: u.name || '', units, per, kg });
+    });
+    if (save) { persist('catalog'); drawCatalog(); drawPallets(); if (!P && !b.contents.length) state.board.set(id, list.filter(x => x !== b)); }
+    flash((save ? 'Uloženo do číselníku a položeno: ' : 'Položeno jen pro tuto zakázku: ') + listU.map(u => u.code).join(', ') + ' → ' + t.code + '.');
+    clearSel(); state.manual.delete(id); recalc();
   };
   dlg.returnValue = ''; dlg.showModal();
-  $('#dmUnits').focus();
+  $('#dmRows input').focus();
 }
-function askArticle(u) {
+// several new articles: one form after another
+function askArticles(list) {
+  if (!list.length) return;
+  askArticle(list[0], () => askArticles(list.slice(1)), list.length);
+}
+function askArticle(u, next, left) {
   const dlg = $('#dlgArticle');
-  $('#daTitle').textContent = 'Nový artikl ' + u.code;
+  $('#daTitle').textContent = 'Nový artikl ' + u.code + (left > 1 ? ' (ještě ' + (left - 1) + ')' : '');
   $('#daForm').reset();
   // names come from the order (ERP / designers) and are not edited here
   $('#daName').value = u.name || ''; $('#daName').readOnly = !!u.name;
@@ -570,6 +618,8 @@ function askArticle(u) {
     state.catalog.push(a);
     persist('catalog'); drawCatalog(); relearn();
     flash('Artikl ' + u.code + ' uložen do číselníku.');
+    clearSel();
+    if (next) setTimeout(next, 50);
   };
   dlg.returnValue = ''; dlg.showModal();
   (u.name ? $('#daL') : $('#daName')).focus();

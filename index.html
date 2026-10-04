@@ -236,6 +236,7 @@ document.documentElement.setAttribute('data-theme',t);})();
             <li><b>Sběrná služba</b> je zelená plocha „Předávka“. Palety mezi ní a vozidly lze přetahovat.</li>
             <li>„Vrátit automatické rozložení“ zahodí ruční změny. Ruční rozložení se neukládá – po obnovení stránky platí znovu výpočet.</li></ul></section>
           <section class="card"><h2>7. Úprava palet</h2>
+            <p><b>Víc věcí najednou:</b> Shift + klik označí víc neznámých artiklů, palet na ploše nebo palet ve vozidlech. Přetažením kterékoli označené se přesunou všechny (artikly do jednoho okna, palety na cílovou paletu nebo do vozidla). Esc výběr zruší.</p>
             <p>Kliknutím na paletu v kalkulátoru otevřete její obsah. Kusy libovolného artiklu přesunete na jinou paletu zakázky nebo na novou paletu stejného typu, paletě můžete změnit typ a prázdnou paletu smazat. Malé palety lze <b>přetáhnout jednu na druhou</b>: přeloží se tolik kusů, kolik se na cílovou paletu vejde (do 100 % a do nosnosti), zbytek zůstane na původní paletě. Po první úpravě se palety zakázky „zmrazí“ – dál je mění jen obsluha. Kusy, které nejsou na žádné paletě, se objeví vpravo jako bloky k rozložení. Tlačítko „Vrátit automatický výpočet palet“ úpravy zahodí.</p></section>
           <section class="card"><h2>8. Učení: neznámé artikly</h2>
             <p>V kalkulátoru je pod zakázkou plocha „Palety zakázky“ se všemi paletami. Administrátor nad ní vyhledá typ palety (kód, název nebo rozměr) a klikne <b>+ Přidat paletu</b> – vznikne prázdná paleta. Paletu, která v seznamu není, přidá tlačítkem <b>Jiná paleta…</b> (se zaškrtnutím „Zapamatovat“ se uloží mezi typy s novým kódem PAL-xxxx, jinak jen pro tuto zakázku). Pak na paletu přetáhne neznámý materiál. V okně zadá, kolik kusů na paletu dává a kolik se jich vejde; buď to uloží do číselníku (artikl pak jede na tomto typu vždy), nebo jen pro tuto zakázku. Artikly, které nejsou v číselníku, jsou vedle ní jako šedé bloky (kód, množství, název ze zakázky). Administrátor je přetáhne:</p>
@@ -293,17 +294,16 @@ document.documentElement.setAttribute('data-theme',t);})();
   <form method="dialog">
     <h2>Materiál na paletu</h2>
     <p id="dmText"></p>
-    <div class="two"><label>Kusů na tuto paletu<input type="number" id="dmUnits" min="1" step="1" required></label><label>Kolik ks se vejde na celou paletu<input type="number" id="dmPer" min="1" step="1" required></label></div>
-    <label>Váha kusu, kg<input type="number" id="dmKg" min="0" step="any" value="0" required></label>
+    <div id="dmRows" class="lr-rows"></div>
     <label class="inline"><input type="checkbox" id="dmSave" checked><span id="dmSaveText">Uložit do číselníku</span></label>
     <div class="acts"><button class="btn" value="no" formnovalidate>Zrušit</button><button class="btn primary" value="yes">Položit na paletu</button></div>
   </form>
 </dialog>
 <dialog class="dlg" id="dlgCombo">
   <form method="dialog">
-    <h2>Přesunout artikl na paletu</h2>
+    <h2 id="dcTitle">Přesunout artikl na paletu</h2>
     <p id="dcText"></p>
-    <label>Váha kusu, kg (nepovinné)<input type="number" id="dcKg" min="0" step="any" placeholder="zatím neznámá"></label>
+    <div id="dcRows" class="lr-rows"></div>
     <label class="inline"><input type="checkbox" id="dcRemember" checked>Zapamatovat kombinaci pro další zakázky</label>
     <p class="hint" id="dcRule"></p>
     <div class="acts"><button class="btn" value="no">Zrušit</button><button class="btn primary" value="yes" id="dcYes">Přesunout na paletu</button></div>
