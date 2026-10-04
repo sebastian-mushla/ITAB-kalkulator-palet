@@ -303,7 +303,7 @@ function palletBoardHtml(r, isAdmin, board, types) {
   groups.forEach(list => {
     const p0 = list[0];
     h += '<div class="bgroup"><div class="bgroup-h"><i class="sw" style="background:' + color(p0.ci) + '"></i><b>' + esc(p0.code) + '</b> <span class="muted">' + list.length + ' ' + palWord(list.length) + ' · ' + (p0.pal ? esc(p0.pal) + ' ' + esc(p0.palName || '') + ' · ' : '') + Math.round(p0.pl / 10) + ' × ' + Math.round(p0.pw / 10) + ' cm</span></div><div class="bgroup-p">' +
-      list.map(p => block(p, 'data-code="' + esc(p.code) + '"' + (r.planOn ? ' data-bid="' + esc(p.board) + '"' : '') + ' data-pi="' + (num.get(p) - 1) + '" title="Paleta č. ' + num.get(p) + ' – kliknutím upravíte obsah"', '<i class="pnum">' + num.get(p) + '</i>' + label(p))).join('') + '</div></div>';
+      list.map(p => block(p, 'data-code="' + esc(p.code) + '" data-so="' + esc(p.so || '') + '"' + (r.planOn ? ' data-bid="' + esc(p.board) + '"' : '') + ' data-pi="' + (num.get(p) - 1) + '" title="Paleta č. ' + num.get(p) + ' – kliknutím upravíte obsah"', '<i class="pnum">' + num.get(p) + '</i>' + label(p))).join('') + '</div></div>';
   });
   // pallets the operator added by hand
   // in plan mode the hand-made list is the plan itself: show only its empty pallets here

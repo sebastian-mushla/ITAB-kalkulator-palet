@@ -460,7 +460,12 @@ function endDrag(e, cancel) {
     const manualPal = over && over.closest('.board-pal[data-bid]');
     if (manualPal) { askMaterial(d.unk, manualPal.dataset.bid); return; }
     const boardPal = over && over.closest('.board-pal');
-    if (boardPal) { askCombo(d.unk, boardPal.dataset.code); return; }
+    if (boardPal) {
+      // pallets never mix zakázky: the article must ride on a pallet of its own zakázka
+      const pso = boardPal.dataset.so, bad = pso && d.unk.find(u => u.so && u.so !== pso);
+      if (bad) { flash('Artikl ' + bad.code + ' je ze zakázky ' + bad.so + ', paleta ze zakázky ' + pso + '. Zakázky se na paletě nemíchají – položte ho na paletu své zakázky nebo na volné místo.'); return; }
+      askCombo(d.unk, boardPal.dataset.code); return;
+    }
     if (over && over.closest('.board')) { askArticles(d.unk); return; }
     const hostG = over && over.closest('.pal');
     if (hostG) {
