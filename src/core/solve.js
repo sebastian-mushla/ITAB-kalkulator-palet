@@ -36,7 +36,7 @@ function applyPlan(mp, plan, lines, catalog, types) {
   const parts = new Map();
   plan.forEach(b => b.contents.forEach(c => {
     if (!(c.units > 0)) return;
-    const k = c.code.toLowerCase(), g = parts.get(k) || { per: c.per || c.units, full: 0, part: [], ride: 0 };
+    const k = (c.so || '') + '|' + c.code.toLowerCase(), g = parts.get(k) || { per: c.per || c.units, full: 0, part: [], ride: 0 };
     if (c.ride) g.ride += c.units; else if (c.units >= (c.per || c.units)) g.full++; else g.part.push(c.units);
     parts.set(k, g);
   }));
@@ -49,14 +49,15 @@ function applyPlan(mp, plan, lines, catalog, types) {
     return out.join(', ');
   };
   const dist = new Map([...parts].map(([k, g]) => [k, [distText(g)]]));
-  mp.rows.forEach(x => { const d = dist.get(x.code.toLowerCase()); x.planDist = d ? d.join(', ') : 'na žádné paletě'; });
+  const distOf = x => dist.get((x.so || '') + '|' + x.code.toLowerCase()) || dist.get('|' + x.code.toLowerCase());
+  mp.rows.forEach(x => { const d = distOf(x); x.planDist = d ? d.join(', ') : 'na žádné paletě'; });
   plan.forEach(b => b.contents.forEach(c => {
     if (idx.has(c.code.toLowerCase())) return;
     if (!mp.rows.some(x => x.code.toLowerCase() === c.code.toLowerCase())) mp.rows.push({ code: c.code, name: c.name || '', qty: 0, kg: 0, ci: ci(c.code), pack: 'paleta', full: 0, rem: 0, per: c.per || 1, fillRem: 0, count: 0, board: b.pal || 'JINÁ' });
     const row = mp.rows.find(x => x.code.toLowerCase() === c.code.toLowerCase());
     if (row.board) { row.qty += c.units; row.kg += c.units * (c.kg || 0); }
   }));
-  mp.rows.forEach(x => { if (!x.planDist) { const d = dist.get(x.code.toLowerCase()); x.planDist = d ? d.join(', ') : ''; } });
+  mp.rows.forEach(x => { if (!x.planDist) { const d = distOf(x); x.planDist = d ? d.join(', ') : ''; } });
 }
 
 // Board pallets: material that is not in the catalog, placed by hand on a pallet type for this order only.
