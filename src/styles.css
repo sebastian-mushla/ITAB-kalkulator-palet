@@ -481,3 +481,11 @@ dialog.dlg-wide .pe-row{grid-template-columns:minmax(0,1fr) auto auto}
 @media (max-width:1000px){#view-orders .grid2{grid-template-columns:minmax(0,1fr)}}
 .otable th,.otable td{padding:7px 5px}
 .otable .c-tr{max-width:170px}
+/* loading tab: fixed-width order list that never reflows */
+.dockgrid{grid-template-columns:300px minmax(0,1fr)}
+#dockList .feed{gap:10px;padding:10px 6px;align-items:center}
+#dockList .ftext{min-width:0;flex:1}
+#dockList .ftext b,#dockList .ftext > span,#dockList .ftext .unk-line{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+#dockList .chip{flex:none;max-width:110px;overflow:hidden;text-overflow:ellipsis}
+#dockList .ring{flex:none}
+@media (max-width:1000px){.dockgrid{grid-template-columns:minmax(0,1fr)}}
