@@ -508,3 +508,7 @@ tr.so-head td{background:var(--soft);font-size:13px;padding:6px 10px;color:var(-
 .board-pal b{font-size:14px}.board-pal span{font-size:12.5px}
 .help .card.wide{grid-column:1/-1}.help ol{margin:0 0 8px;padding-left:20px}.help ol li{margin-bottom:8px}.help ol ul{margin-top:6px}
 .help table.fleet{font-size:13px;margin:6px 0 8px}.help table.fleet td,.help table.fleet th{padding:5px 8px}
+
+/* dragging an unknown article: own zakázka highlighted, others faded */
+.board-pal.drop-no{opacity:.25;filter:grayscale(.8);transition:opacity .15s}
+.board-pal.drop-ok{box-shadow:0 0 0 3px #7866EE,0 0 14px rgba(120,102,238,.55);transition:box-shadow .15s}

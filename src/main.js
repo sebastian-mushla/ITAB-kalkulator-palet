@@ -391,6 +391,9 @@ onBoth('pointerdown', e => {
     const rc = u.getBoundingClientRect();
     const pick = el => ({ code: el.dataset.code, qty: Number(el.dataset.qty), name: el.dataset.name || '', so: el.dataset.so || undefined });
     const group = sel.unk.has(unkKey(u)) && sel.unk.size > 1 ? [...document.querySelectorAll('.unk')].filter(el => sel.unk.has(unkKey(el))).map(pick) : [pick(u)];
+    // show where the article may go: pallets of its own zakázka light up, the others fade
+    const sos = new Set(group.map(x => x.so).filter(Boolean));
+    if (sos.size) document.querySelectorAll('.board-pal[data-so]').forEach(el => { if (el.dataset.so) el.classList.add(sos.has(el.dataset.so) ? 'drop-ok' : 'drop-no'); });
     drag = { g: u, n: group.length, unk: group, sx: e.clientX, sy: e.clientY, w: Math.min(rc.width, 120), h: 40, color: 'var(--gray)', moved: false };
     u.setPointerCapture(e.pointerId);
     return;
@@ -424,6 +427,7 @@ onBoth('pointermove', e => {
 function endDrag(e, cancel) {
   if (!drag) return;
   const d = drag; drag = null;
+  document.querySelectorAll('.drop-ok,.drop-no').forEach(el => el.classList.remove('drop-ok', 'drop-no'));
   if (d.ghost) d.ghost.remove();
   d.g.classList.remove('dragging');
   document.querySelectorAll('.drop-target,.drop-host').forEach(x => x.classList.remove('drop-target', 'drop-host'));
