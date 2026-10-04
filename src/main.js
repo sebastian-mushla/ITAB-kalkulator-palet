@@ -432,11 +432,15 @@ $('#peBody').addEventListener('click', e => {
     const q = Math.max(1, Math.min(c.units, Math.round(toNum($('#pmQty').value) || c.units)));
     const kind = ($('#peBody input[name="pmKind"]:checked') || {}).value;
     let to = 'new', after = null;
+    // an empty pallet of the wanted type that the operator already added is used first
+    const emptyOf = pal => P.find(x => x !== b && x.pal === pal && !x.contents.some(k => k.units > 0));
     if (kind === 'exist') to = $('#pmExist').value;
+    if (kind === 'same') { const e0 = emptyOf(b.pal); if (e0) to = e0.id; }
     if (kind === 'other') {
       const v = $('#pmOther').value.trim(), t = typeOf(state.pallets, v.split(' · ')[0].trim());
       if (!t) { flash('Vyberte typ palety z nabídky.'); $('#pmOther').focus(); return; }
-      after = nid => setPalletType(P, nid, t.code);
+      const e0 = emptyOf(t.code);
+      if (e0) to = e0.id; else after = nid => setPalletType(P, nid, t.code);
     }
     if (kind === 'new') {
       const L = toNum($('#pmL').value), W = toNum($('#pmW').value);
