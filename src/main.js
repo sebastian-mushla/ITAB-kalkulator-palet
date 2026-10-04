@@ -223,6 +223,13 @@ $('#orderList').addEventListener('click', e => {
 });
 
 // ---------- order import ----------
+$('#btnClear').addEventListener('click', () => {
+  if (!state.orders.size && !$('#csv').value) return;
+  if (!confirm('Smazat všechny zakázky z importu?')) return;
+  [...state.orders.keys()].forEach(id => removeOrder(id));
+  state.csv = ''; $('#csv').value = ''; save(KEYS.csv, ''); $('#problems').textContent = '';
+  state.sel = null; recalc(); flash('Všechny zakázky smazány.');
+});
 $('#btnCalc').addEventListener('click', () => { state.csv = $('#csv').value; save(KEYS.csv, state.csv); importOrders(state.csv, true); });
 async function orderFile(f) {
   try {

@@ -64,6 +64,7 @@ document.documentElement.setAttribute('data-theme',t);})();
             <div class="row">
               <button class="btn primary" id="btnCalc">Spočítat</button>
               <label class="btn">Nahrát soubor<input type="file" id="file" accept=".csv,.txt,.tsv,.xlsx,.xls,.ods" hidden></label>
+              <button class="btn" id="btnClear" title="Smazat všechny zakázky" aria-label="Smazat všechny zakázky"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></button>
               <label class="check"><input type="checkbox" id="keepOld">Ponechat dosavadní zakázky</label>
             </div>
             <p class="hint">Soubor sem můžete i přetáhnout (TXT, CSV, Excel). Formát z ERP: řádek „SO číslo“ a pod ním „r10 artikl název množství“. Nebo tabulka se sloupci zakázka, artikl, množství.</p>
