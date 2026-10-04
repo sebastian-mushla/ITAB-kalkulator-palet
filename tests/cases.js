@@ -14,6 +14,7 @@ const order = t => parseOrders(t).orders.values().next().value;
 const EPS = 0.5;
 
 function assert(c, msg) { if (!c) throw new Error(msg); }
+const line = (o, code) => [...o.lines.values()].find(l => l.code.toLowerCase() === code.toLowerCase());
 function run(id, extra) {
   const o = parseOrders(SAMPLE).orders.get(id);
   return solve(o, Object.assign({}, ctx, extra || {}));
@@ -184,16 +185,17 @@ cases.push(
 cases.push(['Vložená tabulka se 4 sloupci (název uprostřed)', () => {
   const res = parseOrders('zakazka\tartikl\tnazev\tmnozstvi\n800001\tV06\tKabina\t3\n800001\tNEW-A\tDržák displeje\t4');
   const o = res.orders.get('800001');
-  assert(res.problems.length === 0 && o.lines.get('v06').qty === 3 && o.lines.get('new-a').qty === 4, res.problems.join('; '));
+  assert(res.problems.length === 0 && line(o, 'V06').qty === 3 && line(o, 'NEW-A').qty === 4, res.problems.join('; '));
 }]);
 
 cases.push(['Názvy artiklů ze zakázky (ERP, vložená tabulka, Excel)', () => {
-  const erp = parseOrders('SO 1\nr10 XX-1 drzak displeje 5').orders.get('1').lines.get('xx-1');
-  assert(erp.name === 'drzak displeje', 'erp: ' + erp.name);
-  const tab = parseOrders('2\tNEW-A\tDržák displeje\t4').orders.get('2').lines.get('new-a');
-  assert(tab.name === 'Držák displeje' && tab.qty === 4, 'tab: ' + JSON.stringify(tab));
-  const xl = parseOrders(rowsToOrderText([['Zakázka', 'Artikl', 'Název', 'Množství'], ['3', 'NEW-B', 'Kryt', 10]])).orders.get('3').lines.get('new-b');
-  assert(xl.name === 'Kryt' && xl.qty === 10, 'xlsx: ' + JSON.stringify(xl));
+  const erp = parseOrders('SO 1\nr10 XX-1 drzak displeje 5');
+  const erpL = line(parseOrders('SO 1\nr10 XX-1 drzak displeje 5').orders.get('1'), 'XX-1');
+  assert(erpL.name === 'drzak displeje', 'erp: ' + erpL.name);
+  const tab = parseOrders('2\tNEW-A\tDržák displeje\t4').orders.get('2'); const tabL = line(tab, 'NEW-A');
+  assert(tabL.name === 'Držák displeje' && tabL.qty === 4, 'tab: ' + JSON.stringify(tabL));
+  const xl = parseOrders(rowsToOrderText([['Zakázka', 'Artikl', 'Název', 'Množství'], ['3', 'NEW-B', 'Kryt', 10]])).orders.get('3'); const xlL = line(xl, 'NEW-B');
+  assert(xlL.name === 'Kryt' && xlL.qty === 10, 'xlsx: ' + JSON.stringify(xlL));
   const r = solve(parseOrders('2\tNEW-A\tDržák displeje\t4').orders.get('2'), ctx);
   assert(r.unknown[0].name === 'Držák displeje', 'unknown name');
 }]);
@@ -285,6 +287,31 @@ cases.push(['Sloučení palet: přeloží se jen to, co se vejde, zbytek zůstan
   res = mergePallets(plan, 'c', 'a', DEFAULT_PALLETS);
   assert(res.moved === 26 && res.left === 14 && plan.find(b => b.id === 'a').contents[0].units === 156, JSON.stringify(res));
 }]);
+
+cases.push(
+  ['ID → zakázky: import se sloupcem ID, pořadí zakázek z importu', () => {
+    const t = 'ID;Zakázka;Artikl;Název;Množství\nA1;5001;V-POL;Police;156\nA1;5002;V06;Kabina;2\nA1;5003;V-POL;Police;100\nB7;6001;V04;Dopravník;1';
+    const res = parseOrders(t);
+    assert(res.problems.length === 0 && res.orders.size === 2, res.problems.join('; ') + ' / ' + res.orders.size);
+    const a = res.orders.get('A1');
+    assert(a.sos.join(',') === '5001,5002,5003' && a.lines.size === 3, JSON.stringify(a.sos));
+  }],
+  ['ID: palety nemíchají zakázky a nesou číslo zakázky', () => {
+    const o = parseOrders('ID;Zakázka;Artikl;Množství\nA1;5001;V-POL;100\nA1;5002;V-POL;30').orders.get('A1');
+    const r = solve(o, Object.assign({}, ctx, { rules: Object.assign({}, DEFAULT_RULES, { gMax: 0 }) }));
+    assert(r.pallets.length === 2 && r.pallets.map(p => p.so).sort().join(',') === '5001,5002', JSON.stringify(r.pallets.map(p => [p.so, p.units])));
+  }],
+  ['ID: když se nevejde do jednoho vozidla, zakázky se nakládají postupně', () => {
+    // 3 zakázky po 12 kabinách (kabina 245 × 130): do kamionu se vejde 10 kabin → zbytek do dalšího vozidla
+    const t = 'ID;Zakázka;Artikl;Množství\nX;1;V06;12\nX;2;V06;12\nX;3;V06;12';
+    const r = solve(parseOrders(t).orders.get('X'), ctx);
+    checkLayout(r);
+    assert(r.vehicles.length >= 2, r.reco);
+    const firstSo = r.vehicles.map(v => Math.min(...v.items.map(i => Number(i.so))));
+    assert(firstSo.every((x, i) => i === 0 || x >= firstSo[i - 1]), 'pořadí ' + firstSo);
+    assert(r.vehicles[0].items.every(i => i.so === '1' || i.so === '2'), 'v1: ' + [...new Set(r.vehicles[0].items.map(i => i.so))]);
+  }]
+);
 
 export function runAll() {
   return cases.map(([name, fn]) => {

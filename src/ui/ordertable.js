@@ -25,7 +25,7 @@ export function transportOf(r) {
 }
 
 const COLS = [
-  ['id', 'Zakázka', 'text'],
+  ['id', 'ID / zakázky', 'text'],
   ['status', 'Stav', 'status'],
   ['known', 'Artikly', 'num'],
   ['pallets', 'Palety', 'num'],
@@ -44,7 +44,7 @@ function ring(known, total) {
 
 // rows: [{ id, r, status, total, known }]
 function matches(row, f) {
-  if (f.id && !row.id.toLowerCase().includes(f.id.toLowerCase())) return false;
+  if (f.id && !(row.id + ' ' + (row.sos || []).join(' ')).toLowerCase().includes(f.id.toLowerCase())) return false;
   if (f.transport && !row.transport.toLowerCase().includes(f.transport.toLowerCase())) return false;
   if (f.status && f.status.length && !f.status.includes(row.status)) return false;
   for (const k of ['known', 'pallets', 'kg']) {
@@ -83,7 +83,7 @@ export function renderOrderTable(el, countEl, rows, ui, sel) {
     const st = ST[row.status], full = row.known === row.total;
     return '<tr class="orow' + (row.status === 'vyrizena' ? ' done' : '') + '" data-id="' + esc(row.id) + '"' + (row.id === sel ? ' aria-current="true"' : '') + '>' +
       '<td class="c-done"><input type="checkbox" data-done="' + esc(row.id) + '"' + (row.status === 'vyrizena' ? ' checked' : '') + (full ? '' : ' disabled') + ' title="' + (full ? 'Označit jako vyřízenou' : 'Nejdřív zařaďte všechny artikly') + '"></td>' +
-      '<td class="c-id"><b>' + esc(row.id) + '</b></td>' +
+      '<td class="c-id"><b>' + esc(row.id) + '</b>' + (row.sos && (row.sos.length > 1 || row.sos[0] !== row.id) ? '<small class="sos" title="' + esc(row.sos.join(', ')) + '">' + row.sos.length + ' ' + plural(row.sos.length, ['zakázka', 'zakázky', 'zakázek']) + '</small>' : '') + '</td>' +
       '<td><span class="st st-' + st.color + '">' + st.label + '</span></td>' +
       '<td class="num">' + ring(row.known, row.total) + '</td>' +
       '<td class="num">' + row.pallets + (row.parcels ? '<small> +' + row.parcels + ' bal.</small>' : '') + '</td>' +

@@ -2,7 +2,7 @@ import { clone, toNum } from './core/util.js';
 import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, DEFAULT_PALLETS, SAMPLE } from './core/defaults.js';
 import { migrateCatalog, nextCode, typeOf } from './core/palletTypes.js';
 import { freezePlan, moveUnits, setPalletType, removePallet, newId, mergePallets } from './core/plan.js';
-import { parseOrders, rowsToOrderText } from './core/parse.js';
+import { parseOrders, rowsToOrderText, ordersToText } from './core/parse.js';
 import { solve } from './core/solve.js';
 import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle, replaceVehicle, DEPOT } from './core/manual.js';
 import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, rowsToPallets, mergeBy, toCsv } from './io/importTable.js';
@@ -98,9 +98,7 @@ function renderOverview() {
   markSel();
 }
 function saveOrderList() {
-  const lines = [];
-  state.orders.forEach(o => o.lines.forEach(l => lines.push([o.id, l.code, String(l.name || '').replace(/;/g, ','), l.qty].join(';'))));
-  save(KEYS.list, lines.join('\n'));
+  save(KEYS.list, ordersToText(state.orders));
 }
 // new orders go to the top of the list and the first one opens; older ones stay
 function importOrders(text, open, initial) {
@@ -165,7 +163,7 @@ function drawOrderTable(vs) {
   const edited = id => !!(state.plan.has(id) || (state.manual.get(id) && state.manual.get(id).touched));
   const rows = [...state.orders.keys()].filter(id => !q || id.toLowerCase().includes(q) || [...state.orders.get(id).lines.values()].some(l => l.code.toLowerCase().includes(q))).map(id => {
     const r = vs.get(id), total = state.orders.get(id).lines.size;
-    return { id, r, total, known: total - new Set((r.unknown || []).map(u => u.code.toLowerCase())).size, pallets: r.pallets.length, parcels: r.parcels.length, kg: r.kg, transport: transportOf(r), status: statusOf(r, id, { done: state.done, ordered: state.ordered, edited }) };
+    return { id, r, total, sos: state.orders.get(id).sos, known: total - (r.unknown || []).length, pallets: r.pallets.length, parcels: r.parcels.length, kg: r.kg, transport: transportOf(r), status: statusOf(r, id, { done: state.done, ordered: state.ordered, edited }) };
   });
   renderOrderTable($('#orderList'), $('#orderCount'), rows, state.listUi, state.sel);
 }
@@ -331,9 +329,10 @@ let drag = null, suppressClick = false;
 // Shift + click selects several unknown articles / board pallets / vehicle pallets; dragging one of them drags all
 const sel = { unk: new Set(), board: new Set(), veh: new Set() };
 const boardKey = el => el.dataset.bid || 'i' + el.dataset.pi;
+const unkKey = el => (el.dataset.so || '') + '|' + el.dataset.code;
 const vehKey = el => el.dataset.v + ':' + el.dataset.p;
 function markSel() {
-  document.querySelectorAll('.unk').forEach(el => el.classList.toggle('selected', sel.unk.has(el.dataset.code)));
+  document.querySelectorAll('.unk').forEach(el => el.classList.toggle('selected', sel.unk.has(unkKey(el))));
   document.querySelectorAll('#detail .board-pal').forEach(el => el.classList.toggle('selected', sel.board.has(boardKey(el))));
   document.querySelectorAll('.veh-svg .pal').forEach(el => el.classList.toggle('selected', sel.veh.has(vehKey(el))));
   const n = sel.unk.size + sel.board.size + sel.veh.size;
@@ -348,7 +347,7 @@ const toggle = (set, k) => { if (set.has(k)) set.delete(k); else set.add(k); };
 onBoth('pointerdown', e => {
   if (e.shiftKey && e.button === 0) {
     const u0 = e.target.closest('.unk'), b0 = e.target.closest('#detail .board-pal'), v0 = e.target.closest('.veh-svg .pal');
-    if (u0 && isAdmin) { sel.board.clear(); sel.veh.clear(); toggle(sel.unk, u0.dataset.code); }
+    if (u0 && isAdmin) { sel.board.clear(); sel.veh.clear(); toggle(sel.unk, unkKey(u0)); }
     else if (b0 && isAdmin && !e.target.closest('.bp-x')) { sel.unk.clear(); sel.veh.clear(); toggle(sel.board, boardKey(b0)); }
     else if (v0) { sel.unk.clear(); sel.board.clear(); toggle(sel.veh, vehKey(v0)); }
     else return;
@@ -374,8 +373,8 @@ onBoth('pointerdown', e => {
   const u = e.target.closest('.unk');
   if (u && isAdmin && e.button === 0) {
     const rc = u.getBoundingClientRect();
-    const pick = el => ({ code: el.dataset.code, qty: Number(el.dataset.qty), name: el.dataset.name || '' });
-    const group = sel.unk.has(u.dataset.code) && sel.unk.size > 1 ? [...document.querySelectorAll('.unk')].filter(el => sel.unk.has(el.dataset.code)).map(pick) : [pick(u)];
+    const pick = el => ({ code: el.dataset.code, qty: Number(el.dataset.qty), name: el.dataset.name || '', so: el.dataset.so || undefined });
+    const group = sel.unk.has(unkKey(u)) && sel.unk.size > 1 ? [...document.querySelectorAll('.unk')].filter(el => sel.unk.has(unkKey(el))).map(pick) : [pick(u)];
     drag = { g: u, n: group.length, unk: group, sx: e.clientX, sy: e.clientY, w: Math.min(rc.width, 120), h: 40, color: 'var(--gray)', moved: false };
     u.setPointerCapture(e.pointerId);
     return;
@@ -645,7 +644,7 @@ function askMaterial(listU, bid) {
       const per = Math.max(1, Math.round(toNum($('#dmRows [data-mp="' + i + '"]').value))), kg = toNum($('#dmRows [data-mk="' + i + '"]').value) || 0;
       if (save) state.catalog.push({ code: u.code, name: u.name || '', pack: 'paleta', pal: t.code, per, kg, rot: true });
       // without a plan the catalog makes the pallets itself; with a plan (or without saving) the pieces go on this pallet
-      if (P || !save) b.contents.push({ code: u.code, name: u.name || '', units, per, kg });
+      if (P || !save) b.contents.push({ code: u.code, name: u.name || '', units, per, kg, so: u.so });
     });
     if (save) { persist('catalog'); drawCatalog(); drawPallets(); if (!P && !b.contents.length) state.board.set(id, list.filter(x => x !== b)); }
     flash((save ? 'Uloženo do číselníku a položeno: ' : 'Položeno jen pro tuto zakázku: ') + listU.map(u => u.code).join(', ') + ' → ' + t.code + '.');

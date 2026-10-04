@@ -71,10 +71,10 @@ function addBoardPallets(mp, added, types, ci0) {
       code: m.code, units: m.units, fill: list.reduce((s, c) => s + c.units / (c.per || c.units), 0),
       kg: (t.tare || 0) + list.reduce((s, c) => s + c.units * (c.kg || 0), 0), tare: t.tare || 0,
       pl: t.L, pw: t.W, rot: t.rot !== false, euro: isEuro({ pl: t.L, pw: t.W }), ci, pal: t.code, palName: t.name, palH: t.H || 0, maxKg: t.maxKg || 0,
-      extra: rest.length ? rest.map(c => ({ code: c.code, units: c.units, ci, mixed: true })) : undefined, board: b.id
+      extra: rest.length ? rest.map(c => ({ code: c.code, units: c.units, ci, mixed: true, so: c.so })) : undefined, board: b.id, so: m.so
     });
     list.forEach(c => {
-      const u = mp.unknown.find(x => x.code.toLowerCase() === c.code.toLowerCase());
+      const u = mp.unknown.find(x => x.code.toLowerCase() === c.code.toLowerCase() && (!c.so || !x.so || x.so === c.so));
       if (u) u.qty -= c.units;
       mp.rows.push({ code: c.code, name: c.name || '', qty: c.units, kg: c.units * (c.kg || 0), ci, pack: 'paleta', full: 0, rem: 0, per: c.per || c.units, fillRem: 0, count: 0, board: t.code });
     });
@@ -90,11 +90,20 @@ function addBoardPallets(mp, added, types, ci0) {
 // `added` = pallets the operator put on the calculator board for this order: [{ id, pal, contents: [{ code, name, units, per, kg }] }]
 export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], forced = null, added = [], plan = null }) {
   const lines = [...o.lines.values()];
-  const mp = makePallets(lines, catalog, combos, pallets, { mix: rules.mix !== false });
+  // each zakázka is calculated on its own pallets (pallets do not mix zakázky); everything is tagged with its zakázka
+  const sos = o.sos && o.sos.length ? o.sos : [o.id];
+  const mp = { pallets: [], parcels: [], errors: [], rows: [], unknown: [] };
+  sos.forEach(so => {
+    const part = makePallets(lines.filter(l => (l.so || o.id) === so), catalog, combos, pallets, { mix: rules.mix !== false });
+    const tag = x => Object.assign(x, { so });
+    mp.pallets.push(...part.pallets.map(tag)); mp.parcels.push(...part.parcels.map(tag));
+    mp.rows.push(...part.rows.map(tag)); mp.unknown.push(...part.unknown.map(tag));
+    mp.errors.push(...part.errors.map(e => (sos.length > 1 ? 'Zakázka ' + so + ': ' : '') + e));
+  });
   if (plan) applyPlan(mp, plan, lines, catalog, pallets);
   else addBoardPallets(mp, added, pallets, catalog.length);
   const r = {
-    id: o.id, planOn: !!plan, plan, pallets: mp.pallets, parcels: mp.parcels, errors: mp.errors, rows: mp.rows, unknown: mp.unknown,
+    id: o.id, sos, planOn: !!plan, plan, pallets: mp.pallets, parcels: mp.parcels, errors: mp.errors, rows: mp.rows, unknown: mp.unknown,
     kg: 0, units: 0, groupage: null, parcelInfo: null, vehicles: [], oversize: [], mode: 'empty', reco: '', forced
   };
   // goods + own weight of the pallets
@@ -129,7 +138,8 @@ export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], 
   r.groupage = groupageCheck(mp.pallets, rules);
   if (r.groupage.ok && forced == null) { r.mode = 'groupage'; r.stat = 'Sběrná služba'; }
   else {
-    const pk = packAll(mp.pallets, vehicles, forced, rules.oneVeh !== false);
+    if (sos.length > 1) mp.pallets.forEach(p => { p.showSo = true; });
+    const pk = packAll(mp.pallets, vehicles, forced, rules.oneVeh !== false, sos);
     r.vehicles = pk.vehicles; r.oversize = pk.oversize;
     r.reco = recoText(pk.vehicles);
     if (pk.oversize.length) { r.mode = 'warn'; r.stat = 'Zkontrolovat'; }

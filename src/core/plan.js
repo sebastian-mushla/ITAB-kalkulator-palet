@@ -18,9 +18,9 @@ function unitInfo(code, catalog, rows) {
 // Current calculated pallets → editable plan.
 export function freezePlan(r, catalog) {
   return r.pallets.map(p => {
-    const main = Object.assign({ code: p.code, units: p.units }, unitInfo(p.code, catalog, r.rows));
+    const main = Object.assign({ code: p.code, units: p.units, so: p.so }, unitInfo(p.code, catalog, r.rows));
     if (p.board) { main.per = p.units / (p.fill || 1); }
-    const extra = (p.extra || []).map(e => Object.assign({ code: e.code, units: e.units, ride: !e.mixed }, unitInfo(e.code, catalog, r.rows)));
+    const extra = (p.extra || []).map(e => Object.assign({ code: e.code, units: e.units, ride: !e.mixed, so: e.so || p.so }, unitInfo(e.code, catalog, r.rows)));
     const pl = { id: newId(), pal: p.pal || null, contents: [main].concat(extra) };
     if (!p.pal) pl.custom = { code: 'JINÁ', name: 'Paleta ' + Math.round(p.pl / 10) + ' × ' + Math.round(p.pw / 10), L: p.pl, W: p.pw, H: p.palH || 0, tare: p.tare || 0, maxKg: p.maxKg || 0, rot: p.rot !== false };
     return pl;
@@ -40,7 +40,8 @@ export function planPallets(plan, types, ci) {
       code: m.code, units: m.units, fill: list.filter(c => !c.ride).reduce((s, c) => s + c.units / (c.per || c.units), 0),
       kg: (t.tare || 0) + list.reduce((s, c) => s + c.units * (c.kg || 0), 0), tare: t.tare || 0,
       pl: t.L, pw: t.W, rot: t.rot !== false, euro: isEuro({ pl: t.L, pw: t.W }), ci: ci(m.code), pal: b.pal || t.code, palName: t.name, palH: t.H || 0, maxKg: t.maxKg || 0,
-      extra: rest.length ? rest.map(c => ({ code: c.code, units: c.units, ci: ci(c.code), mixed: !c.ride })) : undefined, board: b.id
+      extra: rest.length ? rest.map(c => ({ code: c.code, units: c.units, ci: ci(c.code), mixed: !c.ride, so: c.so })) : undefined, board: b.id,
+      so: m.so, sos: [...new Set(list.map(c => c.so).filter(Boolean))]
     });
   });
   return out;
@@ -73,10 +74,16 @@ export function removePallet(plan, id) {
 }
 
 // Order quantity that is not on any pallet of the plan (per article).
+// keyed by zakázka + article (pieces placed without a zakázka count for any zakázka)
 export function unplaced(lines, plan) {
   const placed = new Map();
-  plan.forEach(b => b.contents.forEach(c => placed.set(low(c.code), (placed.get(low(c.code)) || 0) + c.units)));
-  return lines.map(l => ({ code: l.code, name: l.name || '', qty: l.qty - (placed.get(low(l.code)) || 0) })).filter(x => x.qty > 0);
+  plan.forEach(b => b.contents.forEach(c => { const k = low(c.so || '*') + '|' + low(c.code); placed.set(k, (placed.get(k) || 0) + c.units); }));
+  return lines.map(l => {
+    const k = low(l.so || '*') + '|' + low(l.code), any = '*|' + low(l.code);
+    let q = l.qty - (placed.get(k) || 0);
+    if (q > 0 && placed.get(any)) { const t = Math.min(q, placed.get(any)); q -= t; placed.set(any, placed.get(any) - t); }
+    return { code: l.code, name: l.name || '', so: l.so, qty: q };
+  }).filter(x => x.qty > 0);
 }
 
 // Drop pallet `fromId` onto `toId`: move as many pieces as fit (fill ≤ 100 %, goods ≤ max load); the rest stays.

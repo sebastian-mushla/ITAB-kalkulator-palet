@@ -39,7 +39,7 @@ function row(label, value, hint) {
 
 export function ringilHtml(r) {
   const loads = ringilLoads(r);
-  let h = '<div class="rg-block">' + row('Objednávka / Reference', r.id) + '</div>';
+  let h = '<div class="rg-block">' + row('Objednávka / Reference', (r.sos && r.sos.length ? r.sos.join(', ') : r.id)) + '</div>';
   loads.forEach((l, i) => {
     h += '<div class="rg-block"><h3>Náklad ' + (i + 1) + (loads.length > 1 ? ' z ' + loads.length : '') + ': ' + esc(l.title) + '</h3>' +
       row('Manipulační jednotka', l.unit) + row('Počet', l.count) + row('Stohovatelné', 'ne') +

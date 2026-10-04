@@ -489,3 +489,8 @@ dialog.dlg-wide .pe-row{grid-template-columns:minmax(0,1fr) auto auto}
 #dockList .chip{flex:none;max-width:110px;overflow:hidden;text-overflow:ellipsis}
 #dockList .ring{flex:none}
 @media (max-width:1000px){.dockgrid{grid-template-columns:minmax(0,1fr)}}
+.board-pal .so-tag{font-weight:700;opacity:1;background:rgba(0,0,0,.25);border-radius:3px;padding:0 3px}
+.unk-so{font-size:11.5px;color:var(--primary);font-weight:600}
+.id-sos{font-size:14px;font-weight:500;color:var(--ink2)}
+tr.so-head td{background:var(--soft);font-size:13px;padding:6px 10px;color:var(--ink2)}
+.otable .sos{display:block;color:var(--ink2);font-size:11.5px}

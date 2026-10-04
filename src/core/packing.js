@@ -139,7 +139,9 @@ function fillBins(list, primary, bySize) {
 
 // pallets -> vehicles. `forced` = index into vehicles to use only that vehicle.
 // oneVehicle: an order goes in a single vehicle whenever one can take it all (company rule), even if several smaller ones are cheaper
-export function packAll(pallets, vehicles, forced, oneVehicle) {
+// seq = zakázky of the ID in loading order: when one vehicle is not enough they are loaded one after another,
+// and the first pallet that does not fit opens the next vehicle
+export function packAll(pallets, vehicles, forced, oneVehicle, seq) {
   let pool = prepareVehicles(vehicles);
   if (forced != null) pool = pool.filter(v => v.vi === forced);
   const oversize = [], items = [];
@@ -184,6 +186,19 @@ export function packAll(pallets, vehicles, forced, oneVehicle) {
       if (pick) { best = { c: v.cost || 0, typed: [{ v, b: pick.b }] }; break; }
     }
   }
+  if (!best && seq && seq.length > 1) {
+    const rank = so => { const i = seq.indexOf(so); return i < 0 ? seq.length : i; };
+    const order = items.slice().sort((a, b) => rank(a.so) - rank(b.so) || area(b) - area(a) || b.kg - a.kg);
+    const bins = [];
+    let cur = null;
+    order.forEach(it => {
+      if (cur && cur.kg + it.kg <= cur.v.kg && roomFor(cur)) { const pos = cur.find(it.pl, it.pw, it.rot); if (pos) { cur.place(pos, it); return; } }
+      const v = bySize.find(x => fitsVehicle(it, x));
+      cur = new Bin(v); bins.push(cur);
+      const pos = cur.find(it.pl, it.pw, it.rot); if (pos) cur.place(pos, it);
+    });
+    best = { c: 0, seq: true, typed: bins.map(b => ({ v: classify(b, pool), b })) };
+  }
   if (!best) primaries.forEach(P => {
     lists.forEach(list => {
       const bins = fillBins(list, P, bySize);
@@ -193,8 +208,8 @@ export function packAll(pallets, vehicles, forced, oneVehicle) {
     });
   });
   const counter = new Map();
-  const out = best.typed
-    .sort((a, b) => b.v.Lmm * b.v.Wmm - a.v.Lmm * a.v.Wmm || b.b.usedL - a.b.usedL)
+  // sequential loading keeps the vehicle order (vehicle 1 = first zakázky)
+  const out = (best.seq ? best.typed : best.typed.sort((a, b) => b.v.Lmm * b.v.Wmm - a.v.Lmm * a.v.Wmm || b.b.usedL - a.b.usedL))
     .map(({ v, b }) => {
       const n = (counter.get(v.vi) || 0) + 1; counter.set(v.vi, n);
       return { vi: v.vi, type: v.type, name: v.name, n, title: v.name + ' ' + n, L: v.Lmm, W: v.Wmm, maxKg: v.kg, items: balanceLoad(b.items, v.Wmm), kg: b.kg };

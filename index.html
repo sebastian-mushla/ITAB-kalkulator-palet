@@ -205,6 +205,9 @@ document.documentElement.setAttribute('data-theme',t);})();
           <section class="card"><h2>0. Struktura: vozidla → palety → materiál</h2>
             <p><b>Vozidla</b> (záložka Vozidla) vezou <b>palety</b>. Typy palet mají kód PAL-xxxx (záložka Palety): rozměr, výšku, vlastní váhu a nosnost. Na paletách jede <b>materiál</b> – artikly z číselníku. U artiklu je napsáno, na jakém typu palety jede a kolik kusů se na ni vejde.</p>
             <p>Na jedné paletě může jet víc artiklů (smíšená paleta). Váha palety = materiál + vlastní váha palety.</p></section>
+          <section class="card"><h2>0b. ID a zakázky</h2>
+            <p><b>ID</b> je jedna adresa / zásilka. Pod jedním ID může být víc <b>zakázek</b>. Import: tabulka se sloupci ID, zakázka, artikl, (název), množství – nebo text z ERP s řádkem „ID …“ nad řádky „SO …“. Bez ID je každá zakázka samostatné ID.</p>
+            <p>Palety se počítají pro každou zakázku zvlášť (zakázky se na paletě nemíchají, ručně to jde) a na každé paletě je číslo zakázky. Celé ID se snaží jet jedním vozidlem. Když se nevejde, zakázky se nakládají postupně v pořadí z importu – první paleta, která se už nevejde, otevře další vozidlo.</p></section>
           <section class="card"><h2>1. Palety ze zakázky</h2>
             <p>U každého artiklu z číselníku známe rozměr palety, kolik kusů se na ni vejde a váhu kusu. Množství ze zakázky se rozdělí na plné palety a nejvýše jednu neúplnou (zbytek). Stejné artikly v jedné zakázce se sečtou.</p>
             <p>Váha zahrnuje vlastní váhu palet (tara z typu palety). Palety na sebe nestohujeme.</p>

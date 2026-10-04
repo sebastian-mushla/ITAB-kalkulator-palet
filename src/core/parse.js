@@ -1,19 +1,30 @@
 import { toNum } from './util.js';
-import { findColumns } from '../io/importTable.js';
+import { findColumns, parseCsvRows } from '../io/importTable.js';
 
-// ERP text ("SO 505111" + "r10 V06 kabina 6") or 3-column CSV/TSV (order;article;qty).
+// Structure: ID (one address / shipment) → zakázky (SO) → lines.
+// Text formats: ERP ("ID 123" optional, "SO 505111", "r10 V06 kabina 6"), or a table with columns
+// ID;zakázka;artikl;název;množství (header needed for the ID column). Without an ID the zakázka is its own ID.
 export function parseOrders(text) {
   const orders = new Map(), problems = [];
-  let first = true, cur = null;
-  function add(id, code, qty, name) {
-    if (!orders.has(id)) orders.set(id, { id, lines: new Map() });
-    const o = orders.get(id), k = code.toLowerCase();
+  // a pasted table with a header that names an ID column: convert to ERP text first
+  const firstLine = (text.split(/\r?\n/).find(l => l.trim()) || '');
+  if (/[;\t,]/.test(firstLine)) {
+    const rows = parseCsvRows(text), cols = findColumns(rows[0] || [], ORDER_FIELDS);
+    if (cols.id != null && cols.order != null && cols.code != null && cols.qty != null) text = rowsToOrderText(rows);
+  }
+  let first = true, cur = null, curId = null;
+  function add(id, so, code, qty, name) {
+    if (!orders.has(id)) orders.set(id, { id, sos: [], lines: new Map() });
+    const o = orders.get(id), k = so.toLowerCase() + '|' + code.toLowerCase();
+    if (!o.sos.includes(so)) o.sos.push(so);
     if (o.lines.has(k)) { const l = o.lines.get(k); l.qty += qty; if (!l.name && name) l.name = name; }
-    else o.lines.set(k, { code, qty, name: name || '' });
+    else o.lines.set(k, { so, code, qty, name: name && name !== '-' ? name : '' });
   }
   text.split(/\r?\n/).forEach((raw, idx) => {
     const line = raw.trim(); if (!line) return;
     const isFirst = first; first = false;
+    const idm = line.match(/^ID[\s:.\-]*(\S+)$/i);
+    if (idm) { curId = idm[1]; cur = null; return; }
     const so = line.match(/^SO[\s:.\-]*(\S+)$/i);
     if (so) { cur = so[1]; return; }
     const rw = line.match(/^r\d+\s+(\S+)\s+(?:(.*?)\s+)?([\d.,]+)$/i);
@@ -21,7 +32,7 @@ export function parseOrders(text) {
       if (!cur) { problems.push('řádek ' + (idx + 1) + ': chybí hlavička zakázky (SO číslo)'); return; }
       const q = toNum(rw[3]);
       if (!isFinite(q) || q % 1 !== 0 || q <= 0) { problems.push('řádek ' + (idx + 1) + ': množství musí být celé číslo větší než nula'); return; }
-      add(cur, rw[1], q, (rw[2] || '').trim()); return;
+      add(curId || cur, cur, rw[1], q, (rw[2] || '').trim()); return;
     }
     const sep = line.indexOf(';') >= 0 ? ';' : (line.indexOf('\t') >= 0 ? '\t' : ',');
     const p = line.split(sep).map(s => s.trim().replace(/^"(.*)"$/, '$1'));
@@ -32,12 +43,28 @@ export function parseOrders(text) {
     const qty = toNum(qCell);
     if (!isFinite(qty)) { if (isFirst) return; problems.push('řádek ' + (idx + 1) + ': množství „' + qCell + '“ není číslo'); return; }
     if (qty % 1 !== 0 || qty <= 0) { problems.push('řádek ' + (idx + 1) + ': množství musí být celé číslo větší než nula'); return; }
-    add(p[0], p[1], qty, p.slice(2, -1).join(' ').trim());
+    add(p[0], p[0], p[1], qty, p.slice(2, -1).join(' ').trim());
   });
   return { orders, problems };
 }
 
+// Orders back to ERP text (keeps ID → zakázka → lines), used to remember the list.
+export function ordersToText(orders) {
+  const out = [];
+  orders.forEach(o => {
+    out.push('ID ' + o.id);
+    o.sos.forEach(so => {
+      out.push('SO ' + so);
+      let n = 10;
+      o.lines.forEach(l => { if (l.so === so) { out.push('r' + n + ' ' + l.code + ' ' + (l.name || '-').replace(/\s+/g, ' ') + ' ' + l.qty); n += 10; } });
+    });
+    out.push('');
+  });
+  return out.join('\n');
+}
+
 const ORDER_FIELDS = {
+  id: ['id', 'id adresy', 'adresa id', 'zasilka', 'shipment', 'adresa'],
   order: ['zakazka', 'objednavka', 'order', 'so', 'заказ', 'doklad'],
   code: ['artikl', 'artikel', 'article', 'артикул', 'sku', 'kod', 'code', 'polozka'],
   name: ['nazev', 'name', 'popis', 'название', 'description'],
@@ -50,6 +77,18 @@ export function rowsToOrderText(rows) {
   const hi = rows.findIndex(r => r.some(c => String(c).trim() !== ''));
   if (hi >= 0) {
     const cols = findColumns(rows[hi], ORDER_FIELDS);
+    if (cols.id != null && cols.order != null && cols.code != null && cols.qty != null) {
+      // ID column: write ERP text so the ID → zakázka structure survives
+      const out = []; let lastId = null, lastSo = null, n = 10;
+      rows.slice(hi + 1).filter(r => r.some(c => String(c).trim() !== '')).forEach(r => {
+        const id = String(r[cols.id]).trim(), so = String(r[cols.order]).trim();
+        if (id !== lastId) { out.push('ID ' + id); lastId = id; lastSo = null; }
+        if (so !== lastSo) { out.push('SO ' + so); lastSo = so; n = 10; }
+        out.push('r' + n + ' ' + String(r[cols.code]).trim() + ' ' + (cols.name != null ? String(r[cols.name] || '-').trim().replace(/\s+/g, ' ') || '-' : '-') + ' ' + String(r[cols.qty]).trim());
+        n += 10;
+      });
+      return out.join('\n');
+    }
     if (cols.order != null && cols.code != null && cols.qty != null) {
       return rows.slice(hi + 1)
         .filter(r => r.some(c => String(c).trim() !== ''))

@@ -10,7 +10,7 @@ export function packListHtml(r, names) {
   const palletRows = items => items.map(p => {
     n++;
     const extra = (p.extra || []).map(e => '<tr class="extra"><td></td><td></td><td>+ ' + esc(e.code) + '</td><td>' + esc(nm(e.code)) + '</td><td class="num">' + fmtN(e.units) + '</td><td></td><td class="chk">☐</td></tr>').join('');
-    return '<tr><td class="num"><b>' + n + '</b></td><td>' + (p.pal ? '<b>' + esc(p.pal) + '</b> ' + esc(p.palName || '') + '<br>' : '') + cm(p.pl) + ' × ' + cm(p.pw) + ' cm' + (p.fill < 0.999 ? '<br><small>neúplná ' + Math.round(p.fill * 100) + ' %</small>' : '') + '</td><td><b>' + esc(p.code) + '</b></td><td>' + esc(nm(p.code)) + '</td><td class="num">' + fmtN(p.units) + '</td><td class="num">' + fmtN(p.kg) + '</td><td class="chk">☐</td></tr>' + extra;
+    return '<tr><td class="num"><b>' + n + '</b></td><td>' + (p.pal ? '<b>' + esc(p.pal) + '</b> ' + esc(p.palName || '') + '<br>' : '') + cm(p.pl) + ' × ' + cm(p.pw) + ' cm' + (p.fill < 0.999 ? '<br><small>neúplná ' + Math.round(p.fill * 100) + ' %</small>' : '') + '</td><td><b>' + esc(p.code) + '</b>' + (p.so && (r.sos || []).length > 1 ? '<br><small>zakázka ' + esc(p.so) + '</small>' : '') + '</td><td>' + esc(nm(p.code)) + '</td><td class="num">' + fmtN(p.units) + '</td><td class="num">' + fmtN(p.kg) + '</td><td class="chk">☐</td></tr>' + extra;
   }).join('');
   const head = '<thead><tr><th>#</th><th>Paleta</th><th>Artikl</th><th>Název</th><th class="num">Ks</th><th class="num">kg</th><th>✓</th></tr></thead>';
 
@@ -31,7 +31,7 @@ export function packListHtml(r, names) {
   }
   const unk = (r.unknown || []).length ? '<p class="warn">Pozor: v zakázce jsou artikly mimo číselník (nejsou v seznamu): ' + esc(r.unknown.map(u => u.code + ' ' + u.qty + ' ks').join(', ')) + '</p>' : '';
 
-  return '<!DOCTYPE html><html lang="cs"><head><meta charset="utf-8"><title>Balení – zakázka ' + esc(r.id) + '</title><style>' +
+  return '<!DOCTYPE html><html lang="cs"><head><meta charset="utf-8"><title>Balení – ID ' + esc(r.id) + '</title><style>' +
     'body{font-family:Inter,Arial,sans-serif;color:#111;margin:24px;font-size:13px}' +
     'h1{font-size:22px;margin:0 0 4px}h2{font-size:16px;margin:22px 0 6px}h2 small,.meta{color:#555;font-weight:400;font-size:13px}' +
     'table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:6px 8px;text-align:left;vertical-align:top}th{background:#eee}' +
@@ -39,6 +39,6 @@ export function packListHtml(r, names) {
     '.warn{border:2px solid #000;padding:8px;font-weight:700}.sign{margin-top:28px;display:flex;gap:40px}.sign span{flex:1;border-top:1px solid #000;padding-top:4px}' +
     '@media print{body{margin:10mm}button{display:none}h2{break-after:avoid}tr{break-inside:avoid}}' +
     '</style></head><body><button onclick="print()" style="float:right;padding:8px 16px">Tisknout</button>' +
-    '<h1>Balení – zakázka ' + esc(r.id) + '</h1><div class="meta">' + today + ' · ' + r.pallets.length + ' palet, ' + fmtN(r.kg) + ' kg' + (r.reco ? ' · ' + esc(r.reco) : '') + '</div>' +
+    '<h1>Balení – ' + ((r.sos || []).length > 1 ? 'ID ' + esc(r.id) + '</h1><div class="meta">Zakázky: ' + esc(r.sos.join(', ')) + '</div>' : 'zakázka ' + esc(r.id) + '</h1>') + '<div class="meta">' + today + ' · ' + r.pallets.length + ' palet, ' + fmtN(r.kg) + ' kg' + (r.reco ? ' · ' + esc(r.reco) : '') + '</div>' +
     unk + body + '<div class="sign"><span>Zabalil</span><span>Zkontroloval</span><span>Datum</span></div></body></html>';
 }
