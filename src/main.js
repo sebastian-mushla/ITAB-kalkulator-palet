@@ -493,14 +493,14 @@ function askCombo(list, host) {
   const hostArt = state.catalog.find(a => String(a.code).toLowerCase() === host.toLowerCase());
   $('#dcTitle').textContent = list.length > 1 ? 'Přesunout ' + list.length + ' artikly na paletu' : 'Přesunout artikl na paletu';
   $('#dcText').innerHTML = 'Pojedou na paletě <b>' + esc(host) + '</b>' + (hostArt && hostArt.name ? ' <span class="dlg-name">' + esc(hostArt.name) + '</span>' : '') + '.';
-  $('#dcRows').innerHTML = '<div class="lr-h"><span>Artikl</span><span>Kusů</span><span>Váha kusu, kg</span></div>' + list.map((u, i) =>
-    '<div class="lr"><span><b>' + esc(u.code) + '</b><small>' + esc(u.name || '') + '</small></span><span>' + u.qty + ' ks</span><input type="number" min="0" step="any" data-ck="' + i + '" placeholder="neznámá"></div>').join('');
-  $('#dcRule').textContent = 'Pravidlo: když je v zakázce ' + host + ' a artikl je nejvýše tolik kusů jako teď, jede na paletách ' + host + '.';
+  $('#dcRows').innerHTML = '<div class="lr-h m"><span>Artikl</span><span>Kusů</span><span>Max ks / paleta</span><span>Váha kusu, kg</span></div>' + list.map((u, i) =>
+    '<div class="lr m"><span><b>' + esc(u.code) + '</b><small>' + esc(u.name || '') + '</small></span><span>' + u.qty + ' ks</span><input type="number" min="0" step="1" data-cp="' + i + '" placeholder="bez limitu"><input type="number" min="0" step="any" data-ck="' + i + '" placeholder="neznámá"></div>').join('');
+  $('#dcRule').textContent = 'Pravidlo: když je v zakázce ' + host + ' a artikl je nejvýše tolik kusů jako teď, jede na paletách ' + host + ' (nejvýše „Max ks / paleta“ na každou). Co se nevejde, zůstane vpravo.';
   $('#dcRemember').checked = true; $('#dcRule').hidden = false;
   // act on the button press itself; the dialog's close event is not reliable in every browser
   dlg.querySelector('form').onsubmit = ev => {
     if (!ev.submitter || ev.submitter.value !== 'yes') return;
-    const rules = list.map((u, i) => ({ on: true, code: u.code, withCode: host, min: 0, max: u.qty, mode: 'host', host, pl: 0, pw: 0, per: 0, kg: toNum($('#dcRows [data-ck="' + i + '"]').value) || 0, name: u.name || '', note: 'Uloženo z nakládky' }));
+    const rules = list.map((u, i) => ({ on: true, code: u.code, withCode: host, min: 0, max: u.qty, mode: 'host', host, pl: 0, pw: 0, per: Math.max(0, Math.floor(toNum($('#dcRows [data-cp="' + i + '"]').value) || 0)), kg: toNum($('#dcRows [data-ck="' + i + '"]').value) || 0, name: u.name || '', note: 'Uloženo z nakládky' }));
     if ($('#dcRemember').checked) { state.combos.push(...rules); persist('combos'); drawCombos(); flash('Přesunuto ' + rules.length + '× a kombinace uloženy.'); }
     else { const id = state.sel; state.oneOff.set(id, (state.oneOff.get(id) || []).concat(rules)); flash('Přesunuto jen pro tuto zakázku.'); }
     clearSel(); relearn();
