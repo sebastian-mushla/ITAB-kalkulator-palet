@@ -1,6 +1,7 @@
 import { EPS, fmtKg, fmtM, palWord, balWord, vehWord } from './util.js';
 import { makePallets, groupageCheck, parcelCheck } from './pallets.js';
 import { typeOf } from './palletTypes.js';
+import { planPallets, unplaced } from './plan.js';
 import { isEuro } from './util.js';
 import { packAll, prepareVehicles } from './packing.js';
 
@@ -18,6 +19,32 @@ export function groupItems(items) {
     g.count++; g.units += it.units; g.kg += it.kg;
   });
   return [...m.values()];
+}
+
+// The operator's pallet plan replaces the calculated pallets; what is not on any pallet shows up as "to place".
+function applyPlan(mp, plan, lines, catalog, types) {
+  const idx = new Map(catalog.map((a, i) => [String(a.code).toLowerCase(), i]));
+  const extraCi = new Map();
+  const ci = code => { const k = code.toLowerCase(); if (idx.has(k)) return idx.get(k); if (!extraCi.has(k)) extraCi.set(k, catalog.length + 50 + extraCi.size); return extraCi.get(k); };
+  mp.pallets = planPallets(plan, types, ci);
+  const parcelCodes = new Set(mp.parcels.map(p => p.code.toLowerCase()));
+  const left = unplaced(lines, plan).filter(u => !parcelCodes.has(u.code.toLowerCase()));
+  mp.unknown = left.map(u => Object.assign(u, { known: idx.has(u.code.toLowerCase()) }));
+  mp.errors = mp.errors.filter(e => !/není v číselníku|se nevešlo/.test(e));
+  left.forEach(u => mp.errors.push('Artikl „' + u.code + '“: ' + u.qty + ' ks není na žádné paletě' + (u.known ? '' : ' (není v číselníku)') + '.'));
+  // where each article ended up: "č. 3: 148 ks"
+  const dist = new Map();
+  plan.filter(b => b.contents.some(c => c.units > 0)).forEach((b, i) => b.contents.forEach(c => {
+    if (c.units > 0) { const k = c.code.toLowerCase(); dist.set(k, (dist.get(k) || []).concat(['č. ' + (i + 1) + ': ' + c.units + ' ks'])); }
+  }));
+  mp.rows.forEach(x => { const d = dist.get(x.code.toLowerCase()); x.planDist = d ? d.join(', ') : 'na žádné paletě'; });
+  plan.forEach(b => b.contents.forEach(c => {
+    if (idx.has(c.code.toLowerCase())) return;
+    if (!mp.rows.some(x => x.code.toLowerCase() === c.code.toLowerCase())) mp.rows.push({ code: c.code, name: c.name || '', qty: 0, kg: 0, ci: ci(c.code), pack: 'paleta', full: 0, rem: 0, per: c.per || 1, fillRem: 0, count: 0, board: b.pal || 'JINÁ' });
+    const row = mp.rows.find(x => x.code.toLowerCase() === c.code.toLowerCase());
+    if (row.board) { row.qty += c.units; row.kg += c.units * (c.kg || 0); }
+  }));
+  mp.rows.forEach(x => { if (!x.planDist) { const d = dist.get(x.code.toLowerCase()); x.planDist = d ? d.join(', ') : ''; } });
 }
 
 // Board pallets: material that is not in the catalog, placed by hand on a pallet type for this order only.
@@ -49,11 +76,13 @@ function addBoardPallets(mp, added, types, ci0) {
 
 // Pure: order + catalog + vehicles + rules -> result. `forced` = vehicle index chosen by the user.
 // `added` = pallets the operator put on the calculator board for this order: [{ id, pal, contents: [{ code, name, units, per, kg }] }]
-export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], forced = null, added = [] }) {
-  const mp = makePallets([...o.lines.values()], catalog, combos, pallets, { mix: rules.mix !== false });
-  addBoardPallets(mp, added, pallets, catalog.length);
+export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], forced = null, added = [], plan = null }) {
+  const lines = [...o.lines.values()];
+  const mp = makePallets(lines, catalog, combos, pallets, { mix: rules.mix !== false });
+  if (plan) applyPlan(mp, plan, lines, catalog, pallets);
+  else addBoardPallets(mp, added, pallets, catalog.length);
   const r = {
-    id: o.id, pallets: mp.pallets, parcels: mp.parcels, errors: mp.errors, rows: mp.rows, unknown: mp.unknown,
+    id: o.id, planOn: !!plan, plan, pallets: mp.pallets, parcels: mp.parcels, errors: mp.errors, rows: mp.rows, unknown: mp.unknown,
     kg: 0, units: 0, groupage: null, parcelInfo: null, vehicles: [], oversize: [], mode: 'empty', reco: '', forced
   };
   // goods + own weight of the pallets

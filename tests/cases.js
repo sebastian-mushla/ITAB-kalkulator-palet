@@ -2,6 +2,7 @@
 import { parseOrders, rowsToOrderText } from '../src/core/parse.js';
 import { fromResult, replaceVehicle, viewOf } from '../src/core/manual.js';
 import { loadStats } from '../src/core/packing.js';
+import { freezePlan, moveUnits } from '../src/core/plan.js';
 import { solve } from '../src/core/solve.js';
 import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, DEFAULT_PALLETS, SAMPLE } from '../src/core/defaults.js';
 import { migrateCatalog } from '../src/core/palletTypes.js';
@@ -253,6 +254,24 @@ cases.push(['Ručně přidaná paleta: materiál mimo číselník na PAL-0001', 
   const r2 = solve(order('Q;V06;1\nQ;NN-1;30'), Object.assign({}, ctx, { added }));
   assert(r2.unknown.length === 0 && !r2.errors.some(e => e.indexOf('NN-1') >= 0), 'vše položeno');
   checkLayout(r2);
+}]);
+
+cases.push(['Ruční úprava palet: přesun 48 polic z neúplné palety na novou', () => {
+  const r = run('505111');
+  const plan = freezePlan(r, DEFAULT_CATALOG);
+  const part = plan.find(b => b.contents[0].code === 'V-POL' && b.contents[0].units === 148);
+  assert(part, 'neúplná paleta 148 ks');
+  assert(moveUnits(plan, part.id, 'V-POL', 48, 'new'), 'přesun');
+  const r2 = run('505111', { plan });
+  assert(r2.pallets.length === 25, 'palet ' + r2.pallets.length);
+  assert(r2.unknown.length === 0, 'nic nechybí: ' + JSON.stringify(r2.unknown));
+  assert(r2.pallets.some(p => p.code === 'V-POL' && p.units === 100) && r2.pallets.some(p => p.code === 'V-POL' && p.units === 48), 'rozdělení 100 + 48');
+  assert(Math.round(r2.kg) === 7120 + 25, 'kg ' + r2.kg);
+  checkLayout(r2);
+  // taking pieces off a pallet without a target leaves them "to place"
+  plan.find(b => b.contents[0].units === 100).contents[0].units = 90;
+  const r3 = run('505111', { plan });
+  assert(r3.unknown.length === 1 && r3.unknown[0].qty === 10 && r3.unknown[0].known, JSON.stringify(r3.unknown));
 }]);
 
 export function runAll() {

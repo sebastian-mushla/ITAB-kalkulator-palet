@@ -231,16 +231,18 @@ document.documentElement.setAttribute('data-theme',t);})();
             <li><b>+ Přidat vozidlo</b> přidá prázdné vozidlo. Když je některé vozidlo <b>přetížené</b>, tlačítko ho místo toho <b>nahradí</b>: všechny jeho palety se přesunou do nového vozidla a staré zmizí (jen když nové vozidlo unese váhu a palety se vejdou).</li>
             <li><b>Sběrná služba</b> je zelená plocha „Předávka“. Palety mezi ní a vozidly lze přetahovat.</li>
             <li>„Vrátit automatické rozložení“ zahodí ruční změny. Ruční rozložení se neukládá – po obnovení stránky platí znovu výpočet.</li></ul></section>
-          <section class="card"><h2>7. Učení: neznámé artikly</h2>
+          <section class="card"><h2>7. Úprava palet</h2>
+            <p>Kliknutím na paletu v kalkulátoru otevřete její obsah. Kusy libovolného artiklu přesunete na jinou paletu zakázky nebo na novou paletu stejného typu, paletě můžete změnit typ a prázdnou paletu smazat. Po první úpravě se palety zakázky „zmrazí“ – dál je mění jen obsluha. Kusy, které nejsou na žádné paletě, se objeví vpravo jako bloky k rozložení. Tlačítko „Vrátit automatický výpočet palet“ úpravy zahodí.</p></section>
+          <section class="card"><h2>8. Učení: neznámé artikly</h2>
             <p>V kalkulátoru je pod zakázkou plocha „Palety zakázky“ se všemi paletami. Administrátor nad ní vyhledá typ palety (kód, název nebo rozměr) a klikne <b>+ Přidat paletu</b> – vznikne prázdná paleta. Paletu, která v seznamu není, přidá tlačítkem <b>Jiná paleta…</b> (se zaškrtnutím „Zapamatovat“ se uloží mezi typy s novým kódem PAL-xxxx, jinak jen pro tuto zakázku). Pak na paletu přetáhne neznámý materiál. V okně zadá, kolik kusů na paletu dává a kolik se jich vejde; buď to uloží do číselníku (artikl pak jede na tomto typu vždy), nebo jen pro tuto zakázku. Artikly, které nejsou v číselníku, jsou vedle ní jako šedé bloky (kód, množství, název ze zakázky). Administrátor je přetáhne:</p>
             <ul><li><b>na paletu</b> – artikl pojede na této paletě; se zaškrtnutím „Zapamatovat“ se uloží kombinace pro další zakázky (platí, dokud je kusů nejvýše tolik jako teď), bez zaškrtnutí jen pro tuto zakázku;</li>
             <li><b>na volné místo plochy</b> – otevře se formulář nového artiklu (rozměry, kusy na paletě, váha) a artikl se uloží do číselníku.</li></ul>
             <p>Kroužek u zakázky ukazuje, kolik artiklů ze zakázky už je zařazeno. Zakázku lze odškrtnout jako vyřízenou až při 100 %.</p></section>
-          <section class="card"><h2>8. Ringil a tisk</h2>
+          <section class="card"><h2>9. Ringil a tisk</h2>
             <ul><li><b>Objednat dopravu (Ringil)</b> – hodnoty do formuláře Ringilu s tlačítkem Kopírovat u každého pole. Vozidlo = ložné metry (obsazená délka korby), sběrná služba = europalety, balíky = krabice. Výšku v číselníku nemáme – doplňte ji.</li>
             <li><b>Tisk pro balení</b> (v kalkulátoru, vedle „Přejít k nakládce“) – seznam palet po vozidlech: rozměr, artikl, kusy, co je přiloženo navrch.</li>
             <li><b>Tisk nakládky</b> – nákres všech vozidel shora.</li></ul></section>
-          <section class="card"><h2>9. Uživatelé a data</h2>
+          <section class="card"><h2>10. Uživatelé a data</h2>
             <p>Administrátor vidí a mění vše (číselník, kombinace, vozidla, pravidla, uživatele). Uživatel jen počítá zakázky (Kalkulátor palet a Nakládka). Číselník, kombinace, vozidla a pravidla jsou společné pro všechny. Seznam zakázek a ruční úpravy jsou jen v tomto prohlížeči.</p>
             <p>Výpočet dělá běžný program přímo v prohlížeči – nepoužívá umělou inteligenci a nic se neodesílá jinam.</p></section>
         </div>
@@ -262,6 +264,13 @@ document.documentElement.setAttribute('data-theme',t);})();
     <p>Klikněte na „Kopírovat“ a vložte do stejného pole v Ringilu (Cmd + V). Zkopírovaná pole se označí.</p>
     <div id="drBody"></div>
     <div class="acts"><button class="btn primary" value="close">Hotovo</button></div>
+  </form>
+</dialog>
+<dialog class="dlg dlg-wide" id="dlgPalEdit">
+  <form method="dialog">
+    <h2 id="peTitle">Paleta</h2>
+    <div id="peBody"></div>
+    <div class="acts"><button type="button" class="btn" id="peDelete">Smazat prázdnou paletu</button><button class="btn primary" value="close">Hotovo</button></div>
   </form>
 </dialog>
 <dialog class="dlg" id="dlgPallet">

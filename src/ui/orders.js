@@ -151,6 +151,10 @@ function compositionHtml(r) {
   const palCell = x => {
     if (x.pack === 'balik') return '<span class="pt-chip parcel">balík ' + cm(x.pl) + ' × ' + cm(x.pw) + ' cm</span>';
     const chips = [];
+    if (r.planOn) {
+      const pals = [...new Set(r.pallets.filter(p => p.code === x.code || (p.extra || []).some(e => e.code === x.code)).map(p => p.pal + '|' + (p.palName || '')))];
+      return pals.map(k => { const [c, n] = k.split('|'); return '<span class="pt-chip"><b>' + esc(c) + '</b> ' + esc(n) + '</span>'; }).join(' ') || '–';
+    }
     if (x.count && (x.pal || x.pl)) chips.push('<span class="pt-chip" title="' + esc(x.palName || '') + '">' + (x.pal ? '<b>' + esc(x.pal) + '</b> ' + esc(x.palName || '') : cm(x.pl) + ' × ' + cm(x.pw) + ' cm') + '</span>');
     if (x.onHost) { const hp = r.pallets.find(p => p.code === x.host); chips.push('<span class="pt-chip ride">na paletě ' + esc(x.host) + (hp && hp.pal ? ' · ' + esc(hp.pal) : '') + '</span>'); }
     if (x.board) chips.push('<span class="pt-chip hand"><b>' + esc(x.board) + '</b> ručně</span>');
@@ -158,9 +162,10 @@ function compositionHtml(r) {
   };
   const known = r.rows.map(x => {
     const parts = [];
-    if (x.onHost) parts.push(x.onHost + ' ks na paletách ' + x.host);
-    if (x.board) parts.push(x.qty + ' ks na ručně přidané paletě');
-    if (!x.count) { /* everything rides on host pallets */ }
+    if (x.planDist != null) parts.push(x.planDist);
+    else if (x.onHost) parts.push(x.onHost + ' ks na paletách ' + x.host);
+    if (x.planDist == null && x.board) parts.push(x.qty + ' ks na ručně přidané paletě');
+    if (x.planDist != null || !x.count) { /* everything rides on host pallets */ }
     else if (x.pack === 'balik') parts.push(x.count + ' ' + balWord(x.count) + ' po ' + x.per + ' ks' + (x.rem ? ' (poslední ' + x.rem + ' ks)' : ''));
     else if (x.per === 1) parts.push(x.full + ' ' + palWord(x.full));
     else {
@@ -249,22 +254,26 @@ function palletBoardHtml(r, isAdmin, board, types) {
   };
   const label = p => (p.pal ? '<small>' + esc(p.pal) + '</small>' : '') + '<b>' + esc(p.code) + '</b><span>' + fmtN(p.units) + ' ks' + (p.fill < 0.999 ? ' · ' + Math.round(p.fill * 100) + ' %' : '') + '</span>' +
     (p.extra ? '<em>+ ' + esc(p.extra.map(e => e.code + ' ' + e.units + ' ks').join(', ')) + '</em>' : '');
+  const num = new Map(r.pallets.map((p, i) => [p, i + 1]));
   const groups = new Map();
-  r.pallets.filter(p => p.board == null).forEach(p => { const k = p.code + '|' + (p.pal || ''); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); });
+  r.pallets.filter(p => r.planOn || p.board == null).forEach(p => { const k = p.code + '|' + (p.pal || ''); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); });
   let h = '';
   groups.forEach(list => {
     const p0 = list[0];
     h += '<div class="bgroup"><div class="bgroup-h"><i class="sw" style="background:' + color(p0.ci) + '"></i><b>' + esc(p0.code) + '</b> <span class="muted">' + list.length + ' ' + palWord(list.length) + ' · ' + (p0.pal ? esc(p0.pal) + ' ' + esc(p0.palName || '') + ' · ' : '') + Math.round(p0.pl / 10) + ' × ' + Math.round(p0.pw / 10) + ' cm</span></div><div class="bgroup-p">' +
-      list.map(p => block(p, 'data-code="' + esc(p.code) + '" title="' + esc(p.code) + ', ' + p.units + ' ks – sem lze pustit neznámý artikl"', label(p))).join('') + '</div></div>';
+      list.map(p => block(p, 'data-code="' + esc(p.code) + '"' + (r.planOn ? ' data-bid="' + esc(p.board) + '"' : '') + ' data-pi="' + (num.get(p) - 1) + '" title="Paleta č. ' + num.get(p) + ' – kliknutím upravíte obsah"', '<i class="pnum">' + num.get(p) + '</i>' + label(p))).join('') + '</div></div>';
   });
   // pallets the operator added by hand
+  // in plan mode the hand-made list is the plan itself: show only its empty pallets here
+  if (r.planOn) board = (r.plan || []).filter(b => !b.contents.some(c => c.units > 0));
   const manual = (board || []).map(b => {
     const p = r.pallets.find(x => x.board === b.id), t = (types || []).find(x => x.code === b.pal) || b.custom || { L: 1200, W: 800, name: b.pal };
     const x = '<button class="bp-x" data-rmb="' + esc(b.id) + '" aria-label="Odebrat paletu">×</button>';
     return p ? block(p, 'data-bid="' + esc(b.id) + '" title="Ručně přidaná paleta ' + esc(b.pal) + '"', label(p) + x)
       : block({ pl: t.L, pw: t.W, fill: 0, ci: 0 }, 'data-bid="' + esc(b.id) + '" title="Prázdná paleta – přetáhněte sem materiál"', '<small>' + esc(b.pal) + '</small><span>prázdná</span>' + x, ' empty');
   }).join('');
-  if (manual) h += '<div class="bgroup"><div class="bgroup-h"><b>Ručně přidané palety</b> <span class="muted">materiál mimo číselník, jen pro tuto zakázku</span></div><div class="bgroup-p">' + manual + '</div></div>';
+  if (manual) h += '<div class="bgroup"><div class="bgroup-h"><b>' + (r.planOn ? 'Prázdné palety' : 'Ručně přidané palety') + '</b> <span class="muted">' + (r.planOn ? 'přetáhněte na ně materiál nebo je odeberte' : 'materiál mimo číselník, jen pro tuto zakázku') + '</span></div><div class="bgroup-p">' + manual + '</div></div>';
+  if (r.planOn) h = '<div class="plan-note">Palety upravené ručně. <button class="linkbtn" id="resetPlan">Vrátit automatický výpočet palet</button></div>' + h;
   if (r.parcels.length) {
     const m = new Map();
     r.parcels.forEach(p => { const g = m.get(p.code) || { p, n: 0 }; g.n++; m.set(p.code, g); });

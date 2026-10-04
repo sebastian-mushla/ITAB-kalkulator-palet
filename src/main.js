@@ -1,6 +1,7 @@
 import { clone, toNum } from './core/util.js';
 import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, DEFAULT_PALLETS, SAMPLE } from './core/defaults.js';
 import { migrateCatalog, nextCode, typeOf } from './core/palletTypes.js';
+import { freezePlan, moveUnits, setPalletType, removePallet, newId } from './core/plan.js';
 import { parseOrders, rowsToOrderText } from './core/parse.js';
 import { solve } from './core/solve.js';
 import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle, replaceVehicle, DEPOT } from './core/manual.js';
@@ -32,7 +33,7 @@ const state = {
   pallets: Array.isArray(shared.pallets) && shared.pallets.length ? shared.pallets : clone(DEFAULT_PALLETS),
   rules: Object.assign(clone(DEFAULT_RULES), shared.rules || {}),
   csv: load(KEYS.csv, SAMPLE),
-  orders: new Map(), results: new Map(), forced: new Map(), manual: new Map(), board: new Map(), oneOff: new Map(), done: new Set(load('itab.done.v1', [])), isAdmin, sel: null, prioHidden: false,
+  orders: new Map(), results: new Map(), forced: new Map(), manual: new Map(), board: new Map(), plan: new Map(), oneOff: new Map(), done: new Set(load('itab.done.v1', [])), isAdmin, sel: null, prioHidden: false,
   catView: { q: '', page: 0 }
 };
 
@@ -66,7 +67,7 @@ function persist(name) {
 // ---------- calculation ----------
 function ctx(id) {
   // one-off moves (not remembered) apply only to that order and win over saved rules
-  return { catalog: state.catalog, vehicles: state.vehicles, pallets: state.pallets, rules: state.rules, combos: (state.oneOff.get(id) || []).concat(state.combos), forced: state.forced.has(id) ? state.forced.get(id) : null, added: state.board.get(id) || [] };
+  return { catalog: state.catalog, vehicles: state.vehicles, pallets: state.pallets, rules: state.rules, combos: (state.oneOff.get(id) || []).concat(state.combos), forced: state.forced.has(id) ? state.forced.get(id) : null, added: state.board.get(id) || [], plan: state.plan.get(id) || null };
 }
 function recalc() {
   state.results = new Map();
@@ -104,7 +105,7 @@ function importOrders(text, open, initial) {
   const fresh = [...res.orders.keys()];
   // a new import clears the orders marked as done
   if (fresh.length && !initial) { state.done.forEach(id => { state.orders.delete(id); state.forced.delete(id); state.manual.delete(id); }); state.done.clear(); save('itab.done.v1', []); }
-  fresh.forEach(id => { state.forced.delete(id); state.manual.delete(id); state.oneOff.delete(id); state.board.delete(id); state.orders.delete(id); });
+  fresh.forEach(id => { state.forced.delete(id); state.manual.delete(id); state.oneOff.delete(id); state.board.delete(id); state.plan.delete(id); state.orders.delete(id); });
   state.orders = new Map([...res.orders, ...state.orders]);
   state.prioHidden = false;
   $('#problems').textContent = res.problems.length ? 'Nerozpoznáno: ' + res.problems.join('; ') + '.' : '';
@@ -114,7 +115,7 @@ function importOrders(text, open, initial) {
   if (open && fresh.length) goDetail();
 }
 function removeOrder(id) {
-  state.orders.delete(id); state.results.delete(id); state.forced.delete(id); state.manual.delete(id); state.board.delete(id); state.oneOff.delete(id);
+  state.orders.delete(id); state.results.delete(id); state.forced.delete(id); state.manual.delete(id); state.board.delete(id); state.plan.delete(id); state.oneOff.delete(id);
   if (state.done.delete(id)) save('itab.done.v1', [...state.done]);
   if (state.sel === id) state.sel = state.orders.size ? state.orders.keys().next().value : null;
   saveOrderList();
@@ -258,7 +259,10 @@ onBoth('click', e => {
   }
   if (e.target.id === 'newPalBtn') { askPallet(id); return; }
   const rmb = e.target.getAttribute('data-rmb');
-  if (rmb) { keepScroll(() => { state.board.set(id, (state.board.get(id) || []).filter(b => b.id !== rmb)); state.manual.delete(id); recalc(); }); return; }
+  if (rmb) { keepScroll(() => { const P = state.plan.get(id); if (P) removePallet(P, rmb); else state.board.set(id, (state.board.get(id) || []).filter(b => b.id !== rmb)); state.manual.delete(id); recalc(); }); return; }
+  if (e.target.id === 'resetPlan') { keepScroll(() => { state.plan.delete(id); state.manual.delete(id); recalc(); }); return; }
+  const bp = e.target.closest('.board-pal');
+  if (bp && !e.target.closest('.bp-x') && isAdmin) { openPalEditor(id, bp.dataset.bid, Number(bp.dataset.pi)); return; }
   const rm = e.target.getAttribute('data-rmveh');
   if (rm != null) { keepScroll(() => removeVehicle(manualOf(id), Number(rm))); return; }
 });
@@ -368,7 +372,67 @@ function askCombo(u, host) {
   };
   dlg.returnValue = ''; dlg.showModal();
 }
+// ---------- pallet editor ----------
+function ensurePlan(id) {
+  if (!state.plan.has(id)) {
+    state.plan.set(id, freezePlan(view(id), state.catalog));
+    state.board.delete(id); state.manual.delete(id);
+  }
+  return state.plan.get(id);
+}
+let peCur = null;
+function openPalEditor(id, bid, pi) {
+  const wasPlan = state.plan.has(id), P = ensurePlan(id);
+  const filled = P.filter(b => b.contents.some(c => c.units > 0));
+  const b = (wasPlan && bid && P.find(x => x.id === bid)) || filled[pi] || P.find(x => x.id === bid);
+  if (!b) return;
+  peCur = { id, pid: b.id };
+  if (!wasPlan) keepScroll(recalc);
+  drawPalEditor();
+  $('#dlgPalEdit').showModal();
+}
+function drawPalEditor() {
+  const { id, pid } = peCur, P = state.plan.get(id), b = P.find(x => x.id === pid);
+  if (!b) { $('#dlgPalEdit').close(); return; }
+  const filled = P.filter(x => x.contents.some(c => c.units > 0)), n = filled.indexOf(b) + 1;
+  const t = typeOf(state.pallets, b.pal) || b.custom || { code: b.pal, name: '', L: 0, W: 0, tare: 0 };
+  const fill = b.contents.filter(c => !c.ride).reduce((s, c) => s + c.units / (c.per || c.units || 1), 0);
+  const kg = (t.tare || 0) + b.contents.reduce((s, c) => s + c.units * (c.kg || 0), 0);
+  const label = x => { const i = filled.indexOf(x), main = x.contents.find(c => c.units > 0); return (i >= 0 ? 'č. ' + (i + 1) : 'prázdná') + ' · ' + (x.pal || 'JINÁ') + (main ? ' · ' + main.code + ' ' + main.units + ' ks' : ''); };
+  const targets = P.filter(x => x !== b).map(x => '<option value="' + esc(x.id) + '">' + esc(label(x)) + '</option>').join('') + '<option value="new">+ nová paleta stejného typu</option>';
+  $('#peTitle').textContent = (n ? 'Paleta č. ' + n : 'Prázdná paleta') + ' – zakázka ' + id;
+  $('#peBody').innerHTML =
+    '<div class="pe-head"><input type="search" id="peType" list="palList2" value="' + esc(t.code ? t.code + ' · ' + t.name : '') + '" aria-label="Typ palety" style="flex:1 1 260px"><datalist id="palList2">' + state.pallets.map(p => '<option value="' + esc(palOption(p)) + '"></option>').join('') + '</datalist><button type="button" class="btn small" id="peTypeBtn">Změnit typ</button></div>' +
+    '<p class="muted">' + Math.round((t.L || 0) / 10) + ' × ' + Math.round((t.W || 0) / 10) + ' cm · ' + Math.round(kg) + ' kg (tara ' + (t.tare || 0) + ' kg)' + (t.maxKg ? ' · nosnost ' + t.maxKg + ' kg' : '') + ' · zaplnění ' + Math.round(fill * 100) + ' %</p>' +
+    '<div class="pe-fill' + (fill > 1.001 || (t.maxKg && kg - (t.tare || 0) > t.maxKg) ? ' over' : '') + '"><i style="width:' + Math.min(100, Math.round(fill * 100)) + '%"></i></div>' +
+    (b.contents.length ? b.contents.map((c, i) => '<div class="pe-row"><span><b>' + esc(c.code) + '</b><span class="muted">' + esc(c.name || '') + (c.ride ? ' · navrch' : '') + '</span></span><span>' + c.units + ' ks</span>' +
+      '<select data-pt="' + i + '" aria-label="Kam přesunout">' + targets + '</select><input type="number" min="1" max="' + c.units + '" value="' + c.units + '" data-pq="' + i + '" aria-label="Kolik kusů"><button type="button" class="btn small" data-pm="' + i + '">Přesunout</button></div>').join('')
+      : '<p class="muted">Paleta je prázdná. Přetáhněte na ni materiál na ploše nebo ji smažte.</p>');
+  $('#peDelete').hidden = b.contents.some(c => c.units > 0);
+}
+$('#peBody').addEventListener('click', e => {
+  const i = e.target.getAttribute('data-pm');
+  if (i != null) {
+    const { id, pid } = peCur, P = state.plan.get(id), b = P.find(x => x.id === pid), c = b.contents[Number(i)];
+    const to = $('#peBody [data-pt="' + i + '"]').value, q = toNum($('#peBody [data-pq="' + i + '"]').value);
+    const res = moveUnits(P, pid, c.code, q, to);
+    if (res) { state.manual.delete(id); keepScroll(recalc); flash('Přesunuto ' + Math.min(q, c.units + q) + ' ks ' + c.code + '.'); }
+    drawPalEditor();
+  }
+  if (e.target.id === 'peTypeBtn') {
+    const v = $('#peType').value.trim(), code = v.split(' · ')[0].trim(), t = typeOf(state.pallets, code);
+    if (!t) { flash('Vyberte typ palety z nabídky.'); return; }
+    setPalletType(state.plan.get(peCur.id), peCur.pid, t.code); state.manual.delete(peCur.id); keepScroll(recalc); drawPalEditor();
+  }
+});
+$('#peDelete').addEventListener('click', () => {
+  if (removePallet(state.plan.get(peCur.id), peCur.pid)) { state.manual.delete(peCur.id); keepScroll(recalc); }
+  $('#dlgPalEdit').close();
+});
+
 function addBoardPallet(id, b) {
+  const P = state.plan.get(id);
+  if (P) { P.push(Object.assign({ id: newId(), contents: [] }, b)); state.manual.delete(id); keepScroll(recalc); return; }
   const list = state.board.get(id) || [];
   list.push(Object.assign({ id: 'b' + Date.now().toString(36) + list.length, contents: [] }, b));
   state.board.set(id, list); state.manual.delete(id);
@@ -394,7 +458,7 @@ function askPallet(id) {
   dlg.returnValue = ''; dlg.showModal(); $('#dpName').focus();
 }
 function askMaterial(u, bid) {
-  const id = state.sel, list = state.board.get(id) || [], b = list.find(x => x.id === bid); if (!b) return;
+  const id = state.sel, P = state.plan.get(id), list = P || state.board.get(id) || [], b = list.find(x => x.id === bid); if (!b) return;
   const t = typeOf(state.pallets, b.pal) || b.custom || { code: b.pal, name: '' };
   const dlg = $('#dlgMaterial');
   $('#dmText').innerHTML = 'Artikl <b>' + esc(u.code) + '</b>' + (u.name ? ' <span class="dlg-name">' + esc(u.name) + '</span>' : '') + ' (' + u.qty + ' ks)<br>na paletu <b>' + esc(t.code) + '</b> <span class="dlg-name">' + esc(t.name) + '</span>.';
@@ -413,7 +477,8 @@ function askMaterial(u, bid) {
       // the article goes to the catalog; the calculator then makes its pallets itself
       state.catalog.push({ code: u.code, name: u.name || '', pack: 'paleta', pal: t.code, per, kg, rot: true });
       persist('catalog'); drawCatalog(); drawPallets();
-      if (!b.contents.length) state.board.set(id, list.filter(x => x !== b));
+      if (P) b.contents.push({ code: u.code, name: u.name || '', units: Math.min(units, u.qty), per, kg });
+      else if (!b.contents.length) state.board.set(id, list.filter(x => x !== b));
       flash('Artikl ' + u.code + ' uložen: ' + t.code + ', ' + per + ' ks na paletu.');
     } else {
       b.contents.push({ code: u.code, name: u.name || '', units: Math.min(units, u.qty), per, kg });
