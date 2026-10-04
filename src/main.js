@@ -1,7 +1,7 @@
 import { clone, toNum } from './core/util.js';
 import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, DEFAULT_PALLETS, SAMPLE } from './core/defaults.js';
 import { migrateCatalog, nextCode, typeOf } from './core/palletTypes.js';
-import { freezePlan, moveUnits, setPalletType, removePallet, newId, mergePallets } from './core/plan.js';
+import { freezePlan, moveUnits, setPalletType, removePallet, newId, mergePallets, sameSo } from './core/plan.js';
 import { parseOrders, rowsToOrderText, ordersToText } from './core/parse.js';
 import { solve } from './core/solve.js';
 import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle, replaceVehicle, DEPOT } from './core/manual.js';
@@ -440,8 +440,9 @@ function endDrag(e, cancel) {
     // resolve all sources before merging (merging removes emptied pallets)
     const srcs = d.boardPal.map(k => (k.bid && wasPlan ? P.find(b => b.id === k.bid) : filled[Number(k.pi)] || P.find(b => b.id === k.bid))).filter(b => b && b !== dst);
     if (!dst || !srcs.length) return;
-    let moved = 0, left = 0;
-    srcs.forEach(src => { const r1 = mergePallets(P, src.id, dst.id, state.pallets); moved += r1.moved; left += r1.left; });
+    let moved = 0, left = 0, blocked = 0;
+    srcs.forEach(src => { const r1 = mergePallets(P, src.id, dst.id, state.pallets); moved += r1.moved; left += r1.left; if (r1.blocked) blocked++; });
+    if (blocked && !moved) { clearSel(); flash('Nelze: palety jsou z různých zakázek – zakázky se na jedné paletě nemíchají.'); return; }
     clearSel(); state.manual.delete(id); keepScroll(recalc);
     flash(!moved ? 'Cílová paleta je plná – nic se nepřesunulo.' : 'Přeloženo ' + moved + ' ks' + (left ? ', ' + left + ' ks zůstalo na původních paletách (cílová je plná).' : (srcs.length > 1 ? ' z ' + srcs.length + ' palet, ty zmizely.' : ', původní paleta zmizela.')));
     return;
@@ -533,7 +534,8 @@ function drawPalEditor() {
   const fill = b.contents.filter(c => !c.ride).reduce((s, c) => s + c.units / (c.per || c.units || 1), 0);
   const kg = (t.tare || 0) + b.contents.reduce((s, c) => s + c.units * (c.kg || 0), 0);
   const label = x => { const i = filled.indexOf(x), main = x.contents.find(c => c.units > 0); return (i >= 0 ? 'č. ' + (i + 1) : 'prázdná') + ' · ' + (x.pal || 'JINÁ') + (main ? ' · ' + main.code + ' ' + main.units + ' ks' : ''); };
-  const others = P.filter(x => x !== b).map(x => '<option value="' + esc(x.id) + '">' + esc(label(x)) + '</option>').join('');
+  const soNow = (b.contents.find(c => c.units > 0) || {}).so;
+  const others = P.filter(x => x !== b && sameSo(x, soNow)).map(x => '<option value="' + esc(x.id) + '">' + esc(label(x)) + '</option>').join('');
   $('#peTitle').textContent = (n ? 'Paleta č. ' + n : 'Prázdná paleta') + ' – zakázka ' + id;
   const cm = mm => Math.round((mm || 0) / 10);
   // panel for moving pieces of one article: same type / other type from the database / brand new pallet / existing pallet
@@ -584,7 +586,7 @@ $('#peBody').addEventListener('click', e => {
       else { nt.code = 'JINÁ'; after = nid => setPalletType(P, nid, 'JINÁ', nt); }
     }
     const nid = moveUnits(P, pid, c.code, q, to);
-    if (!nid) { flash('Přesun se nepovedl.'); return; }
+    if (!nid) { flash(to !== 'new' && !sameSo(P.find(x => x.id === to) || { contents: [] }, c.so) ? 'Nelze: na cílové paletě je jiná zakázka.' : 'Přesun se nepovedl.'); return; }
     if (after) after(nid);
     peCur.row = null;
     state.manual.delete(id); keepScroll(recalc);

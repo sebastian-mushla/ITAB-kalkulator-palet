@@ -313,6 +313,19 @@ cases.push(
   }]
 );
 
+cases.push(['Palety z různých zakázek se nesloučí a přesun na cizí zakázku je blokovaný', () => {
+  const plan = [
+    { id: 'a', pal: 'PAL-0001', contents: [{ code: 'V-POL', units: 50, per: 156, kg: 3, so: '1' }] },
+    { id: 'b', pal: 'PAL-0001', contents: [{ code: 'V-POL', units: 30, per: 156, kg: 3, so: '3' }] }
+  ];
+  const r1 = mergePallets(plan, 'b', 'a', DEFAULT_PALLETS);
+  assert(r1.blocked && r1.moved === 0 && plan.length === 2, JSON.stringify(r1));
+  assert(moveUnits(plan, 'b', 'V-POL', 10, 'a') === false, 'move blocked');
+  assert(plan[0].contents[0].units === 50 && plan[1].contents[0].units === 30, 'nic se nezměnilo');
+  const nid = moveUnits(plan, 'b', 'V-POL', 10, 'new');
+  assert(nid && plan.find(x => x.id === nid).contents[0].so === '3', 'nová paleta nese zakázku 3');
+}]);
+
 export function runAll() {
   return cases.map(([name, fn]) => {
     try { fn(); return { name, ok: true }; } catch (e) { return { name, ok: false, msg: e.message }; }

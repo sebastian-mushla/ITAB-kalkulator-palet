@@ -47,16 +47,21 @@ export function planPallets(plan, types, ci) {
   return out;
 }
 
+// zakázky on a pallet; a pallet must not mix zakázky
+export const sosOf = b => [...new Set((b.contents || []).filter(c => c.units > 0).map(c => c.so).filter(Boolean))];
+export const sameSo = (b, so) => !so || sosOf(b).every(x => x === so);
+
 // Move `qty` pcs of `code` from pallet `fromId` to pallet `toId` ('new' = new pallet of the same type).
+// Returns false when the target holds another zakázka.
 export function moveUnits(plan, fromId, code, qty, toId) {
   const from = plan.find(b => b.id === fromId); if (!from) return false;
   const c = from.contents.find(x => low(x.code) === low(code)); if (!c) return false;
   qty = Math.min(Math.max(1, Math.round(qty)), c.units);
   let to = toId === 'new' ? null : plan.find(b => b.id === toId);
   if (!to) { to = { id: newId(), pal: from.pal, custom: from.custom, contents: [] }; plan.push(to); }
-  if (to === from) return false;
+  if (to === from || !sameSo(to, c.so)) return false;
   c.units -= qty;
-  const d = to.contents.find(x => low(x.code) === low(code));
+  const d = to.contents.find(x => low(x.code) === low(code) && (x.so || '') === (c.so || '') && !!x.ride === !!c.ride);
   if (d) d.units += qty; else to.contents.push(Object.assign({}, c, { units: qty }));
   from.contents = from.contents.filter(x => x.units > 0);
   return to.id;
@@ -91,6 +96,9 @@ export function unplaced(lines, plan) {
 export function mergePallets(plan, fromId, toId, types) {
   const from = plan.find(b => b.id === fromId), to = plan.find(b => b.id === toId);
   if (!from || !to || from === to) return { moved: 0, left: 0 };
+  // different zakázky are never put on one pallet
+  const fs = sosOf(from), ts = sosOf(to);
+  if (fs.length && ts.length && (fs.length > 1 || ts.length > 1 || fs[0] !== ts[0])) return { moved: 0, left: from.contents.reduce((s, c) => s + c.units, 0), blocked: true };
   const t = typeOf(types, to.pal) || to.custom || {};
   const fillOf = b => b.contents.filter(c => !c.ride).reduce((s, c) => s + c.units / (c.per || c.units || 1), 0);
   const goodsKg = b => b.contents.reduce((s, c) => s + c.units * (c.kg || 0), 0);
@@ -101,7 +109,7 @@ export function mergePallets(plan, fromId, toId, types) {
     if (!c.ride) n = Math.min(n, Math.floor((1 - fillOf(to)) * (c.per || c.units) + 1e-9));
     if (t.maxKg > 0 && c.kg > 0) n = Math.min(n, Math.floor((t.maxKg - goodsKg(to)) / c.kg + 1e-9));
     if (n <= 0) return;
-    const d = to.contents.find(x => low(x.code) === low(c.code) && !!x.ride === !!c.ride);
+    const d = to.contents.find(x => low(x.code) === low(c.code) && (x.so || '') === (c.so || '') && !!x.ride === !!c.ride);
     if (d) d.units += n; else to.contents.push(Object.assign({}, c, { units: n }));
     c.units -= n; moved += n;
   });
