@@ -112,6 +112,29 @@ function slideAcross(items, W) {
   }
 }
 
+function relayout(bin, v) {
+  const items = bin.items.map(i => Object.assign({}, i, { x: 0, y: 0 }));
+  if (items.length < 2) return null;
+  const area = i => i.pl * i.pw;
+  const lists = [
+    items.slice().sort((a, b) => b.kg - a.kg),
+    items.slice().sort((a, b) => area(b) - area(a)),
+    items.slice().sort((a, b) => Math.min(a.pl, a.pw) - Math.min(b.pl, b.pw) || b.kg - a.kg),
+    items.slice().sort((a, b) => b.kg / area(b) - a.kg / area(a))
+  ];
+  const rng = mulberry32(777);
+  for (let t = 0; t < 120; t++) lists.push(items.map(i => ({ i, k: (i.kg + 1) * (0.5 + rng()) })).sort((a, b) => b.k - a.k).map(x => x.i));
+  let best = { pen: imbalancePct(bin, v.Wmm), bin };
+  lists.forEach(list => {
+    const bins = fillBins(list, v, [v]);
+    if (bins.length !== 1 || bins[0].items.length !== items.length || bins[0].usedL > bin.usedL + 1200) return;
+    const pen = imbalancePct(bins[0], v.Wmm);
+    if (pen < best.pen - 0.5) best = { pen, bin: bins[0] };
+  });
+  return best.bin === bin ? null : best.bin;
+}
+function imbalancePct(b, W) { const st = loadStats(balanceLoad(b.items, W), W); return st ? Math.abs(st.leftPct - 50) : 0; }
+
 // center of gravity from the cab (mm) and share of weight on the left side
 export function loadStats(items, W) {
   const kg = items.reduce((s, i) => s + i.kg, 0);
@@ -230,6 +253,8 @@ export function packAll(pallets, vehicles, forced, oneVehicle, seq) {
     });
   });
   const counter = new Map();
+  // every vehicle: try other layouts of the same pallets and keep the best balanced one that still fits
+  best.typed.forEach(t => { const nb = relayout(t.b, t.v); if (nb) t.b = nb; });
   // sequential loading keeps the vehicle order (vehicle 1 = first zakázky)
   const out = (best.seq ? best.typed : best.typed.sort((a, b) => b.v.Lmm * b.v.Wmm - a.v.Lmm * a.v.Wmm || b.b.usedL - a.b.usedL))
     .map(({ v, b }) => {
