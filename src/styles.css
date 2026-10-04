@@ -382,3 +382,6 @@ dialog.dlg-wide{max-width:560px}
 #dock{min-width:0}
 .warn-box{border-color:var(--amber);background:var(--amber-t);color:var(--amber);font-weight:600;margin:0 0 12px}
 @media (max-width:1000px){.dockgrid{grid-template-columns:minmax(0,1fr)}.dockgrid > .card{position:static;max-height:none}}
+.btn.print{display:inline-flex;align-items:center;gap:10px;background:var(--green);color:#fff;border-color:var(--green);box-shadow:0 8px 20px -8px color-mix(in srgb,var(--green) 70%,transparent)}
+.btn.print:hover{background:color-mix(in srgb,var(--green) 85%,#000)}
+:root[data-theme="dark"] .btn.print{color:#0E1120}
