@@ -214,6 +214,22 @@ function manualOf(id) {
   if (!state.manual.has(id)) state.manual.set(id, fromResult(state.results.get(id)));
   return state.manual.get(id);
 }
+// undo for the loading plan: snapshot before every change
+const undo = new Map();
+function snap(id) {
+  const m = state.manual.get(id);
+  const list = undo.get(id) || [];
+  list.push(m ? JSON.parse(JSON.stringify(m)) : null);
+  if (list.length > 50) list.shift();
+  undo.set(id, list);
+}
+function undoStep(id) {
+  const list = undo.get(id) || [];
+  if (!list.length) { flash('Není co vrátit.'); return; }
+  const prev = list.pop();
+  if (prev) state.manual.set(id, prev); else state.manual.delete(id);
+  flash('Vráceno o krok zpět.');
+}
 function keepScroll(fn) { const y = window.scrollY; fn(); renderOverview(); window.scrollTo(0, y); }
 let flashMsg = null;
 function flash(text) {
@@ -229,7 +245,7 @@ onBoth('click', e => {
     const r = state.results.get(id), sv = $('#addVehSel').value, vi = sv === DEPOT ? DEPOT : Number(sv);
     if (vi === DEPOT) {
       if (view(id).depot) { flash('Sběrná služba už v zakázce je.'); return; }
-      keepScroll(() => addVehicle(manualOf(id), state.vehicles, DEPOT));
+      snap(id); keepScroll(() => addVehicle(manualOf(id), state.vehicles, DEPOT));
       return;
     }
     // an overloaded vehicle is replaced: its pallets move to the new one and the old one goes away
@@ -238,18 +254,20 @@ onBoth('click', e => {
       const target = over[0];
       if (state.vehicles[vi] && target.kg > state.vehicles[vi].kg + 1e-9) { flash('Nové vozidlo unese jen ' + state.vehicles[vi].kg + ' kg, náklad má ' + Math.round(target.kg) + ' kg.'); return; }
       let ok = false;
-      keepScroll(() => { ok = replaceVehicle(manualOf(id), state.vehicles, target.idx, vi); });
+      snap(id); keepScroll(() => { ok = replaceVehicle(manualOf(id), state.vehicles, target.idx, vi); });
       flash(ok ? target.title + ' nahrazeno: palety přesunuty do nového vozidla.' : 'Palety z ' + target.title + ' se do nového vozidla nevejdou.');
       return;
     }
     keepScroll(() => {
+      snap(id);
       const fresh = !state.manual.has(id);
       const m = manualOf(id);
       addVehicle(m, state.vehicles, vi, fresh && !m.vehicles.length ? r.pallets : null);
     });
     return;
   }
-  if (e.target.id === 'resetManual') { keepScroll(() => state.manual.delete(id)); return; }
+  if (e.target.id === 'resetManual' || e.target.dataset.reset != null) { snap(id); keepScroll(() => state.manual.delete(id)); flash('Vráceno automatické rozložení. ↶ Zpět ho obnoví.'); return; }
+  if (e.target.dataset.undo != null) { keepScroll(() => undoStep(id)); return; }
   if (e.target.id === 'addPalBtn') {
     const v = $('#palPick').value.trim(), code = v.split(' · ')[0].trim();
     const t = typeOf(state.pallets, code) || state.pallets.find(p => palOption(p).toLowerCase() === v.toLowerCase());
@@ -265,12 +283,12 @@ onBoth('click', e => {
   const bp = e.target.closest('.board-pal');
   if (bp && !e.target.closest('.bp-x') && isAdmin && !suppressClick && !e.shiftKey) { openPalEditor(id, bp.dataset.bid, Number(bp.dataset.pi)); return; }
   const rm = e.target.getAttribute('data-rmveh');
-  if (rm != null) { keepScroll(() => removeVehicle(manualOf(id), Number(rm))); return; }
+  if (rm != null) { snap(id); keepScroll(() => removeVehicle(manualOf(id), Number(rm))); return; }
 });
 onBoth('dblclick', e => {
   const g = e.target.closest('.pal'); if (!g) return;
   const id = state.sel;
-  keepScroll(() => { if (!rotatePallet(manualOf(id), state.vehicles, Number(g.dataset.v), Number(g.dataset.p))) flash('Otočená se paleta nevejde nebo ji nelze otáčet.'); });
+  snap(id); keepScroll(() => { if (!rotatePallet(manualOf(id), state.vehicles, Number(g.dataset.v), Number(g.dataset.p))) flash('Otočená se paleta nevejde nebo ji nelze otáčet.'); });
 });
 // drag a pallet: a floating copy follows the pointer, the drop point in the target body is converted to mm
 let drag = null, suppressClick = false;
@@ -409,7 +427,7 @@ function endDrag(e, cancel) {
   const m = manualOf(state.sel), it = m.vehicles[d.from].items.find(i => i.id === d.pid);
   const x = (p.x - Number(svg.dataset.x0)) * S - it.w / 2, y = (p.y - Number(svg.dataset.y0)) * S - it.h / 2;
   let fail = 0;
-  keepScroll(() => { d.vgroup.forEach(([from, pid]) => { if (!movePallet(m, state.vehicles, from, pid, to, x, y)) fail++; }); });
+  snap(state.sel); keepScroll(() => { d.vgroup.forEach(([from, pid]) => { if (!movePallet(m, state.vehicles, from, pid, to, x, y)) fail++; }); });
   if (d.vgroup.length > 1) { clearSel(); flash(fail ? 'Přesunuto ' + (d.vgroup.length - fail) + ' z ' + d.vgroup.length + ' palet, ' + fail + ' se nevešlo.' : 'Přesunuto ' + d.vgroup.length + ' ' + (d.vgroup.length <= 4 ? 'palety' : 'palet') + '.'); }
   else if (fail) flash('Sem se paleta nevejde.');
 }

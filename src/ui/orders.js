@@ -197,7 +197,8 @@ function vehicleHtml(v) {
   const st = loadStats(v.items, v.W);
   const bal = st ? '<span class="bal' + (Math.abs(st.leftPct - 50) > 10 ? ' warn' : '') + '" title="Těžiště nákladu a rozložení váhy mezi levou a pravou stranu">těžiště ' + fmtM(st.cg) + ' m od kabiny · L ' + st.leftPct + ' % / P ' + (100 - st.leftPct) + ' %</span>' : '';
   const rm = v.idx != null && !v.items.length ? '<button class="veh-x" data-rmveh="' + v.idx + '" aria-label="Odebrat vozidlo">×</button>' : '';
-  return '<article class="panel veh' + (over ? ' over' : '') + '"><header><h3>' + esc(v.title) + ', korba ' + fmtM(v.L) + ' × ' + fmtM(v.W) + ' m</h3><p>' + (v.items.length ? v.items.length + ' ' + palWord(v.items.length) + ', ' + fmtKg(v.kg) + ' (' + load + ' % nosnosti' + (over ? ', přetíženo!' : '') + ')' : 'prázdné – přetáhněte sem palety') + rm + '</p>' + bal + '</header><ul class="legend">' + legend + '</ul><div class="plan">' + svgVehicle(v) + '</div></article>';
+  const tools = v.idx != null ? '<span class="veh-tools"><button class="btn small" data-undo="1" title="Vrátit poslední změnu nakládky">↶ Zpět</button><button class="btn small" data-reset="1" title="Vrátit automatické rozložení všech vozidel">Vrátit vše</button></span>' : '';
+  return '<article class="panel veh' + (over ? ' over' : '') + '"><header>' + tools + '<h3>' + esc(v.title) + ', korba ' + fmtM(v.L) + ' × ' + fmtM(v.W) + ' m</h3><p>' + (v.items.length ? v.items.length + ' ' + palWord(v.items.length) + ', ' + fmtKg(v.kg) + ' (' + load + ' % nosnosti' + (over ? ', přetíženo!' : '') + ')' : 'prázdné – přetáhněte sem palety') + rm + '</p>' + bal + '</header><ul class="legend">' + legend + '</ul><div class="plan">' + svgVehicle(v) + '</div></article>';
 }
 function depotHtml(d, rules) {
   const nonEuro = [...new Set(d.items.filter(p => !p.euro).map(p => p.code))];
