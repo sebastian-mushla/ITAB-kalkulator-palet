@@ -36,12 +36,15 @@ export function renderCatalog(catalog, view, pallets) {
     : '';
 }
 
-export function renderPallets(pallets, catalog) {
+export function renderPallets(pallets, catalog, q) {
   const used = code => catalog.filter(a => a.pal === code).length;
-  $('#palBody').innerHTML = pallets.map((p, i) => {
+  q = (q || '').trim().toLowerCase();
+  const idx = pallets.map((p, i) => i).filter(i => !q || (pallets[i].code + ' ' + pallets[i].name + ' ' + pallets[i].L + '×' + pallets[i].W).toLowerCase().includes(q));
+  $('#palInfo').textContent = idx.length + ' ' + plural(idx.length, ['typ', 'typy', 'typů']) + (idx.length !== pallets.length ? ' z ' + pallets.length : '');
+  $('#palBody').innerHTML = idx.map(i => { const p = pallets[i];
     const num = (f, step) => '<td><input type="number" min="0" step="' + step + '" data-i="' + i + '" data-f="' + f + '" value="' + (p[f] == null ? '' : p[f]) + '"></td>';
     const n = used(p.code);
-    return '<tr><td><b class="pal-code">' + esc(p.code) + '</b></td><td><input type="text" data-i="' + i + '" data-f="name" value="' + esc(p.name || '') + '" aria-label="Název"></td>' +
+    return '<tr><td><input type="text" class="pal-code-in" data-pcode="' + i + '" value="' + esc(p.code) + '" aria-label="Kód palety"></td><td><input type="text" data-i="' + i + '" data-f="name" value="' + esc(p.name || '') + '" aria-label="Název"></td>' +
       num('L', '1') + num('W', '1') + num('H', '1') + num('tare', 'any') + num('maxKg', '1') +
       '<td><input type="checkbox" data-i="' + i + '" data-f="rot"' + (p.rot !== false ? ' checked' : '') + ' aria-label="Lze otáčet"></td>' +
       '<td class="num">' + n + '</td>' +

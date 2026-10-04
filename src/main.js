@@ -697,7 +697,24 @@ $('#catFile').addEventListener('change', async e => {
 });
 
 // ---------- pallet types ----------
-const drawPallets = () => renderPallets(state.pallets, state.catalog);
+const drawPallets = () => renderPallets(state.pallets, state.catalog, $('#palSearch').value);
+$('#palSearch').addEventListener('input', drawPallets);
+// renaming a pallet code: unique, and every article, rule and open plan follows the new code
+$('#palBody').addEventListener('change', e => {
+  const i = e.target.getAttribute('data-pcode'); if (i == null) return;
+  const p = state.pallets[Number(i)], old = p.code, nu = e.target.value.trim().toUpperCase();
+  if (!nu || nu === old) { e.target.value = old; return; }
+  if (state.pallets.some(x => x !== p && x.code.toLowerCase() === nu.toLowerCase())) { flash('Kód ' + nu + ' už má jiná paleta.'); e.target.value = old; return; }
+  p.code = nu;
+  let n = 0;
+  state.catalog.forEach(a => { if (a.pal === old) { a.pal = nu; n++; } });
+  state.combos.forEach(r => { if (r.pal === old) r.pal = nu; });
+  state.plan.forEach(P => P.forEach(b => { if (b.pal === old) b.pal = nu; }));
+  state.board.forEach(L => L.forEach(b => { if (b.pal === old) b.pal = nu; }));
+  persist('pallets'); if (n) persist('catalog'); persist('combos');
+  drawPallets(); drawCatalog(); drawCombos(); recalc();
+  flash('Kód změněn: ' + old + ' → ' + nu + (n ? ' (' + n + ' ' + (n === 1 ? 'artikl' : 'artiklů') + ' upraveno)' : '') + '.');
+});
 bindTable($('#palBody'), () => state.pallets, 'pallets', drawPallets);
 $('#palBody').addEventListener('input', () => drawCatalogLater());
 let catTimer = null;
