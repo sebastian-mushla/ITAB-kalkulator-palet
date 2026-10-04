@@ -44,18 +44,44 @@ function contains(b, a, i, j) {
   return same ? j < i : true;
 }
 
+// ---------- loading norms (as in practice) ----------
+// Priority: 1) fits, weight OK  2) left/right inside tolerance and, for a heavy load, centre of gravity inside the
+// zone along the body (out of norm = big penalty)  3) as few gaps as possible (compact block from the headboard).
+// Inside the norms a small left/right difference does not matter – gaps do.
+export const NORM_DEFAULTS = { lrTol: 60, cgMin: 35, cgMax: 60, heavyShare: 50 };
+let norms = Object.assign({}, NORM_DEFAULTS);
+export function setNorms(r) { norms = Object.assign({}, NORM_DEFAULTS, r || {}); }
+
+// how a loaded body scores against the norms (lower = better)
+export function evalLoad(items, L, W, maxKg) {
+  const kg = items.reduce((s, i) => s + i.kg, 0);
+  if (!items.length || !kg) return { score: 0, gapPct: 0, leftPct: 50, cgPct: 0, latBad: 0, cgBad: 0, heavy: false };
+  const usedL = Math.max(...items.map(i => i.x + i.w));
+  const area = items.reduce((s, i) => s + i.w * i.h, 0);
+  const gapPct = Math.max(0, 1 - area / (usedL * W)) * 100;
+  const st = loadStats(items, W), cgPct = st.cg / L * 100;
+  const heavy = maxKg > 0 && kg / maxKg * 100 >= norms.heavyShare;
+  const latBad = Math.max(0, Math.abs(st.leftPct - 50) - (norms.lrTol - 50));
+  const cgBad = heavy ? Math.max(0, norms.cgMin - cgPct, cgPct - norms.cgMax) : 0;
+  return { score: 1000 * (latBad + cgBad) + gapPct + usedL / L, gapPct, leftPct: st.leftPct, cgPct, latBad, cgBad, heavy };
+}
+
 // ---------- weight distribution ----------
 // Keeps the layout (same slots), only decides which pallet sits where:
 // 1) if the heavier half is at the doors, mirror the plan so it is at the cab (x = 0);
 // 2) pallets with the same footprint swap slots: heaviest to the front, and across the width
 //    the heavier one goes to the side that is lighter so far (left/right balance).
-export function balanceLoad(items, W) {
-  if (items.length < 2) return items;
+export function balanceLoad(items, W, L, maxKg) {
+  if (!items.length) return items;
   let out = items.map(i => Object.assign({}, i));
   const usedL = Math.max(...out.map(i => i.x + i.w));
   const kg = out.reduce((s, i) => s + i.kg, 0) || 1;
   const cg = out.reduce((s, i) => s + i.kg * (i.x + i.w / 2), 0) / kg;
-  if (cg > usedL / 2 + 1) out.forEach(i => { i.x = usedL - i.x - i.w; });
+  // light load: heavy end to the headboard; heavy load: only if that keeps the centre of gravity in the zone
+  if (cg > usedL / 2 + 1) {
+    const mirrored = out.map(i => Object.assign({}, i, { x: usedL - i.x - i.w }));
+    if (!L || evalLoad(mirrored, L, W, maxKg).cgBad <= evalLoad(out, L, W, maxKg).cgBad) out = mirrored;
+  }
   const groups = new Map();
   out.forEach(i => { const k = i.w + '×' + i.h; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i); });
   let left = 0, right = 0;
@@ -81,14 +107,23 @@ export function balanceLoad(items, W) {
       k += col.length;
     }
   });
-  slideAcross(out, W);
+  // heavy load with the centre of gravity too far forward (front axle / kingpin overloaded): move the whole block back
+  if (L && maxKg) {
+    const e = evalLoad(out, L, W, maxKg);
+    if (e.heavy && e.cgPct < norms.cgMin) {
+      const room = L - Math.max(...out.map(i => i.x + i.w)), need = (norms.cgMin - e.cgPct) / 100 * L;
+      const dx = Math.max(0, Math.min(room, need));
+      if (dx > 0) out.forEach(i => { i.x += dx; });
+    }
+  }
+  // sideways sliding opens gaps, so only when left/right is out of tolerance
+  if (Math.abs(loadStats(out, W).leftPct - 50) > norms.lrTol - 50) slideAcross(out, W);
   return out;
 }
 
 // small tie-break cost: how far left/right is from 50/50 after balancing (never outweighs a vehicle's price)
-function imbalance(b, W) {
-  const st = loadStats(balanceLoad(b.items, W), W);
-  return st ? Math.abs(st.leftPct - 50) / 1e4 : 0;
+function imbalance(b, W, L, maxKg) {
+  return evalLoad(balanceLoad(b.items, W, L, maxKg), L || b.L, W, maxKg || 0).score / 1e5;
 }
 
 // 3) a pallet with free room across the body slides to the lighter side (mirror position, far edge or the wall)
@@ -101,7 +136,7 @@ function slideAcross(items, W) {
     items.slice().sort((a, b) => b.kg - a.kg).forEach(it => {
       const d0 = Math.abs(diff());
       let best = null;
-      [W - it.h - it.y, W - it.h, 0].forEach(y => {
+      [W - it.h - it.y, W - it.h, 0, (W - it.h) / 2].forEach(y => {
         if (Math.abs(y - it.y) < EPS || !free(it, y)) return;
         const old = it.y; it.y = y; const d = Math.abs(diff()); it.y = old;
         if (d < d0 - 1 && (!best || d < best.d)) best = { y, d };
@@ -124,16 +159,16 @@ function relayout(bin, v) {
   ];
   const rng = mulberry32(777);
   for (let t = 0; t < 120; t++) lists.push(items.map(i => ({ i, k: (i.kg + 1) * (0.5 + rng()) })).sort((a, b) => b.k - a.k).map(x => x.i));
-  let best = { pen: imbalancePct(bin, v.Wmm), bin };
+  let best = { pen: imbalancePct(bin, v.Wmm, v.Lmm, v.kg), bin };
   lists.forEach(list => {
     const bins = fillBins(list, v, [v]);
-    if (bins.length !== 1 || bins[0].items.length !== items.length || bins[0].usedL > bin.usedL + 1200) return;
-    const pen = imbalancePct(bins[0], v.Wmm);
+    if (bins.length !== 1 || bins[0].items.length !== items.length) return;
+    const pen = imbalancePct(bins[0], v.Wmm, v.Lmm, v.kg);
     if (pen < best.pen - 0.5) best = { pen, bin: bins[0] };
   });
   return best.bin === bin ? null : best.bin;
 }
-function imbalancePct(b, W) { const st = loadStats(balanceLoad(b.items, W), W); return st ? Math.abs(st.leftPct - 50) : 0; }
+function imbalancePct(b, W, L, maxKg) { return evalLoad(balanceLoad(b.items, W, L, maxKg), L, W, maxKg).score; }
 
 // center of gravity from the cab (mm) and share of weight on the left side
 export function loadStats(items, W) {
@@ -186,7 +221,8 @@ function fillBins(list, primary, bySize) {
 // oneVehicle: an order goes in a single vehicle whenever one can take it all (company rule), even if several smaller ones are cheaper
 // seq = zakázky of the ID in loading order: when one vehicle is not enough they are loaded one after another,
 // and the first pallet that does not fit opens the next vehicle
-export function packAll(pallets, vehicles, forced, oneVehicle, seq) {
+export function packAll(pallets, vehicles, forced, oneVehicle, seq, rules) {
+  setNorms(rules);
   let pool = prepareVehicles(vehicles);
   if (forced != null) pool = pool.filter(v => v.vi === forced);
   const oversize = [], items = [];
@@ -225,7 +261,7 @@ export function packAll(pallets, vehicles, forced, oneVehicle, seq) {
       lists.forEach(list => {
         const bins = fillBins(list, v, [v]);
         if (bins.length !== 1 || bins[0].items.length !== items.length) return;
-        const pen = imbalance(bins[0], v.Wmm);
+        const pen = imbalance(bins[0], v.Wmm, v.Lmm, v.kg);
         if (!pick || pen < pick.pen) pick = { pen, b: bins[0] };
       });
       if (pick) { best = { c: v.cost || 0, typed: [{ v, b: pick.b }] }; break; }
@@ -248,7 +284,7 @@ export function packAll(pallets, vehicles, forced, oneVehicle, seq) {
     lists.forEach(list => {
       const bins = fillBins(list, P, bySize);
       let c = 0;
-      const typed = bins.map(b => { const v = classify(b, pool); c += (v.cost || 0) + b.usedL / 1e7 + imbalance(b, v.Wmm); return { v, b }; });
+      const typed = bins.map(b => { const v = classify(b, pool); c += (v.cost || 0) + b.usedL / 1e7 + imbalance(b, v.Wmm, v.Lmm, v.kg); return { v, b }; });
       if (!best || c < best.c - 1e-9) best = { c, typed };
     });
   });
@@ -259,7 +295,7 @@ export function packAll(pallets, vehicles, forced, oneVehicle, seq) {
   const out = (best.seq ? best.typed : best.typed.sort((a, b) => b.v.Lmm * b.v.Wmm - a.v.Lmm * a.v.Wmm || b.b.usedL - a.b.usedL))
     .map(({ v, b }) => {
       const n = (counter.get(v.vi) || 0) + 1; counter.set(v.vi, n);
-      return { vi: v.vi, type: v.type, name: v.name, n, title: v.name + ' ' + n, L: v.Lmm, W: v.Wmm, maxKg: v.kg, items: balanceLoad(b.items, v.Wmm), kg: b.kg };
+      return { vi: v.vi, type: v.type, name: v.name, n, title: v.name + ' ' + n, L: v.Lmm, W: v.Wmm, maxKg: v.kg, items: balanceLoad(b.items, v.Wmm, v.Lmm, v.kg), kg: b.kg };
     });
   return { vehicles: out, oversize };
 }

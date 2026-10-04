@@ -24,10 +24,14 @@ export const VEHICLE_TYPES = [
   ['kamion', 'Kamion'], ['plachta', 'Plachťák'], ['celo', 'Dodávka s čelem'], ['dodavka', 'Dodávka'], ['jine', 'Jiné']
 ];
 
-export const DEFAULT_RULES = { oneVeh: true, mix: true, gMax: 3, oL: 2.4, oW: 1.2, pKg: 31.5, pL: 1.2 };
+export const DEFAULT_RULES = { oneVeh: true, mix: true, lrTol: 60, cgMin: 35, cgMax: 60, heavyShare: 50, gMax: 3, oL: 2.4, oW: 1.2, pKg: 31.5, pL: 1.2 };
 export const RULE_FIELDS = [
   ['oneVeh', 'Jedna zakázka jede jedním vozidlem, pokud se vejde (i když by víc menších vozidel vyšlo levněji)', 'bool'],
   ['mix', 'Neúplné palety stejného typu skládat dohromady (smíšená paleta, do 100 % a do nosnosti palety)', 'bool'],
+  ['lrTol', 'Nakládka: max. podíl váhy na jedné straně, % (60 = rozdíl do 60/40)', '1'],
+  ['cgMin', 'Nakládka: těžiště těžkého nákladu od, % délky korby', '1'],
+  ['cgMax', 'Nakládka: těžiště těžkého nákladu do, % délky korby', '1'],
+  ['heavyShare', 'Nakládka: náklad je „těžký“ od, % nosnosti vozidla', '1'],
   ['gMax', 'Sběrná služba: maximum europalet', '1'],
   ['pKg', 'Balík: maximální váha, kg', '0.5'],
   ['pL', 'Balík: nejdelší strana, m', '0.05'],

@@ -139,7 +139,7 @@ export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], 
   if (r.groupage.ok && forced == null) { r.mode = 'groupage'; r.stat = 'Sběrná služba'; }
   else {
     if (sos.length > 1) mp.pallets.forEach(p => { p.showSo = true; });
-    const pk = packAll(mp.pallets, vehicles, forced, rules.oneVeh !== false, sos);
+    const pk = packAll(mp.pallets, vehicles, forced, rules.oneVeh !== false, sos, rules);
     r.vehicles = pk.vehicles; r.oversize = pk.oversize;
     r.reco = recoText(pk.vehicles);
     if (pk.oversize.length) { r.mode = 'warn'; r.stat = 'Zkontrolovat'; }

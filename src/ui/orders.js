@@ -1,6 +1,6 @@
 import { esc, plural, fmtM, fmtKg, fmtN, color, palWord, balWord, vehWord } from '../core/util.js';
 import { groupItems } from '../core/solve.js';
-import { loadStats } from '../core/packing.js';
+import { loadStats, evalLoad, setNorms } from '../core/packing.js';
 
 const $ = s => document.querySelector(s);
 const ldmText = r => r.ldm.toLocaleString('cs-CZ', { maximumFractionDigits: 1 });
@@ -227,8 +227,10 @@ function vehicleHtml(v) {
   const legend = groupItems(v.items).map(g => '<li><i class="sw" style="background:' + color(g.ci) + '"></i>' + esc(g.code) + ': ' + g.count + ' ' + palWord(g.count) + ', ' + g.units + ' ks</li>').join('') +
     extrasOf(v.items).map(e => '<li><i class="sw" style="background:' + color(e.ci) + '"></i>' + esc(e.code) + ': ' + e.units + ' ks na paletách ' + esc(e.host) + '</li>').join('');
   const load = v.maxKg ? Math.round(v.kg / v.maxKg * 100) : 0, over = v.kg > v.maxKg;
-  const st = loadStats(v.items, v.W);
-  const bal = st ? '<span class="bal' + (Math.abs(st.leftPct - 50) > 10 ? ' warn' : '') + '" title="Těžiště nákladu a rozložení váhy mezi levou a pravou stranu">těžiště ' + fmtM(st.cg) + ' m od kabiny · L ' + st.leftPct + ' % / P ' + (100 - st.leftPct) + ' %</span>' : '';
+  const st = loadStats(v.items, v.W), ev = st ? evalLoad(v.items, v.L, v.W, v.maxKg) : null;
+  const warn = ev ? [ev.latBad ? 'strany mimo normu' : '', ev.cgBad ? 'těžiště mimo zónu ' + normsNow.cgMin + '–' + normsNow.cgMax + ' %' : ''].filter(Boolean) : [];
+  const bal = st ? '<span class="bal' + (warn.length ? ' warn' : '') + '" title="Mezery = prázdná plocha v obsazené části korby. Strany v normě do ' + normsNow.lrTol + '/' + (100 - normsNow.lrTol) + '. Těžiště těžkého nákladu má být ' + normsNow.cgMin + '–' + normsNow.cgMax + ' % délky korby.">' +
+    'mezery ' + Math.round(ev.gapPct) + ' % · těžiště ' + fmtM(st.cg) + ' m (' + Math.round(ev.cgPct) + ' % délky) · L ' + st.leftPct + ' % / P ' + (100 - st.leftPct) + ' %' + (warn.length ? ' – ' + warn.join(', ') : ' – v normě ✓') + '</span>' : '';
   const rm = v.idx != null && !v.items.length ? '<button class="veh-x" data-rmveh="' + v.idx + '" aria-label="Odebrat vozidlo">×</button>' : '';
   const tools = v.idx != null ? '<span class="veh-tools"><button class="btn small" data-undo="1" title="Vrátit poslední změnu nakládky">↶ Zpět</button><button class="btn small" data-reset="1" title="Vrátit automatické rozložení všech vozidel">Vrátit vše</button></span>' : '';
   return '<article class="panel veh' + (over ? ' over' : '') + '"><header>' + tools + '<h3>' + esc(v.title) + ', korba ' + fmtM(v.L) + ' × ' + fmtM(v.W) + ' m</h3><p>' + (v.items.length ? v.items.length + ' ' + palWord(v.items.length) + ', ' + fmtKg(v.kg) + ' (' + load + ' % nosnosti' + (over ? ', přetíženo!' : '') + ')' : 'prázdné – přetáhněte sem palety') + rm + '</p>' + bal + '</header><ul class="legend">' + legend + '</ul><div class="plan">' + svgVehicle(v) + '</div>' + (v.items.length ? palletTable(v, nameOf) : '') + '</article>';
@@ -354,7 +356,9 @@ export function renderDetail(r, { rules, isAdmin, board, pallets }) {
 }
 
 // ---------- tab 2: loading (docking) ----------
+let normsNow = { lrTol: 60, cgMin: 35, cgMax: 60 };
 export function renderDock(r, { rules, vehicles }) {
+  setNorms(rules); normsNow = Object.assign({}, normsNow, rules);
   const el = $('#dock');
   if (!r) { el.innerHTML = '<div class="empty">Vyberte zakázku vlevo nebo ji nejdřív spočítejte v kalkulátoru.</div>'; return; }
   let h = '<div class="sec-head"><h2>Nakládka – ' + idTitle(r) + '</h2>' + vehiclePicker(r, vehicles) + '</div>';

@@ -228,9 +228,21 @@ document.documentElement.setAttribute('data-theme',t);})();
             <p>Vozidlo „unese“ zakázku, když se palety vejdou na korbu (pohled shora, s otáčením), celková váha je do nosnosti a počet palet do „Max palet“. Cena na záložce Vozidla je relativní: čím nižší, tím raději vozidlo volíme.</p>
             <p>Když se zakázka nevejde do žádného jednoho vozidla, rozdělí se do více vozidel tak, aby součet cen byl co nejnižší.</p>
             <p>Na detailu zakázky můžete v poli „Vozidlo“ vybrat konkrétní vozidlo ručně – pak počítáme jen s ním.</p></section>
-          <section class="card"><h2>5. Rozložení na korbě</h2>
-            <p>Palety skládáme shora (2D) od čela korby. Zkoušíme stovky pořadí a natočení palet a bereme nejlepší výsledek. Výsledek je pokaždé stejný (není náhodný).</p>
-            <p><b>Rozložení váhy:</b> těžké palety dáváme ke kabině, palety stejného rozměru prohazujeme tak, aby levá a pravá strana vážila podobně. V záhlaví vozidla vidíte těžiště (metry od kabiny) a poměr levá/pravá. Při rozdílu nad 10 % je údaj oranžový. Palety různé šířky (např. 130 a 80 cm) někdy vyrovnat nejdou.</p>
+          <section class="card wide"><h2>5. Rozložení na korbě – pravidla jako v praxi</h2>
+            <p>Kalkulátor skládá palety shora (2D, bez stohování) od čela korby a zkouší stovky pořadí a natočení. Z variant, které se vejdou, vybírá podle těchto priorit:</p>
+            <ol>
+              <li><b>Vejde se a nepřetíží.</b> Rozměry korby, nosnost vozidla, max. počet palet. Bez výjimky.</li>
+              <li><b>Bezpečnost v normě.</b>
+                <ul>
+                  <li><b>Levá / pravá strana:</b> na jedné straně nejvýše <b data-help="lrTol"></b> % váhy. <i>Uvnitř této normy nevadí, když je jedna strana těžší</i> – kvůli tomu se palety nepřesouvají a nevznikají mezery. Teprve mimo normu se palety posunou napříč korbou k lehčí straně (i na střed).</li>
+                  <li><b>Těžiště po délce:</b> u <i>těžkého</i> nákladu (od <b data-help="heavyShare"></b> % nosnosti vozidla) musí být těžiště v pásmu <b data-help="cgMin"></b>–<b data-help="cgMax"></b> % délky korby od čela. U návěsu je to oblast zhruba 4–8 m od točnice, kde se váha nejlépe rozdělí mezi tahač a nápravy návěsu; u dodávky a menších vozidel prostor mezi nápravami. Když je těžký náklad příliš vepředu (přetížená přední náprava / točnice), celý blok se posune dozadu.</li>
+                  <li>U <i>lehkého</i> nákladu jde těžší konec k čelu korby a náklad se opírá o čelo – tak je nejlépe zajištěný.</li>
+                </ul></li>
+              <li><b>Co nejméně mezer.</b> Uvnitř norem vyhrává rozložení s nejmenší prázdnou plochou v obsazené části korby a nejkratší obsazenou délkou. Kompaktní blok bez mezer se při brzdění a v zatáčkách nehýbe a potřebuje méně fixace.</li>
+            </ol>
+            <p>V záhlaví každého vozidla vidíte: <b>mezery %</b>, <b>těžiště</b> (m a % délky) a <b>poměr L / P</b>. Zelené „v normě ✓“, oranžově s důvodem, když je něco mimo normu. Hodnoty norem nastavíte na záložce Pravidla.</p>
+            <p>Další pravidla: palety stejného rozměru se prohazují tak, aby těžší byly vpředu a strany vyrovnané; když se zakázky jednoho ID nevejdou do jednoho vozidla, nakládají se postupně. Nápravy konkrétního vozidla (rozvor, povolené zatížení náprav) zatím nepočítáme – kalkulátor hlídá polohu těžiště jako náhradu.</p>
+            <p class="hint">Zdroje: <a href="https://op.europa.eu/en/publication-detail/-/publication/30c7c1dc-f26e-44af-bd4c-2434b43edd7e" target="_blank" rel="noopener">Evropské směrnice pro zajištění nákladu v silniční dopravě</a> (mezery minimální, náklad opřený o čelo, těžiště co nejblíže podélné ose a co nejníže), <a href="https://hansatic.com/en/guides/truck-axle-weight-distribution" target="_blank" rel="noopener">rozložení na nápravy návěsu</a> (těžký náklad 4–8 m od točnice), <a href="https://www.vanguide.co.uk/guides/van-overloading/" target="_blank" rel="noopener">nakládání dodávek</a> (těžké mezi nápravy, ne za zadní nápravu).</p>
             <p>LDM (ložné metry) je odhad: plocha palet ÷ šířka korby.</p></section>
           <section class="card"><h2>6. Nakládka (záložka Nakládka)</h2>
             <p>Palety ve vozidle mají velké <b>číslo</b> (od kabiny ke dveřím). Pod nákresem je <b>seznam palet</b> se všemi údaji (zakázka, artikl, název, kusy, váha, typ palety) – dlouhé kódy a názvy se tak dají přečíst. Tlačítky <b>− / +</b> nákres zvětšíte.</p>
