@@ -58,14 +58,14 @@ export const cases = [
     assert(r.mode === 'trucks' && r.vehicles.length === 1 && r.vehicles[0].type === 'plachta', r.reco);
     checkLayout(r);
   }],
-  ['Ruční volba: 505111 na dodávce → nadrozměr se nevejde', () => {
+  ['Ruční volba: 505111 jen na dodávkách 3,5 t → všechna vozidla jsou dodávky', () => {
     const r = run('505111', { forced: 3 });
-    assert(r.mode === 'warn' && r.oversize.length > 0, 'mode: ' + r.mode);
+    assert(r.vehicles.length > 0 && r.vehicles.every(v => v.type === 'dodavka'), r.reco);
     checkLayout(r);
   }],
-  ['Jedna zakázka = jedno vozidlo: 5 europalet (2340 kg) → 1 kamion, ne 3 dodávky', () => {
+  ['Jedna zakázka = jedno vozidlo: 5 europalet (2465 kg) → 1 sólo 7,5 t, ne 3 dodávky', () => {
     const r = solve(parseOrders('X;V-POL;' + (156 * 5)).orders.get('X'), ctx);
-    assert(r.vehicles.length === 1 && r.vehicles[0].type === 'kamion', r.reco);
+    assert(r.vehicles.length === 1 && r.vehicles[0].type === 'solo', r.reco);
     checkLayout(r);
   }],
   ['Jedna zakázka = jedno vozidlo: 2 europalety (900 kg) → nejlevnější vozidlo, které unese vše', () => {

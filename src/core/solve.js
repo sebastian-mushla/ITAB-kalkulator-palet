@@ -112,7 +112,8 @@ export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], 
   r.units = mp.rows.reduce((s, x) => s + x.qty, 0);
   const pool = prepareVehicles(vehicles);
   const widest = pool.slice().sort((a, b) => b.Lmm * b.Wmm - a.Lmm * a.Wmm)[0];
-  const ldmW = widest ? widest.Wmm : 2400;
+  // LDM is an industry unit: 1 m of trailer length at the standard width of 2.4 m
+  const ldmW = 2400; void widest;
   r.ldm = mp.pallets.reduce((s, p) => s + p.pl * p.pw, 0) / ldmW / 1000;
   r.euroCount = mp.pallets.filter(p => p.euro).length;
   r.big = [];

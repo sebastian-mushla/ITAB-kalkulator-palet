@@ -185,7 +185,8 @@ const TYPE_ALIASES = {
   kamion: ['kamion', 'fura', 'фура', 'kamion', 'navesa', 'naves', 'truck', 'камион'],
   plachta: ['plachta', 'plachtak', 'plachtovy', 'tent', 'тент', 'плахта'],
   celo: ['celo', 'celem', 'lift', 'dodavkascelem', 'чело', 'лифт'],
-  dodavka: ['dodavka', 'van', 'mikrobus', 'bus', 'микроавтобус', 'бус']
+  dodavka: ['dodavka', 'van', 'mikrobus', 'bus', 'микроавтобус', 'бус'],
+  solo: ['solo', 'sólo', 'nakladni', 'rigid', '7,5', '12 t', '18 t']
 };
 function typeValue(v) {
   const s = norm(v);

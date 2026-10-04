@@ -14,14 +14,18 @@ export const DEFAULT_PALLETS = [
 
 // L, W in metres. eup = max pallets on board (0 = no limit). cost = relative price, lower wins.
 export const DEFAULT_VEHICLES = [
-  { name: 'Kamion (návěs)', type: 'kamion', L: 13.6, W: 2.4, kg: 24000, eup: 33, lift: false, cost: 1 },
-  { name: 'Plachťák', type: 'plachta', L: 4.8, W: 2.2, kg: 1200, eup: 8, lift: false, cost: 0.6 },
-  { name: 'Dodávka s čelem', type: 'celo', L: 4.2, W: 2.0, kg: 1000, eup: 6, lift: true, cost: 0.45 },
-  { name: 'Dodávka', type: 'dodavka', L: 3.2, W: 1.7, kg: 1000, eup: 3, lift: false, cost: 0.3 }
+  // typical inner dimensions / payloads in CZ & EU (see 'Jak to funguje'); the operator adjusts them to his carriers
+  { name: 'Kamion – návěs 13,6 m (plachta)', type: 'kamion', L: 13.6, W: 2.45, kg: 24000, eup: 33, lift: false, cost: 1 },
+  { name: 'Plachťák 3,5 t (8 palet)', type: 'plachta', L: 4.8, W: 2.2, kg: 1100, eup: 8, lift: false, cost: 0.35 },
+  { name: 'Dodávka 3,5 t s hydraulickým čelem', type: 'celo', L: 4.2, W: 2.1, kg: 900, eup: 8, lift: true, cost: 0.4 },
+  { name: 'Dodávka 3,5 t (skříň)', type: 'dodavka', L: 3.7, W: 1.75, kg: 1100, eup: 5, lift: false, cost: 0.25 },
+  { name: 'Sólo 7,5 t (15 palet)', type: 'solo', L: 6.0, W: 2.45, kg: 2800, eup: 15, lift: true, cost: 0.55 },
+  { name: 'Sólo 12 t (17 palet)', type: 'solo', L: 7.2, W: 2.45, kg: 5500, eup: 17, lift: true, cost: 0.7 },
+  { name: 'Sólo 18 t (20 palet)', type: 'solo', L: 8.2, W: 2.45, kg: 9000, eup: 20, lift: false, cost: 0.8 }
 ];
 
 export const VEHICLE_TYPES = [
-  ['kamion', 'Kamion'], ['plachta', 'Plachťák'], ['celo', 'Dodávka s čelem'], ['dodavka', 'Dodávka'], ['jine', 'Jiné']
+  ['kamion', 'Kamion'], ['plachta', 'Plachťák'], ['celo', 'Dodávka s čelem'], ['dodavka', 'Dodávka'], ['solo', 'Sólo (nákladní auto)'], ['jine', 'Jiné']
 ];
 
 export const DEFAULT_RULES = { oneVeh: true, mix: true, lrTol: 60, cgMin: 35, cgMax: 60, heavyShare: 50, gMax: 3, oL: 2.4, oW: 1.2, pKg: 31.5, pL: 1.2 };

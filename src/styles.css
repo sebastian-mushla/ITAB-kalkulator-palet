@@ -507,3 +507,4 @@ tr.so-head td{background:var(--soft);font-size:13px;padding:6px 10px;color:var(-
 .board-pal b,.board-pal span,.board-pal small,.board-pal em{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .board-pal b{font-size:14px}.board-pal span{font-size:12.5px}
 .help .card.wide{grid-column:1/-1}.help ol{margin:0 0 8px;padding-left:20px}.help ol li{margin-bottom:8px}.help ol ul{margin-top:6px}
+.help table.fleet{font-size:13px;margin:6px 0 8px}.help table.fleet td,.help table.fleet th{padding:5px 8px}
