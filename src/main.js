@@ -6,7 +6,7 @@ import { parseOrders, rowsToOrderText, ordersToText } from './core/parse.js';
 import { solve } from './core/solve.js';
 import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle, replaceVehicle, DEPOT } from './core/manual.js';
 import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, rowsToPallets, mergeBy, toCsv } from './io/importTable.js';
-import { renderKpis, renderPriorities, renderList, renderDetail, renderDock, requestText, loadPlanHtml, palOption } from './ui/orders.js';
+import { renderKpis, renderPriorities, renderList, renderDetail, renderDock, requestText, loadPlanHtml, palOption, setNameLookup } from './ui/orders.js';
 import { ringilHtml } from './ui/ringil.js';
 import { renderOrderTable, statusOf, transportOf } from './ui/ordertable.js';
 import { packListHtml } from './ui/packlist.js';
@@ -15,6 +15,17 @@ import { esc } from './core/util.js';
 import { renderCatalog, renderPallets, renderVehicles, renderCombos, renderRules, importReport } from './ui/settings.js';
 
 const $ = s => document.querySelector(s);
+// article names for the pallet lists (catalog first, then the order lines)
+setNameLookup(code => {
+  const k = String(code).toLowerCase(), a = state.catalog.find(x => String(x.code).toLowerCase() === k);
+  if (a && a.name) return a.name;
+  const o = state.orders.get(state.sel), l = o && [...o.lines.values()].find(x => x.code.toLowerCase() === k);
+  return l ? l.name || '' : '';
+});
+// zoom of the vehicle drawings (remembered)
+let zoom = load('itab.zoom.v1', 1);
+const applyZoom = () => document.documentElement.style.setProperty('--zoom', zoom);
+applyZoom();
 // calculator (#detail) and loading (#dock) share the same click / drag handlers
 function onBoth(type, fn) { $('#detail').addEventListener(type, fn); $('#dock').addEventListener(type, fn); }
 const KEYS = { list: 'itab.orderlist.v1', catalog: 'itab.catalog.v1', vehicles: 'itab.vehicles.v1', rules: 'itab.rules.v1', combos: 'itab.combos.v1', csv: 'itab.orders.v1' };
@@ -306,6 +317,7 @@ onBoth('click', e => {
   }
   if (e.target.id === 'resetManual' || e.target.dataset.reset != null) { snap(id); keepScroll(() => state.manual.delete(id)); flash('Vráceno automatické rozložení. ↶ Zpět ho obnoví.'); return; }
   if (e.target.dataset.undo != null) { keepScroll(() => undoStep(id)); return; }
+  if (e.target.dataset.zoom != null) { zoom = Math.max(1, Math.min(3, Math.round((zoom + Number(e.target.dataset.zoom) * 0.5) * 2) / 2)); save('itab.zoom.v1', zoom); applyZoom(); flash('Měřítko nákresu ' + Math.round(zoom * 100) + ' %'); return; }
   if (e.target.id === 'addPalBtn') {
     const v = $('#palPick').value.trim(), code = v.split(' · ')[0].trim();
     const t = typeOf(state.pallets, code) || state.pallets.find(p => palOption(p).toLowerCase() === v.toLowerCase());

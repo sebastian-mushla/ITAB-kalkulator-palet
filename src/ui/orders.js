@@ -37,6 +37,7 @@ export function svgVehicle(v) {
     s += '<rect x="' + x0 + '" y="' + y0 + '" width="' + Lw + '" height="' + Hw + '" style="fill:var(--truck);stroke:var(--truck-line);stroke-width:2"/>';
   }
   if (v.lift) s += '<rect x="' + (x0 + Lw + 3) + '" y="' + (y0 + Hw * 0.1) + '" width="' + (lift - 6) + '" height="' + (Hw * 0.8) + '" rx="2" style="fill:none;stroke:var(--truck-line);stroke-width:2;stroke-dasharray:4 3"/>';
+  const numOf = palletNumbers(v.items);
   v.items.forEach(it => {
     const px = x0 + it.x / S + 1.5, py = y0 + it.y / S + 1.5, pw = it.w / S - 3, ph = it.h / S - 3, col = color(it.ci), partial = it.fill < 0.999;
     if (drag) s += '<g class="pal" data-v="' + v.idx + '" data-p="' + it.id + '"><title>' + esc((it.pal ? it.pal + (it.palName ? ' ' + it.palName : '') + ' · ' : '') + it.code + ', ' + it.units + ' ks' + (it.extra ? ' + ' + it.extra.map(e => e.code + ' ' + e.units + ' ks').join(', ') : '') + ' · ' + Math.round(it.kg) + ' kg') + ' – přetáhněte, dvojklik otočí</title>';
@@ -45,17 +46,20 @@ export function svgVehicle(v) {
       if (pw >= ph) s += '<rect x="' + px + '" y="' + py + '" width="' + (pw * it.fill) + '" height="' + ph + '" rx="2" style="fill:' + col + '"/>';
       else s += '<rect x="' + px + '" y="' + py + '" width="' + pw + '" height="' + (ph * it.fill) + '" rx="2" style="fill:' + col + '"/>';
     } else s += '<rect x="' + px + '" y="' + py + '" width="' + pw + '" height="' + ph + '" rx="2" style="fill:' + col + '"/>';
-    if (ph >= 24 && pw >= 50) {
-      const l1 = it.code, l2 = it.units + ' ks' + (partial ? ', ' + Math.round(it.fill * 100) + '%' : '');
-      if (it.showSo && it.so && ph >= 30) s += '<text x="' + (px + 4) + '" y="' + (py + 11) + '" style="fill:#fff;font-size:9.5px;font-weight:700;opacity:.95">Z ' + esc(it.so) + '</text>';
-      const l3 = it.extra ? '+ ' + it.extra.map(e => e.code + ' ' + e.units + ' ks').join(', ') : '';
-      const fs = Math.max(9, Math.min(18, ph / (l3 ? 5.4 : 4.2), pw / (0.6 * Math.max(l1.length, l2.length, l3.length) + 0.6)));
-      const cx = px + pw / 2, cyy = py + ph / 2;
-      const st = 'fill:#fff;font-weight:600;text-anchor:middle;paint-order:stroke;stroke:' + col + ';stroke-width:3px;stroke-linejoin:round;font-size:' + fs.toFixed(1) + 'px';
-      s += '<text x="' + cx + '" y="' + (cyy - fs * 0.1) + '" style="' + st + '">' + esc(l1) + '</text>';
-      s += '<text x="' + cx + '" y="' + (cyy + fs * 1.1) + '" style="' + st + '">' + esc(l2) + '</text>';
-      if (l3) s += '<text x="' + cx + '" y="' + (cyy + fs * 2.3) + '" style="' + st + '">' + esc(l3) + '</text>';
+    // big number always fits; code / pcs only when there is room (long codes are cut with …), full data is in the table below
+    const n = numOf.get(it), cx = px + pw / 2, cyy = py + ph / 2;
+    const st = 'fill:#fff;font-weight:700;text-anchor:middle;paint-order:stroke;stroke:' + col + ';stroke-width:3px;stroke-linejoin:round';
+    const big = Math.max(11, Math.min(26, ph * 0.45, pw * 0.5));
+    const roomy = ph >= 44 && pw >= 60;
+    s += '<text x="' + cx + '" y="' + (roomy ? cyy - 2 : cyy + big * 0.36) + '" style="' + st + ';font-size:' + big.toFixed(1) + 'px">' + n + '</text>';
+    if (roomy) {
+      const fs = Math.max(9, Math.min(13, ph / 5));
+      const maxCh = Math.max(4, Math.floor(pw / (fs * 0.58)));
+      const cut = t => (t.length > maxCh ? t.slice(0, maxCh - 1) + '…' : t);
+      s += '<text x="' + cx + '" y="' + (cyy + fs * 1.1) + '" style="' + st + ';font-weight:600;font-size:' + fs.toFixed(1) + 'px">' + esc(cut(it.code + (it.extra ? ' +' + it.extra.length : ''))) + '</text>';
+      s += '<text x="' + cx + '" y="' + (cyy + fs * 2.25) + '" style="' + st + ';font-weight:500;font-size:' + fs.toFixed(1) + 'px">' + esc(cut(it.units + ' ks' + (partial ? ' · ' + Math.round(it.fill * 100) + ' %' : ''))) + '</text>';
     }
+    if (it.showSo && it.so && ph >= 30 && pw >= 46) s += '<text x="' + (px + 3) + '" y="' + (py + 10) + '" style="fill:#fff;font-size:9px;font-weight:700;opacity:.95">' + esc(String(it.so).slice(-6)) + '</text>';
     if (drag) s += '</g>';
   });
   const ry = y0 + Hw + 6;
@@ -199,6 +203,26 @@ function extrasOf(items) {
   }));
   return [...m.values()];
 }
+// pallets numbered from the cab to the doors, left to right
+export function palletNumbers(items) {
+  const m = new Map();
+  items.slice().sort((a, b) => a.x - b.x || a.y - b.y).forEach((it, i) => m.set(it, i + 1));
+  return m;
+}
+// the readable part: one row per pallet with everything that does not fit on the drawing
+function palletTable(v, names) {
+  const numOf = palletNumbers(v.items);
+  const multi = v.items.some(i => i.showSo);
+  const rows = v.items.slice().sort((a, b) => numOf.get(a) - numOf.get(b)).map(it => {
+    const arts = [{ code: it.code, units: it.units }].concat(it.extra || []);
+    return '<tr><td class="num"><b class="pn" style="background:' + color(it.ci) + '">' + numOf.get(it) + '</b></td>' + (multi ? '<td>' + esc(it.so || '') + '</td>' : '') +
+      '<td>' + arts.map(a => '<b>' + esc(a.code) + '</b>').join('<br>') + '</td><td class="pt-name">' + arts.map(a => esc(names(a.code))).join('<br>') + '</td>' +
+      '<td class="num">' + arts.map(a => fmtN(a.units) + ' ks').join('<br>') + '</td><td class="num">' + fmtN(it.kg) + ' kg</td><td>' + esc(it.pal || '') + (it.fill < 0.999 ? ' · ' + Math.round(it.fill * 100) + ' %' : '') + '</td></tr>';
+  }).join('');
+  return '<details class="ptable" open><summary>Seznam palet (' + v.items.length + ')</summary><div class="tscroll"><table><thead><tr><th class="num">Č.</th>' + (multi ? '<th>Zakázka</th>' : '') + '<th>Artikl</th><th>Název</th><th class="num">Kusů</th><th class="num">Váha</th><th>Paleta</th></tr></thead><tbody>' + rows + '</tbody></table></div></details>';
+}
+let nameOf = () => '';
+export function setNameLookup(fn) { nameOf = fn; }
 function vehicleHtml(v) {
   const legend = groupItems(v.items).map(g => '<li><i class="sw" style="background:' + color(g.ci) + '"></i>' + esc(g.code) + ': ' + g.count + ' ' + palWord(g.count) + ', ' + g.units + ' ks</li>').join('') +
     extrasOf(v.items).map(e => '<li><i class="sw" style="background:' + color(e.ci) + '"></i>' + esc(e.code) + ': ' + e.units + ' ks na paletách ' + esc(e.host) + '</li>').join('');
@@ -207,7 +231,7 @@ function vehicleHtml(v) {
   const bal = st ? '<span class="bal' + (Math.abs(st.leftPct - 50) > 10 ? ' warn' : '') + '" title="Těžiště nákladu a rozložení váhy mezi levou a pravou stranu">těžiště ' + fmtM(st.cg) + ' m od kabiny · L ' + st.leftPct + ' % / P ' + (100 - st.leftPct) + ' %</span>' : '';
   const rm = v.idx != null && !v.items.length ? '<button class="veh-x" data-rmveh="' + v.idx + '" aria-label="Odebrat vozidlo">×</button>' : '';
   const tools = v.idx != null ? '<span class="veh-tools"><button class="btn small" data-undo="1" title="Vrátit poslední změnu nakládky">↶ Zpět</button><button class="btn small" data-reset="1" title="Vrátit automatické rozložení všech vozidel">Vrátit vše</button></span>' : '';
-  return '<article class="panel veh' + (over ? ' over' : '') + '"><header>' + tools + '<h3>' + esc(v.title) + ', korba ' + fmtM(v.L) + ' × ' + fmtM(v.W) + ' m</h3><p>' + (v.items.length ? v.items.length + ' ' + palWord(v.items.length) + ', ' + fmtKg(v.kg) + ' (' + load + ' % nosnosti' + (over ? ', přetíženo!' : '') + ')' : 'prázdné – přetáhněte sem palety') + rm + '</p>' + bal + '</header><ul class="legend">' + legend + '</ul><div class="plan">' + svgVehicle(v) + '</div></article>';
+  return '<article class="panel veh' + (over ? ' over' : '') + '"><header>' + tools + '<h3>' + esc(v.title) + ', korba ' + fmtM(v.L) + ' × ' + fmtM(v.W) + ' m</h3><p>' + (v.items.length ? v.items.length + ' ' + palWord(v.items.length) + ', ' + fmtKg(v.kg) + ' (' + load + ' % nosnosti' + (over ? ', přetíženo!' : '') + ')' : 'prázdné – přetáhněte sem palety') + rm + '</p>' + bal + '</header><ul class="legend">' + legend + '</ul><div class="plan">' + svgVehicle(v) + '</div>' + (v.items.length ? palletTable(v, nameOf) : '') + '</article>';
 }
 function depotHtml(d, rules) {
   const nonEuro = [...new Set(d.items.filter(p => !p.euro).map(p => p.code))];
@@ -233,12 +257,13 @@ export function loadPlanHtml(r, vehicles) {
     const plain = Object.assign({}, v, { idx: null, lift: vehicles[v.vi] && vehicles[v.vi].lift });
     const legend = groupItems(v.items).map(g => '<li><i style="background:' + color(g.ci) + '"></i>' + esc(g.code) + ': ' + g.count + ' ' + palWord(g.count) + ', ' + g.units + ' ks</li>').join('') +
       extrasOf(v.items).map(e => '<li><i style="background:' + color(e.ci) + '"></i>' + esc(e.code) + ': ' + e.units + ' ks na paletách ' + esc(e.host) + '</li>').join('');
-    return '<section><h2>' + esc(v.title) + ' <small>korba ' + fmtM(v.L) + ' × ' + fmtM(v.W) + ' m · ' + v.items.length + ' ' + palWord(v.items.length) + ' · ' + fmtKg(v.kg) + '</small></h2><ul>' + legend + '</ul>' + svgVehicle(plain) + '</section>';
+    return '<section><h2>' + esc(v.title) + ' <small>korba ' + fmtM(v.L) + ' × ' + fmtM(v.W) + ' m · ' + v.items.length + ' ' + palWord(v.items.length) + ' · ' + fmtKg(v.kg) + '</small></h2><ul>' + legend + '</ul>' + svgVehicle(plain) + (v.items.length ? palletTable(v, nameOf) : '') + '</section>';
   }).join('') : '<p>Zakázka nemá vlastní vozidlo (jede sběrnou službou).</p>';
   return '<!DOCTYPE html><html lang="cs"><head><meta charset="utf-8"><title>Nakládka – ID ' + esc(r.id) + '</title><style>' +
     ':root{--truck:#F1EFFA;--truck-line:#4A4568;--ink2:#555}' +
     'body{font-family:Inter,Arial,sans-serif;color:#111;margin:24px;font-size:13px}h1{font-size:22px;margin:0 0 4px}.meta{color:#555}' +
     'section{margin-top:20px;break-inside:avoid}h2{font-size:16px;margin:0 0 6px}h2 small{color:#555;font-weight:400;font-size:13px}' +
+    'table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px}th,td{border:1px solid #bbb;padding:4px 6px;text-align:left;vertical-align:top}.num{text-align:right}.pn{display:inline-block;min-width:20px;padding:1px 5px;border-radius:5px;color:#fff;text-align:center}summary{display:none}' +
     'ul{list-style:none;padding:0;margin:0 0 8px;display:flex;flex-wrap:wrap;gap:4px 16px}ul i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}' +
     'svg{width:100%;height:auto;max-width:100%!important;min-width:0!important}' +
     '@media print{body{margin:10mm}button{display:none}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}@page{size:landscape}' +
@@ -261,9 +286,9 @@ function unknownTray(r, isAdmin) {
 // Admin also gets a palette of pallet types to drag onto the board (empty pallet for this order).
 export function palOption(t) { return t.code + ' · ' + t.name + ' · ' + Math.round(t.L / 10) + ' × ' + Math.round(t.W / 10) + ' cm'; }
 function palletBoardHtml(r, isAdmin, board, types) {
-  const S = 0.07; // px per mm
+  const S = 0.085; // px per mm
   const block = (p, attrs, inner, cls) => {
-    const w = Math.max(70, p.pl * S), hh = Math.max(50, p.pw * S);
+    const w = Math.max(104, p.pl * S), hh = Math.max(66, p.pw * S);
     return '<div class="board-pal' + (cls || '') + '" ' + attrs + ' style="width:' + w.toFixed(0) + 'px;height:' + hh.toFixed(0) + 'px;--c:' + color(p.ci) + ';--f:' + Math.min(100, Math.round(p.fill * 100)) + '%">' + inner + '</div>';
   };
   const multi = (r.sos || []).length > 1;
@@ -340,7 +365,7 @@ export function renderDock(r, { rules, vehicles }) {
     const opts = vehicles.map((v, i) => '<option value="' + i + '">' + esc(v.name) + ' – ' + String(v.L).replace('.', ',') + ' × ' + String(v.W).replace('.', ',') + ' m</option>').join('') +
       (r.depot ? '' : '<option value="depot">Sběrná služba (PPL, DPD, UPS…)</option>');
     h += '<div class="sec-head vis"><h2>Vozidla' + (r.reco ? ': ' + esc(r.reco) : '') + '</h2>' +
-      '<div class="vehtools"><select id="addVehSel" aria-label="Vozidlo k přidání">' + opts + '</select><button class="btn" id="addVehBtn">+ Přidat vozidlo</button>' +
+      '<div class="vehtools"><span class="zoom" role="group" aria-label="Měřítko nákresu"><button class="btn small" data-zoom="-1" title="Zmenšit">−</button><button class="btn small" data-zoom="1" title="Zvětšit">+</button></span><select id="addVehSel" aria-label="Vozidlo k přidání">' + opts + '</select><button class="btn" id="addVehBtn">+ Přidat vozidlo</button>' +
       (r.manualOn ? '<button class="btn" id="resetManual">Vrátit automatické rozložení</button>' : '') + '</div></div>';
     if (r.vehicles.length || r.depot) h += '<p class="hint drag-hint">Paletu chyťte myší a přetáhněte jinam nebo do jiného vozidla. Dvojklik paletu otočí. Prázdné vozidlo odeberete křížkem.</p>';
     h += r.vehicles.map((v, i) => vehicleHtml(Object.assign({ idx: i }, v, { lift: vehicles[v.vi] && vehicles[v.vi].lift }))).join('');

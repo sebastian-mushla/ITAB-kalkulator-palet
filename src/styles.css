@@ -494,3 +494,15 @@ dialog.dlg-wide .pe-row{grid-template-columns:minmax(0,1fr) auto auto}
 .id-sos{font-size:14px;font-weight:500;color:var(--ink2)}
 tr.so-head td{background:var(--soft);font-size:13px;padding:6px 10px;color:var(--ink2)}
 .otable .sos{display:block;color:var(--ink2);font-size:11.5px}
+
+/* readability: numbered pallets + list, zoom */
+.ptable{margin-top:8px}.ptable summary{font-size:13.5px;color:var(--ink2)}
+.ptable table{font-size:13px}.ptable td,.ptable th{padding:5px 8px;vertical-align:top}
+.ptable .pt-name{color:var(--ink2);max-width:280px}
+.pn{display:inline-grid;place-items:center;min-width:24px;height:22px;padding:0 5px;border-radius:6px;color:#fff;font-size:12px}
+.zoom{display:inline-flex;gap:2px;margin-right:6px}.zoom .btn{min-width:30px}
+:root{--zoom:1}
+#dock .plan svg{min-width:calc(var(--zoom) * 560px)!important;max-width:none!important;width:calc(var(--zoom) * 100%)!important}
+.board-pal{padding:6px 8px}
+.board-pal b,.board-pal span,.board-pal small,.board-pal em{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.board-pal b{font-size:14px}.board-pal span{font-size:12.5px}
