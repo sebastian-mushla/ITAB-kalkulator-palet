@@ -32,11 +32,23 @@ function applyPlan(mp, plan, lines, catalog, types) {
   mp.unknown = left.map(u => Object.assign(u, { known: idx.has(u.code.toLowerCase()) }));
   mp.errors = mp.errors.filter(e => !/není v číselníku|se nevešlo/.test(e));
   left.forEach(u => mp.errors.push('Artikl „' + u.code + '“: ' + u.qty + ' ks není na žádné paletě' + (u.known ? '' : ' (není v číselníku)') + '.'));
-  // where each article ended up: "č. 3: 148 ks"
-  const dist = new Map();
-  plan.filter(b => b.contents.some(c => c.units > 0)).forEach((b, i) => b.contents.forEach(c => {
-    if (c.units > 0) { const k = c.code.toLowerCase(); dist.set(k, (dist.get(k) || []).concat(['č. ' + (i + 1) + ': ' + c.units + ' ks'])); }
+  // same wording as the calculation: "3 plné po 156 ks, 1 neúplná: 32 ks, 21 %" – just with the current numbers
+  const parts = new Map();
+  plan.forEach(b => b.contents.forEach(c => {
+    if (!(c.units > 0)) return;
+    const k = c.code.toLowerCase(), g = parts.get(k) || { per: c.per || c.units, full: 0, part: [], ride: 0 };
+    if (c.ride) g.ride += c.units; else if (c.units >= (c.per || c.units)) g.full++; else g.part.push(c.units);
+    parts.set(k, g);
   }));
+  const plural = (n, f) => (n === 1 ? f[0] : n >= 2 && n <= 4 ? f[1] : f[2]);
+  const distText = g => {
+    const out = [];
+    if (g.full) out.push(g.per === 1 ? g.full + ' ' + plural(g.full, ['paleta', 'palety', 'palet']) : g.full + ' ' + plural(g.full, ['plná', 'plné', 'plných']) + ' po ' + g.per + ' ks');
+    if (g.part.length) out.push(g.part.length + ' ' + plural(g.part.length, ['neúplná', 'neúplné', 'neúplných']) + ': ' + g.part.map(u => u + ' ks, ' + Math.round(u / g.per * 100) + ' %').join('; '));
+    if (g.ride) out.push(g.ride + ' ks navrch');
+    return out.join(', ');
+  };
+  const dist = new Map([...parts].map(([k, g]) => [k, [distText(g)]]));
   mp.rows.forEach(x => { const d = dist.get(x.code.toLowerCase()); x.planDist = d ? d.join(', ') : 'na žádné paletě'; });
   plan.forEach(b => b.contents.forEach(c => {
     if (idx.has(c.code.toLowerCase())) return;
