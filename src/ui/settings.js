@@ -61,7 +61,8 @@ export function renderVehicles(vehicles) {
   }).join('') || '<tr><td colspan="9" class="empty">Žádné vozidlo. Přidejte aspoň jedno.</td></tr>';
 }
 
-export function renderCombos(combos, catalog) {
+export function renderCombos(combos, catalog, pallets) {
+  pallets = pallets || [];
   const codes = '<datalist id="codeList">' + catalog.slice(0, 5000).map(a => '<option value="' + esc(a.code) + '">').join('') + '</datalist>';
   $('#comboBody').innerHTML = combos.map((r, i) => {
     const txt = (f, ph, dis) => '<td><input type="text" list="codeList" data-i="' + i + '" data-f="' + f + '" value="' + esc(r[f] || '') + '" placeholder="' + ph + '"' + (dis ? ' disabled' : '') + '></td>';
@@ -71,7 +72,10 @@ export function renderCombos(combos, catalog) {
       '<td><input type="checkbox" data-i="' + i + '" data-f="on"' + (r.on !== false ? ' checked' : '') + ' aria-label="Aktivní"></td>' +
       txt('code', 'artikl') + txt('withCode', 'libovolně') + num('min', '–') + num('max', '–') +
       '<td><select data-i="' + i + '" data-f="mode" aria-label="Pojede">' + COMBO_MODES.map(m => '<option value="' + m[0] + '"' + (r.mode === m[0] ? ' selected' : '') + '>' + m[1] + '</option>').join('') + '</select></td>' +
-      txt('host', 'artikl', !host) + num('pl', host ? '' : 'z číselníku', host) + num('pw', host ? '' : 'z číselníku', host) + num('per', host ? 'bez limitu' : 'z číselníku') +
+      (r.mode === 'pallet'
+        ? '<td><select data-i="' + i + '" data-f="pal" aria-label="Typ palety"><option value="">rozměr vpravo</option>' + pallets.map(p => '<option value="' + esc(p.code) + '"' + (p.code === r.pal ? ' selected' : '') + '>' + esc(p.code) + ' · ' + esc(p.name) + '</option>').join('') + '</select></td>'
+        : txt('host', 'artikl', !host)) +
+      num('pl', host ? '' : 'z číselníku', host || !!r.pal) + num('pw', host ? '' : 'z číselníku', host || !!r.pal) + num('per', host ? 'bez limitu' : 'z číselníku') +
       '<td><input type="number" min="0" step="any" data-i="' + i + '" data-f="kg" value="' + (r.kg > 0 ? r.kg : '') + '" placeholder="z číselníku"></td>' +
       '<td><input type="text" data-i="' + i + '" data-f="note" value="' + esc(r.note || '') + '" aria-label="Poznámka"></td>' +
       '<td class="nowrap"><button class="btn small" data-up="' + i + '" aria-label="Výš"' + (i === 0 ? ' disabled' : '') + '>↑</button> <button class="btn small" data-down="' + i + '" aria-label="Níž"' + (i === combos.length - 1 ? ' disabled' : '') + '>↓</button> <button class="btn small" data-del="' + i + '">Smazat</button></td></tr>';

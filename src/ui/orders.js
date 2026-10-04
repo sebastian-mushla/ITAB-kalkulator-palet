@@ -39,7 +39,7 @@ export function svgVehicle(v) {
   if (v.lift) s += '<rect x="' + (x0 + Lw + 3) + '" y="' + (y0 + Hw * 0.1) + '" width="' + (lift - 6) + '" height="' + (Hw * 0.8) + '" rx="2" style="fill:none;stroke:var(--truck-line);stroke-width:2;stroke-dasharray:4 3"/>';
   v.items.forEach(it => {
     const px = x0 + it.x / S + 1.5, py = y0 + it.y / S + 1.5, pw = it.w / S - 3, ph = it.h / S - 3, col = color(it.ci), partial = it.fill < 0.999;
-    if (drag) s += '<g class="pal" data-v="' + v.idx + '" data-p="' + it.id + '"><title>' + esc(it.code) + ', ' + it.units + ' ks – přetáhněte, dvojklik otočí</title>';
+    if (drag) s += '<g class="pal" data-v="' + v.idx + '" data-p="' + it.id + '"><title>' + esc((it.pal ? it.pal + (it.palName ? ' ' + it.palName : '') + ' · ' : '') + it.code + ', ' + it.units + ' ks' + (it.extra ? ' + ' + it.extra.map(e => e.code + ' ' + e.units + ' ks').join(', ') : '') + ' · ' + Math.round(it.kg) + ' kg') + ' – přetáhněte, dvojklik otočí</title>';
     if (partial) {
       s += '<rect x="' + px + '" y="' + py + '" width="' + pw + '" height="' + ph + '" rx="2" style="fill:' + col + ';fill-opacity:.3;stroke:' + col + ';stroke-width:2"/>';
       if (pw >= ph) s += '<rect x="' + px + '" y="' + py + '" width="' + (pw * it.fill) + '" height="' + ph + '" rx="2" style="fill:' + col + '"/>';

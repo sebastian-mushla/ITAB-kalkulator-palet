@@ -579,7 +579,7 @@ $('#vehFile').addEventListener('change', async e => {
 });
 
 // ---------- combos ----------
-const drawCombos = () => renderCombos(state.combos, state.catalog);
+const drawCombos = () => renderCombos(state.combos, state.catalog, state.pallets);
 bindTable($('#comboBody'), () => state.combos, 'combos', drawCombos);
 $('#comboBody').addEventListener('change', e => { if (e.target.getAttribute('data-f') === 'mode' || e.target.getAttribute('data-f') === 'on') drawCombos(); });
 $('#comboBody').addEventListener('click', e => {

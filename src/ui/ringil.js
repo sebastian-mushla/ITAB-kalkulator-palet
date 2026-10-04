@@ -19,8 +19,8 @@ export function ringilLoads(r) {
   const groupage = r.depot ? r.depot.items : (!vs.length ? r.pallets : []);
   if (groupage.length) {
     const m = new Map();
-    groupage.forEach(p => { const k = p.pl + '×' + p.pw, g = m.get(k) || { p, n: 0, kg: 0 }; g.n++; g.kg += p.kg; m.set(k, g); });
-    m.forEach(g => loads.push({ title: 'Sběrná služba – palety ' + cm(g.p.pl) + ' × ' + cm(g.p.pw) + ' cm', unit: g.p.euro ? 'Europaleta' : 'Paleta', count: String(g.n), L: cm(g.p.pl), W: cm(g.p.pw), H: '', kg: num(g.kg), note: '' }));
+    groupage.forEach(p => { const k = (p.pal || '') + p.pl + '×' + p.pw, g = m.get(k) || { p, n: 0, kg: 0 }; g.n++; g.kg += p.kg; m.set(k, g); });
+    m.forEach(g => loads.push({ title: 'Sběrná služba – ' + (g.p.pal ? g.p.pal + ' ' : '') + cm(g.p.pl) + ' × ' + cm(g.p.pw) + ' cm', unit: g.p.palName || (g.p.euro ? 'Europaleta' : 'Paleta'), count: String(g.n), L: cm(g.p.pl), W: cm(g.p.pw), H: '', palH: g.p.palH ? cm(g.p.palH) : '', kg: num(g.kg), note: 'hmotnost včetně vlastní váhy palet' }));
   }
   if (r.parcels.length) {
     const m = new Map();
@@ -43,7 +43,7 @@ export function ringilHtml(r) {
   loads.forEach((l, i) => {
     h += '<div class="rg-block"><h3>Náklad ' + (i + 1) + (loads.length > 1 ? ' z ' + loads.length : '') + ': ' + esc(l.title) + '</h3>' +
       row('Manipulační jednotka', l.unit) + row('Počet', l.count) + row('Stohovatelné', 'ne') +
-      (l.unit === 'Ložné metry' ? '' : row('Délka (celková), cm', l.L) + row('Šířka jednotky, cm', l.W) + row('Výška jednotky, cm', l.H, 'výška není v číselníku – doplňte')) +
+      (l.unit === 'Ložné metry' ? '' : row('Délka (celková), cm', l.L) + row('Šířka jednotky, cm', l.W) + row('Výška jednotky, cm', l.H, 'výška nákladu – doplňte' + (l.palH ? ' (samotná paleta ' + l.palH + ' cm)' : ''))) +
       row(l.unit === 'Ložné metry' ? 'Hmotnost nákladu, kg' : 'Hmotnost, kg', l.kg) +
       (l.note ? '<p class="hint">' + esc(l.note) + '</p>' : '') + '</div>';
   });

@@ -150,7 +150,7 @@ document.documentElement.setAttribute('data-theme',t);})();
           <div id="comboReport"></div>
           <div class="tscroll">
             <table>
-              <thead><tr><th>Aktivní</th><th>Artikl</th><th>Když je v zakázce</th><th>Množství od</th><th>Množství do</th><th>Pojede</th><th>Na paletě artiklu</th><th>Délka palety, mm</th><th>Šířka palety, mm</th><th>Max ks na paletu</th><th>Váha kusu, kg</th><th>Poznámka</th><th></th></tr></thead>
+              <thead><tr><th>Aktivní</th><th>Artikl</th><th>Když je v zakázce</th><th>Množství od</th><th>Množství do</th><th>Pojede</th><th>Na paletě artiklu / typ palety</th><th>Délka palety, mm</th><th>Šířka palety, mm</th><th>Max ks na paletu</th><th>Váha kusu, kg</th><th>Poznámka</th><th></th></tr></thead>
               <tbody id="comboBody"></tbody>
             </table>
           </div>
@@ -198,9 +198,13 @@ document.documentElement.setAttribute('data-theme',t);})();
       <section id="view-help" hidden>
         <div class="pagehead"><div><h1>Jak to funguje</h1><p>Podle čeho kalkulátor počítá palety, vybírá vozidla a skládá nakládku.</p></div></div>
         <div class="help">
+          <section class="card"><h2>0. Struktura: vozidla → palety → materiál</h2>
+            <p><b>Vozidla</b> (záložka Vozidla) vezou <b>palety</b>. Typy palet mají kód PAL-xxxx (záložka Palety): rozměr, výšku, vlastní váhu a nosnost. Na paletách jede <b>materiál</b> – artikly z číselníku. U artiklu je napsáno, na jakém typu palety jede a kolik kusů se na ni vejde.</p>
+            <p>Na jedné paletě může jet víc artiklů (smíšená paleta). Váha palety = materiál + vlastní váha palety.</p></section>
           <section class="card"><h2>1. Palety ze zakázky</h2>
             <p>U každého artiklu z číselníku známe rozměr palety, kolik kusů se na ni vejde a váhu kusu. Množství ze zakázky se rozdělí na plné palety a nejvýše jednu neúplnou (zbytek). Stejné artikly v jedné zakázce se sečtou.</p>
-            <p>Váha se počítá bez vlastní váhy palet. Palety na sebe nestohujeme.</p>
+            <p>Váha zahrnuje vlastní váhu palet (tara z typu palety). Palety na sebe nestohujeme.</p>
+            <p><b>Smíšené palety:</b> neúplné palety různých artiklů na stejném typu palety se skládají dohromady, dokud je paleta zaplněná nejvýše na 100 % a nepřekročí nosnost typu (lze vypnout na záložce Pravidla).</p>
             <p>Artikl s balením „balík“ nejede na paletě, ale jako balíky sběrnou službou.</p></section>
           <section class="card"><h2>2. Kombinace artiklů</h2>
             <p>Na záložce Kombinace jsou výjimky. Pravidla se zkoušejí shora dolů a použije se první, které sedí (artikl, „když je v zakázce“ a rozsah množství).</p>
@@ -228,7 +232,7 @@ document.documentElement.setAttribute('data-theme',t);})();
             <li><b>Sběrná služba</b> je zelená plocha „Předávka“. Palety mezi ní a vozidly lze přetahovat.</li>
             <li>„Vrátit automatické rozložení“ zahodí ruční změny. Ruční rozložení se neukládá – po obnovení stránky platí znovu výpočet.</li></ul></section>
           <section class="card"><h2>7. Učení: neznámé artikly</h2>
-            <p>V kalkulátoru je pod zakázkou plocha „Palety zakázky“ se všemi paletami. Artikly, které nejsou v číselníku, jsou vedle ní jako šedé bloky (kód, množství, název ze zakázky). Administrátor je přetáhne:</p>
+            <p>V kalkulátoru je pod zakázkou plocha „Palety zakázky“ se všemi paletami. Administrátor na ni může přetáhnout <b>typ palety</b> (PAL-xxxx) – vznikne prázdná paleta – a pak na ni přetáhnout neznámý materiál. V okně zadá, kolik kusů na paletu dává a kolik se jich vejde; buď to uloží do číselníku (artikl pak jede na tomto typu vždy), nebo jen pro tuto zakázku. Artikly, které nejsou v číselníku, jsou vedle ní jako šedé bloky (kód, množství, název ze zakázky). Administrátor je přetáhne:</p>
             <ul><li><b>na paletu</b> – artikl pojede na této paletě; se zaškrtnutím „Zapamatovat“ se uloží kombinace pro další zakázky (platí, dokud je kusů nejvýše tolik jako teď), bez zaškrtnutí jen pro tuto zakázku;</li>
             <li><b>na volné místo plochy</b> – otevře se formulář nového artiklu (rozměry, kusy na paletě, váha) a artikl se uloží do číselníku.</li></ul>
             <p>Kroužek u zakázky ukazuje, kolik artiklů ze zakázky už je zařazeno. Zakázku lze odškrtnout jako vyřízenou až při 100 %.</p></section>

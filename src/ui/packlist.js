@@ -10,9 +10,9 @@ export function packListHtml(r, names) {
   const palletRows = items => items.map(p => {
     n++;
     const extra = (p.extra || []).map(e => '<tr class="extra"><td></td><td></td><td>+ ' + esc(e.code) + '</td><td>' + esc(nm(e.code)) + '</td><td class="num">' + fmtN(e.units) + '</td><td></td><td class="chk">☐</td></tr>').join('');
-    return '<tr><td class="num"><b>' + n + '</b></td><td>' + cm(p.pl) + ' × ' + cm(p.pw) + ' cm' + (p.fill < 0.999 ? '<br><small>neúplná ' + Math.round(p.fill * 100) + ' %</small>' : '') + '</td><td><b>' + esc(p.code) + '</b></td><td>' + esc(nm(p.code)) + '</td><td class="num">' + fmtN(p.units) + '</td><td class="num">' + fmtN(p.kg) + '</td><td class="chk">☐</td></tr>' + extra;
+    return '<tr><td class="num"><b>' + n + '</b></td><td>' + (p.pal ? '<b>' + esc(p.pal) + '</b> ' + esc(p.palName || '') + '<br>' : '') + cm(p.pl) + ' × ' + cm(p.pw) + ' cm' + (p.fill < 0.999 ? '<br><small>neúplná ' + Math.round(p.fill * 100) + ' %</small>' : '') + '</td><td><b>' + esc(p.code) + '</b></td><td>' + esc(nm(p.code)) + '</td><td class="num">' + fmtN(p.units) + '</td><td class="num">' + fmtN(p.kg) + '</td><td class="chk">☐</td></tr>' + extra;
   }).join('');
-  const head = '<thead><tr><th>#</th><th>Rozměr palety</th><th>Artikl</th><th>Název</th><th class="num">Ks</th><th class="num">kg</th><th>✓</th></tr></thead>';
+  const head = '<thead><tr><th>#</th><th>Paleta</th><th>Artikl</th><th>Název</th><th class="num">Ks</th><th class="num">kg</th><th>✓</th></tr></thead>';
 
   let body = '';
   const vehicles = r.vehicles.filter(v => v.items.length);
