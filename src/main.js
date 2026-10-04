@@ -1,7 +1,7 @@
 import { clone, toNum } from './core/util.js';
 import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, DEFAULT_PALLETS, SAMPLE } from './core/defaults.js';
 import { migrateCatalog, nextCode, typeOf } from './core/palletTypes.js';
-import { freezePlan, moveUnits, setPalletType, removePallet, newId } from './core/plan.js';
+import { freezePlan, moveUnits, setPalletType, removePallet, newId, mergePallets } from './core/plan.js';
 import { parseOrders, rowsToOrderText } from './core/parse.js';
 import { solve } from './core/solve.js';
 import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle, replaceVehicle, DEPOT } from './core/manual.js';
@@ -262,7 +262,7 @@ onBoth('click', e => {
   if (rmb) { keepScroll(() => { const P = state.plan.get(id); if (P) removePallet(P, rmb); else state.board.set(id, (state.board.get(id) || []).filter(b => b.id !== rmb)); state.manual.delete(id); recalc(); }); return; }
   if (e.target.id === 'resetPlan') { keepScroll(() => { state.plan.delete(id); state.manual.delete(id); recalc(); }); return; }
   const bp = e.target.closest('.board-pal');
-  if (bp && !e.target.closest('.bp-x') && isAdmin) { openPalEditor(id, bp.dataset.bid, Number(bp.dataset.pi)); return; }
+  if (bp && !e.target.closest('.bp-x') && isAdmin && !suppressClick) { openPalEditor(id, bp.dataset.bid, Number(bp.dataset.pi)); return; }
   const rm = e.target.getAttribute('data-rmveh');
   if (rm != null) { keepScroll(() => removeVehicle(manualOf(id), Number(rm))); return; }
 });
@@ -272,8 +272,15 @@ onBoth('dblclick', e => {
   keepScroll(() => { if (!rotatePallet(manualOf(id), state.vehicles, Number(g.dataset.v), Number(g.dataset.p))) flash('Otočená se paleta nevejde nebo ji nelze otáčet.'); });
 });
 // drag a pallet: a floating copy follows the pointer, the drop point in the target body is converted to mm
-let drag = null;
+let drag = null, suppressClick = false;
 onBoth('pointerdown', e => {
+  const bpal = e.target.closest('#detail .board-pal');
+  if (bpal && !e.target.closest('.bp-x') && isAdmin && e.button === 0) {
+    const rc = bpal.getBoundingClientRect();
+    drag = { g: bpal, boardPal: { bid: bpal.dataset.bid, pi: bpal.dataset.pi }, sx: e.clientX, sy: e.clientY, w: rc.width, h: rc.height, color: getComputedStyle(bpal).getPropertyValue('--c') || 'var(--primary)', moved: false };
+    bpal.setPointerCapture(e.pointerId);
+    return;
+  }
   const pt = e.target.closest('.ptype');
   if (pt && isAdmin && e.button === 0) {
     drag = { g: pt, ptype: pt.dataset.pal, sx: e.clientX, sy: e.clientY, w: 84, h: 56, color: 'var(--primary)', moved: false };
@@ -307,6 +314,7 @@ onBoth('pointermove', e => {
   const over = document.elementFromPoint(e.clientX, e.clientY);
   const host = drag.unk && over && (over.closest('.pal') || over.closest('.board-pal'));
   if (drag.ptype) { const bd = over && over.closest('.board'); if (bd) bd.classList.add('drop-target'); return; }
+  if (drag.boardPal) { const tp = over && over.closest('.board-pal'); if (tp && tp !== drag.g) tp.classList.add('drop-host'); return; }
   if (host) host.classList.add('drop-host');
   else { const t = over && (over.closest('.veh-svg') || (drag.unk && over.closest('.board'))); if (t) t.classList.add('drop-target'); }
 });
@@ -318,6 +326,21 @@ function endDrag(e, cancel) {
   document.querySelectorAll('.drop-target,.drop-host').forEach(x => x.classList.remove('drop-target', 'drop-host'));
   if (cancel || !d.moved) return;
   const over = document.elementFromPoint(e.clientX, e.clientY), svg = over && over.closest('.veh-svg');
+  if (d.boardPal) {
+    suppressClick = true; setTimeout(() => { suppressClick = false; }, 0);
+    const tp = over && over.closest('.board-pal');
+    if (!tp || tp === d.g) return;
+    const id = state.sel, wasPlan = state.plan.has(id), P = ensurePlan(id);
+    const filled = P.filter(b => b.contents.some(c => c.units > 0));
+    const pick = el => (wasPlan && el.dataset.bid && P.find(b => b.id === el.dataset.bid)) || filled[Number(el.dataset.pi)] || P.find(b => b.id === el.dataset.bid);
+    const src = d.boardPal.bid && wasPlan ? P.find(b => b.id === d.boardPal.bid) : filled[Number(d.boardPal.pi)] || P.find(b => b.id === d.boardPal.bid);
+    const dst = pick(tp);
+    if (!src || !dst || src === dst) return;
+    const res = mergePallets(P, src.id, dst.id, state.pallets);
+    state.manual.delete(id); keepScroll(recalc);
+    flash(!res.moved ? 'Cílová paleta je plná – nic se nepřesunulo.' : 'Přeloženo ' + res.moved + ' ks' + (res.left ? ', ' + res.left + ' ks zůstalo na původní paletě (cílová je plná).' : ', původní paleta zmizela.'));
+    return;
+  }
   if (d.ptype) {
     if (!(over && over.closest('.board'))) { flash('Paletu pusťte na plochu „Palety zakázky“.'); return; }
     const id = state.sel, list = state.board.get(id) || [];

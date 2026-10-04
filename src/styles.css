@@ -430,3 +430,5 @@ dialog.dlg-wide .pe-row{display:grid;grid-template-columns:minmax(0,1.4fr) auto 
 .pm-grid{grid-template-columns:1fr 1fr;gap:6px}.pm-grid > input:first-child{grid-column:1/-1}.pm-grid label{grid-column:1/-1}
 .pm-acts{display:flex;justify-content:flex-end;gap:8px}
 dialog.dlg-wide .pe-row{grid-template-columns:minmax(0,1fr) auto auto}
+#detail .board-pal{touch-action:none;user-select:none}
+#detail .board-pal.dragging{opacity:.35}

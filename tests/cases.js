@@ -2,7 +2,7 @@
 import { parseOrders, rowsToOrderText } from '../src/core/parse.js';
 import { fromResult, replaceVehicle, viewOf } from '../src/core/manual.js';
 import { loadStats } from '../src/core/packing.js';
-import { freezePlan, moveUnits } from '../src/core/plan.js';
+import { freezePlan, moveUnits, mergePallets } from '../src/core/plan.js';
 import { solve } from '../src/core/solve.js';
 import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, DEFAULT_PALLETS, SAMPLE } from '../src/core/defaults.js';
 import { migrateCatalog } from '../src/core/palletTypes.js';
@@ -272,6 +272,18 @@ cases.push(['Ruční úprava palet: přesun 48 polic z neúplné palety na novou
   plan.find(b => b.contents[0].units === 100).contents[0].units = 90;
   const r3 = run('505111', { plan });
   assert(r3.unknown.length === 1 && r3.unknown[0].qty === 10 && r3.unknown[0].known, JSON.stringify(r3.unknown));
+}]);
+
+cases.push(['Sloučení palet: přeloží se jen to, co se vejde, zbytek zůstane', () => {
+  const plan = [
+    { id: 'a', pal: 'PAL-0001', contents: [{ code: 'V-POL', units: 100, per: 156, kg: 3 }] },
+    { id: 'b', pal: 'PAL-0001', contents: [{ code: 'V-POL', units: 30, per: 156, kg: 3 }] },
+    { id: 'c', pal: 'PAL-0001', contents: [{ code: 'V-POL', units: 40, per: 156, kg: 3 }] }
+  ];
+  let res = mergePallets(plan, 'b', 'a', DEFAULT_PALLETS);
+  assert(res.moved === 30 && res.left === 0 && plan.length === 2, JSON.stringify(res));
+  res = mergePallets(plan, 'c', 'a', DEFAULT_PALLETS);
+  assert(res.moved === 26 && res.left === 14 && plan.find(b => b.id === 'a').contents[0].units === 156, JSON.stringify(res));
 }]);
 
 export function runAll() {

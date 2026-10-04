@@ -78,3 +78,28 @@ export function unplaced(lines, plan) {
   plan.forEach(b => b.contents.forEach(c => placed.set(low(c.code), (placed.get(low(c.code)) || 0) + c.units)));
   return lines.map(l => ({ code: l.code, name: l.name || '', qty: l.qty - (placed.get(low(l.code)) || 0) })).filter(x => x.qty > 0);
 }
+
+// Drop pallet `fromId` onto `toId`: move as many pieces as fit (fill ≤ 100 %, goods ≤ max load); the rest stays.
+// Returns { moved, left } in pieces.
+export function mergePallets(plan, fromId, toId, types) {
+  const from = plan.find(b => b.id === fromId), to = plan.find(b => b.id === toId);
+  if (!from || !to || from === to) return { moved: 0, left: 0 };
+  const t = typeOf(types, to.pal) || to.custom || {};
+  const fillOf = b => b.contents.filter(c => !c.ride).reduce((s, c) => s + c.units / (c.per || c.units || 1), 0);
+  const goodsKg = b => b.contents.reduce((s, c) => s + c.units * (c.kg || 0), 0);
+  let moved = 0;
+  from.contents.forEach(c => {
+    if (!(c.units > 0)) return;
+    let n = c.units;
+    if (!c.ride) n = Math.min(n, Math.floor((1 - fillOf(to)) * (c.per || c.units) + 1e-9));
+    if (t.maxKg > 0 && c.kg > 0) n = Math.min(n, Math.floor((t.maxKg - goodsKg(to)) / c.kg + 1e-9));
+    if (n <= 0) return;
+    const d = to.contents.find(x => low(x.code) === low(c.code) && !!x.ride === !!c.ride);
+    if (d) d.units += n; else to.contents.push(Object.assign({}, c, { units: n }));
+    c.units -= n; moved += n;
+  });
+  from.contents = from.contents.filter(c => c.units > 0);
+  const left = from.contents.reduce((s, c) => s + c.units, 0);
+  if (!left) plan.splice(plan.indexOf(from), 1);
+  return { moved, left };
+}
