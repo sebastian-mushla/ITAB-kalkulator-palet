@@ -399,7 +399,8 @@ export function renderKpis(res) {
   const card = (cls, ic, label, val, sub, chip) =>
     '<div class="kpi ' + cls + '"><span class="kpi-ic">' + icon(ic) + '</span><div class="kpi-label">' + label + '</div><div class="kpi-val">' + val + '</div><div class="kpi-sub"><span>' + sub + '</span>' + (chip ? '<span class="chip ' + chip[0] + '">' + chip[1] + '</span>' : '') + '</div></div>';
   el.innerHTML =
-    card('', 'file', 'Zakázky', res.length, fmtKg(kg) + ' celkem') +
+    card('', 'file', 'ID (adresy)', res.length, fmtKg(kg) + ' celkem') +
+    card('', 'file', 'SO (zakázky)', res.reduce((n, r) => n + ((r.sos || []).length || 1), 0), 'prodejní objednávky') +
     card('', 'box', 'Palety', pal, euro + ' euro, ' + (pal - euro) + ' nestandardních' + (par ? ', ' + par + ' ' + balWord(par) : '')) +
     card('', 'truck', 'Sběrná služba', grp, 'palety a balíky', grp ? ['green', 'k odeslání'] : null) +
     card('alert', 'alert', 'Vlastní vozidlo', veh, big + ' ' + plural(big, ['zakázka', 'zakázky', 'zakázek']) + ' s nadrozměrem', veh ? ['red', 'k objednání'] : null);
