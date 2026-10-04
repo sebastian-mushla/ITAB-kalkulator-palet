@@ -104,8 +104,12 @@ function saveOrderList() {
 function importOrders(text, open, initial) {
   const res = parseOrders(text);
   const fresh = [...res.orders.keys()];
-  // a new import clears the orders marked as done
-  if (fresh.length && !initial) { state.done.forEach(id => { state.orders.delete(id); state.forced.delete(id); state.manual.delete(id); }); state.done.clear(); save('itab.done.v1', []); }
+  // a new import replaces the list (unless "keep" is ticked); orders marked as done always go
+  if (fresh.length && !initial) {
+    const drop = $('#keepOld').checked ? [...state.done] : [...state.orders.keys()];
+    drop.forEach(id => { state.orders.delete(id); state.forced.delete(id); state.manual.delete(id); state.board.delete(id); state.plan.delete(id); state.oneOff.delete(id); state.done.delete(id); state.ordered.delete(id); });
+    save('itab.done.v1', [...state.done]); save('itab.ordered.v1', [...state.ordered]);
+  }
   fresh.forEach(id => { state.forced.delete(id); state.manual.delete(id); state.oneOff.delete(id); state.board.delete(id); state.plan.delete(id); state.orders.delete(id); });
   state.orders = new Map([...res.orders, ...state.orders]);
   state.prioHidden = false;

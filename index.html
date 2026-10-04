@@ -64,6 +64,7 @@ document.documentElement.setAttribute('data-theme',t);})();
             <div class="row">
               <button class="btn primary" id="btnCalc">Spočítat</button>
               <label class="btn">Nahrát soubor<input type="file" id="file" accept=".csv,.txt,.tsv,.xlsx,.xls,.ods" hidden></label>
+              <label class="check"><input type="checkbox" id="keepOld">Ponechat dosavadní zakázky</label>
             </div>
             <p class="hint">Soubor sem můžete i přetáhnout (TXT, CSV, Excel). Formát z ERP: řádek „SO číslo“ a pod ním „r10 artikl název množství“. Nebo tabulka se sloupci zakázka, artikl, množství.</p>
             <div class="problems" id="problems"></div>
