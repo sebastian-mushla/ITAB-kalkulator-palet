@@ -81,6 +81,7 @@ export function balanceLoad(items, W) {
       k += col.length;
     }
   });
+  slideAcross(out, W);
   return out;
 }
 
@@ -88,6 +89,27 @@ export function balanceLoad(items, W) {
 function imbalance(b, W) {
   const st = loadStats(balanceLoad(b.items, W), W);
   return st ? Math.abs(st.leftPct - 50) / 1e4 : 0;
+}
+
+// 3) a pallet with free room across the body slides to the lighter side (mirror position, far edge or the wall)
+function slideAcross(items, W) {
+  const leftShare = (i, y) => Math.max(0, Math.min(1, (W / 2 - y) / i.h));
+  const diff = () => items.reduce((s, i) => s + i.kg * (2 * leftShare(i, i.y) - 1), 0); // >0 = left heavier
+  const free = (it, y) => y >= -EPS && y + it.h <= W + EPS && !items.some(o => o !== it && it.x < o.x + o.w - EPS && o.x < it.x + it.w - EPS && y < o.y + o.h - EPS && o.y < y + it.h - EPS);
+  for (let pass = 0; pass < 4; pass++) {
+    let moved = false;
+    items.slice().sort((a, b) => b.kg - a.kg).forEach(it => {
+      const d0 = Math.abs(diff());
+      let best = null;
+      [W - it.h - it.y, W - it.h, 0].forEach(y => {
+        if (Math.abs(y - it.y) < EPS || !free(it, y)) return;
+        const old = it.y; it.y = y; const d = Math.abs(diff()); it.y = old;
+        if (d < d0 - 1 && (!best || d < best.d)) best = { y, d };
+      });
+      if (best) { it.y = best.y; moved = true; }
+    });
+    if (!moved) break;
+  }
 }
 
 // center of gravity from the cab (mm) and share of weight on the left side
