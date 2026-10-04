@@ -1,5 +1,7 @@
 import { EPS, fmtKg, fmtM, palWord, balWord, vehWord } from './util.js';
 import { makePallets, groupageCheck, parcelCheck } from './pallets.js';
+import { typeOf } from './palletTypes.js';
+import { isEuro } from './util.js';
 import { packAll, prepareVehicles } from './packing.js';
 
 export function recoText(vehicles) {
@@ -18,9 +20,37 @@ export function groupItems(items) {
   return [...m.values()];
 }
 
+// Board pallets: material that is not in the catalog, placed by hand on a pallet type for this order only.
+function addBoardPallets(mp, added, types, ci0) {
+  (added || []).forEach((b, k) => {
+    const t = typeOf(types, b.pal), list = (b.contents || []).filter(c => c.units > 0);
+    if (!t || !list.length) return;
+    const ci = ci0 + 50 + k;
+    const [m, ...rest] = list;
+    mp.pallets.push({
+      code: m.code, units: m.units, fill: list.reduce((s, c) => s + c.units / (c.per || c.units), 0),
+      kg: (t.tare || 0) + list.reduce((s, c) => s + c.units * (c.kg || 0), 0), tare: t.tare || 0,
+      pl: t.L, pw: t.W, rot: t.rot !== false, euro: isEuro({ pl: t.L, pw: t.W }), ci, pal: t.code, palName: t.name, palH: t.H || 0, maxKg: t.maxKg || 0,
+      extra: rest.length ? rest.map(c => ({ code: c.code, units: c.units, ci, mixed: true })) : undefined, board: b.id
+    });
+    list.forEach(c => {
+      const u = mp.unknown.find(x => x.code.toLowerCase() === c.code.toLowerCase());
+      if (u) u.qty -= c.units;
+      mp.rows.push({ code: c.code, name: c.name || '', qty: c.units, kg: c.units * (c.kg || 0), ci, pack: 'paleta', full: 0, rem: 0, per: c.per || c.units, fillRem: 0, count: 0, board: t.code });
+    });
+  });
+  // what is fully placed is no longer unknown
+  const left = mp.unknown.filter(u => u.qty > 0);
+  const gone = mp.unknown.filter(u => u.qty <= 0).map(u => u.code);
+  mp.unknown.length = 0; left.forEach(u => mp.unknown.push(u));
+  if (gone.length) for (let i = mp.errors.length - 1; i >= 0; i--) if (gone.some(c => mp.errors[i].indexOf('„' + c + '“') >= 0)) mp.errors.splice(i, 1);
+}
+
 // Pure: order + catalog + vehicles + rules -> result. `forced` = vehicle index chosen by the user.
-export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], forced = null }) {
+// `added` = pallets the operator put on the calculator board for this order: [{ id, pal, contents: [{ code, name, units, per, kg }] }]
+export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], forced = null, added = [] }) {
   const mp = makePallets([...o.lines.values()], catalog, combos, pallets, { mix: rules.mix !== false });
+  addBoardPallets(mp, added, pallets, catalog.length);
   const r = {
     id: o.id, pallets: mp.pallets, parcels: mp.parcels, errors: mp.errors, rows: mp.rows, unknown: mp.unknown,
     kg: 0, units: 0, groupage: null, parcelInfo: null, vehicles: [], oversize: [], mode: 'empty', reco: '', forced

@@ -260,6 +260,16 @@ document.documentElement.setAttribute('data-theme',t);})();
     <div class="acts"><button class="btn primary" value="close">Hotovo</button></div>
   </form>
 </dialog>
+<dialog class="dlg" id="dlgMaterial">
+  <form method="dialog">
+    <h2>Materiál na paletu</h2>
+    <p id="dmText"></p>
+    <div class="two"><label>Kusů na tuto paletu<input type="number" id="dmUnits" min="1" step="1" required></label><label>Kolik ks se vejde na celou paletu<input type="number" id="dmPer" min="1" step="1" required></label></div>
+    <label>Váha kusu, kg<input type="number" id="dmKg" min="0" step="any" value="0" required></label>
+    <label class="inline"><input type="checkbox" id="dmSave" checked><span id="dmSaveText">Uložit do číselníku</span></label>
+    <div class="acts"><button class="btn" value="no" formnovalidate>Zrušit</button><button class="btn primary" value="yes">Položit na paletu</button></div>
+  </form>
+</dialog>
 <dialog class="dlg" id="dlgCombo">
   <form method="dialog">
     <h2>Přesunout artikl na paletu</h2>

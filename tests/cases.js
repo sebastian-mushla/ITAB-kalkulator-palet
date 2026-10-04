@@ -244,6 +244,17 @@ cases.push(
   }]
 );
 
+cases.push(['Ručně přidaná paleta: materiál mimo číselník na PAL-0001', () => {
+  const added = [{ id: 'b1', pal: 'PAL-0001', contents: [{ code: 'NN-1', name: 'Nový', units: 30, per: 60, kg: 2 }] }];
+  const r = solve(order('Q;V06;1\nQ;NN-1;50'), Object.assign({}, ctx, { added }));
+  const bp = r.pallets.find(p => p.board === 'b1');
+  assert(bp && bp.pal === 'PAL-0001' && bp.units === 30 && Math.abs(bp.fill - 0.5) < 1e-9 && bp.kg === 25 + 60, JSON.stringify(bp));
+  assert(r.unknown.length === 1 && r.unknown[0].qty === 20, JSON.stringify(r.unknown));
+  const r2 = solve(order('Q;V06;1\nQ;NN-1;30'), Object.assign({}, ctx, { added }));
+  assert(r2.unknown.length === 0 && !r2.errors.some(e => e.indexOf('NN-1') >= 0), 'vše položeno');
+  checkLayout(r2);
+}]);
+
 export function runAll() {
   return cases.map(([name, fn]) => {
     try { fn(); return { name, ok: true }; } catch (e) { return { name, ok: false, msg: e.message }; }

@@ -149,6 +149,7 @@ function compositionHtml(r) {
   const body = r.rows.map(x => {
     const parts = [];
     if (x.onHost) parts.push(x.onHost + ' ks na paletách ' + x.host);
+    if (x.board) parts.push(x.qty + ' ks na ručně přidané paletě ' + x.board);
     if (!x.count) { /* everything rides on host pallets */ }
     else if (x.pack === 'balik') parts.push(x.count + ' ' + balWord(x.count) + ' po ' + x.per + ' ks' + (x.rem ? ' (poslední ' + x.rem + ' ks)' : ''));
     else if (x.per === 1) parts.push(x.full + ' ' + palWord(x.full));
@@ -222,31 +223,44 @@ function unknownTray(r, isAdmin) {
 }
 
 // All pallets of the order as blocks (size to scale), grouped by article; drop target for learning.
-function palletBoardHtml(r) {
+// Admin also gets a palette of pallet types to drag onto the board (empty pallet for this order).
+function palletBoardHtml(r, isAdmin, board, types) {
   const S = 0.07; // px per mm
+  const block = (p, attrs, inner, cls) => {
+    const w = Math.max(70, p.pl * S), hh = Math.max(50, p.pw * S);
+    return '<div class="board-pal' + (cls || '') + '" ' + attrs + ' style="width:' + w.toFixed(0) + 'px;height:' + hh.toFixed(0) + 'px;--c:' + color(p.ci) + ';--f:' + Math.min(100, Math.round(p.fill * 100)) + '%">' + inner + '</div>';
+  };
+  const label = p => (p.pal ? '<small>' + esc(p.pal) + '</small>' : '') + '<b>' + esc(p.code) + '</b><span>' + fmtN(p.units) + ' ks' + (p.fill < 0.999 ? ' · ' + Math.round(p.fill * 100) + ' %' : '') + '</span>' +
+    (p.extra ? '<em>+ ' + esc(p.extra.map(e => e.code + ' ' + e.units + ' ks').join(', ')) + '</em>' : '');
   const groups = new Map();
-  r.pallets.forEach(p => { if (!groups.has(p.code)) groups.set(p.code, []); groups.get(p.code).push(p); });
+  r.pallets.filter(p => p.board == null).forEach(p => { const k = p.code + '|' + (p.pal || ''); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); });
   let h = '';
-  groups.forEach((list, code) => {
-    h += '<div class="bgroup"><div class="bgroup-h"><i class="sw" style="background:' + color(list[0].ci) + '"></i><b>' + esc(code) + '</b> <span class="muted">' + list.length + ' ' + palWord(list.length) + ' · ' + Math.round(list[0].pl / 10) + ' × ' + Math.round(list[0].pw / 10) + ' cm</span></div><div class="bgroup-p">' +
-      list.map(p => {
-        const w = Math.max(64, p.pl * S), hh = Math.max(46, p.pw * S), partial = p.fill < 0.999, col = color(p.ci);
-        return '<div class="board-pal" data-code="' + esc(p.code) + '" style="width:' + w.toFixed(0) + 'px;height:' + hh.toFixed(0) + 'px;--c:' + col + ';--f:' + (partial ? Math.round(p.fill * 100) : 100) + '%" title="' + esc(p.code) + ', ' + p.units + ' ks – sem lze pustit neznámý artikl">' +
-          '<b>' + esc(p.code) + '</b><span>' + fmtN(p.units) + ' ks' + (partial ? ' · ' + Math.round(p.fill * 100) + ' %' : '') + '</span>' +
-          (p.extra ? '<em>+ ' + esc(p.extra.map(e => e.code + ' ' + e.units + ' ks').join(', ')) + '</em>' : '') + '</div>';
-      }).join('') + '</div></div>';
+  groups.forEach(list => {
+    const p0 = list[0];
+    h += '<div class="bgroup"><div class="bgroup-h"><i class="sw" style="background:' + color(p0.ci) + '"></i><b>' + esc(p0.code) + '</b> <span class="muted">' + list.length + ' ' + palWord(list.length) + ' · ' + (p0.pal ? esc(p0.pal) + ' ' + esc(p0.palName || '') + ' · ' : '') + Math.round(p0.pl / 10) + ' × ' + Math.round(p0.pw / 10) + ' cm</span></div><div class="bgroup-p">' +
+      list.map(p => block(p, 'data-code="' + esc(p.code) + '" title="' + esc(p.code) + ', ' + p.units + ' ks – sem lze pustit neznámý artikl"', label(p))).join('') + '</div></div>';
   });
+  // pallets the operator added by hand
+  const manual = (board || []).map(b => {
+    const p = r.pallets.find(x => x.board === b.id), t = (types || []).find(x => x.code === b.pal) || { L: 1200, W: 800, name: b.pal };
+    const x = '<button class="bp-x" data-rmb="' + esc(b.id) + '" aria-label="Odebrat paletu">×</button>';
+    return p ? block(p, 'data-bid="' + esc(b.id) + '" title="Ručně přidaná paleta ' + esc(b.pal) + '"', label(p) + x)
+      : block({ pl: t.L, pw: t.W, fill: 0, ci: 0 }, 'data-bid="' + esc(b.id) + '" title="Prázdná paleta – přetáhněte sem materiál"', '<small>' + esc(b.pal) + '</small><span>prázdná</span>' + x, ' empty');
+  }).join('');
+  if (manual) h += '<div class="bgroup"><div class="bgroup-h"><b>Ručně přidané palety</b> <span class="muted">materiál mimo číselník, jen pro tuto zakázku</span></div><div class="bgroup-p">' + manual + '</div></div>';
   if (r.parcels.length) {
     const m = new Map();
     r.parcels.forEach(p => { const g = m.get(p.code) || { p, n: 0 }; g.n++; m.set(p.code, g); });
     h += '<div class="bgroup"><div class="bgroup-h"><b>Balíky</b> <span class="muted">' + r.parcels.length + ' ' + balWord(r.parcels.length) + ' – sběrná služba</span></div><div class="bgroup-p">' +
       [...m.values()].map(g => '<div class="board-box" style="--c:' + color(g.p.ci) + '"><b>' + esc(g.p.code) + '</b><span>' + g.n + '× ' + balWord(1) + '</span></div>').join('') + '</div></div>';
   }
-  return '<div class="board' + (h ? '' : ' empty-board') + '" aria-label="Palety zakázky">' + (h || '<p class="muted">Zatím žádná paleta. Pusťte sem neznámý artikl a doplňte ho do číselníku.</p>') + '</div>';
+  const palette = isAdmin && (types || []).length ? '<div class="ptypes"><span class="muted">Typy palet – přetáhněte na plochu:</span>' +
+    types.map(t => '<div class="ptype" data-pal="' + esc(t.code) + '" title="' + esc(t.name) + ', ' + Math.round(t.L / 10) + ' × ' + Math.round(t.W / 10) + ' cm"><b>' + esc(t.code) + '</b><span>' + esc(t.name) + '</span></div>').join('') + '</div>' : '';
+  return palette + '<div class="board' + (h ? '' : ' empty-board') + '" aria-label="Palety zakázky">' + (h || '<p class="muted">Zatím žádná paleta. Přetáhněte sem typ palety a pak na ni materiál.</p>') + '</div>';
 }
 
 // ---------- tab 1: calculator ----------
-export function renderDetail(r, { rules, isAdmin }) {
+export function renderDetail(r, { rules, isAdmin, board, pallets }) {
   const el = $('#detail');
   if (!r) { el.innerHTML = '<div class="empty">Vložte zakázky do importu a klikněte na „Spočítat“.</div>'; return; }
   let h = '<div class="sec-head"><h2>Detail zakázky ' + esc(r.id) + '</h2></div>' + decisionHtml(r, rules, false);
@@ -264,7 +278,7 @@ export function renderDetail(r, { rules, isAdmin }) {
 
   const tray = unknownTray(r, isAdmin), n = (r.unknown || []).length;
   h += '<div class="sec-head vis"><h2>Palety zakázky</h2></div>';
-  h += '<div class="load' + (tray ? ' with-tray' : '') + '"><div class="load-main">' + palletBoardHtml(r) + '</div>' + tray + '</div>';
+  h += '<div class="load' + (tray ? ' with-tray' : '') + '"><div class="load-main">' + palletBoardHtml(r, isAdmin, board && board.get(r.id) || [], pallets) + '</div>' + tray + '</div>';
   const ready = !n && r.mode !== 'empty';
   h += '<div class="go-dock">' + (r.pallets.length || r.parcels.length ? '<button class="btn big print" id="packBtn"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>Tisk pro balení</button>' : '') + '<button class="btn primary big" id="goDock"' + (ready ? '' : ' disabled') + '>Přejít k nakládce →</button>' +
     '<span class="muted">' + (ready ? 'Palety jsou spočítané. V nakládce je rozložíte do vozidel a objednáte dopravu.' : (n ? 'Nejdřív zařaďte ' + n + ' ' + plural(n, ['neznámý artikl', 'neznámé artikly', 'neznámých artiklů']) + '.' : 'Zakázka nemá žádné palety.')) + '</span></div>';
