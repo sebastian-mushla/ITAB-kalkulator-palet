@@ -202,6 +202,22 @@ function classify(b, pool) {
   return best || b.v;
 }
 
+// a body filled in a wide vehicle may still fit a cheaper, narrower one when laid out again
+function downsize(b, pool) {
+  let v0 = classify(b, pool);
+  const items = b.items.map(i => Object.assign({}, i, { x: 0, y: 0 }));
+  const area = i => i.pl * i.pw;
+  const cands = pool.filter(v => (v.cost || 0) < (v0.cost || 0) && b.kg <= v.kg && !(v.eup > 0 && items.length > v.eup)).sort((x, y) => (x.cost || 0) - (y.cost || 0));
+  for (const v of cands) {
+    for (const list of [items.slice().sort((x, y) => area(y) - area(x)), items.slice().sort((x, y) => Math.max(y.pl, y.pw) - Math.max(x.pl, x.pw))]) {
+      if (!list.every(it => fitsVehicle(it, v))) break;
+      const bins = fillBins(list, v, [v]);
+      if (bins.length === 1 && bins[0].items.length === items.length) return { v, b: bins[0] };
+    }
+  }
+  return { v: v0, b };
+}
+
 function fillBins(list, primary, bySize) {
   const bins = [];
   list.forEach(it => {
@@ -278,13 +294,13 @@ export function packAll(pallets, vehicles, forced, oneVehicle, seq, rules) {
       cur = new Bin(v); bins.push(cur);
       const pos = cur.find(it.pl, it.pw, it.rot); if (pos) cur.place(pos, it);
     });
-    best = { c: 0, seq: true, typed: bins.map(b => ({ v: classify(b, pool), b })) };
+    best = { c: 0, seq: true, typed: bins.map(b => downsize(b, pool)) };
   }
   if (!best) primaries.forEach(P => {
     lists.forEach(list => {
       const bins = fillBins(list, P, bySize);
       let c = 0;
-      const typed = bins.map(b => { const v = classify(b, pool); c += (v.cost || 0) + b.usedL / 1e7 + imbalance(b, v.Wmm, v.Lmm, v.kg); return { v, b }; });
+      const typed = bins.map(b0 => { const { v, b } = downsize(b0, pool); c += (v.cost || 0) + b.usedL / 1e7 + imbalance(b, v.Wmm, v.Lmm, v.kg); return { v, b }; });
       if (!best || c < best.c - 1e-9) best = { c, typed };
     });
   });

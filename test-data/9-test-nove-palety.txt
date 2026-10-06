@@ -1,0 +1,25 @@
+ID 8101
+SO 940001
+r10 V06 kabina 3
+r20 V-POL police 400
+r30 STOJAN-12 stojan pokladny 6
+SO 940002
+r10 V-POL police 120
+r20 KABEL-SET sada kabelu 25
+
+ID 8102
+SO 940010
+r10 MONITOR-22 monitor dotykovy 14
+r20 V-POL police 60
+
+ID 8103
+SO 940020
+r10 V04 dopravnik 8
+r20 PULT-XL pult pokladni velky 2
+SO 940021
+r10 STOJAN-12 stojan pokladny 4
+r20 V-POL police 156
+
+ID 8104
+SO 940030
+r10 KABEL-SET sada kabelu 10

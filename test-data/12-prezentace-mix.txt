@@ -1,0 +1,92 @@
+ID 9001
+SO 970001
+r10 V06 kabina 6
+r20 V04 dopravnik 10
+r30 V-POL police 1240
+
+ID 9002
+SO 970002
+r10 V06 kabina 4
+r20 V04 dopravnik 8
+r30 V-POL police 1560
+SO 970003
+r10 V-POL police 130
+r20 V04 dopravnik 1
+
+ID 9003
+SO 970004
+r10 V-POL police 5148
+SO 970005
+r10 V-POL police 60
+SO 970006
+r10 V-POL police 60
+SO 970007
+r10 V-POL police 60
+SO 970008
+r10 V-POL police 50
+
+ID 9004
+SO 970009
+r10 V-POL police 5148
+SO 970010
+r10 V-POL police 100
+SO 970011
+r10 V-POL police 50
+SO 970012
+r10 V-POL police 40
+
+ID 9005
+SO 970013
+r10 V06 kabina 6
+r20 V04 dopravnik 10
+r30 V-POL police 1240
+r40 KABEL-USB kabel USB 40
+r50 KABEL-LAN kabel sitovy 25
+
+ID 9006
+SO 970014
+r10 V-POL police 5148
+r20 KABEL-NAP kabel napajeci 30
+r30 KABEL-USB kabel USB 12
+
+ID 9007
+SO 970015
+r10 V06 kabina 8
+r20 V04 dopravnik 6
+r30 V-POL police 900
+r40 KABEL-LAN kabel sitovy 18
+r50 KABEL-NAP kabel napajeci 10
+r60 KABEL-HDMI kabel HDMI 8
+
+ID 9008
+SO 970016
+r10 V-POL police 156
+
+ID 9009
+SO 970017
+r10 V-POL police 300
+
+ID 9010
+SO 970018
+r10 V-POL police 150
+SO 970019
+r10 V-POL police 150
+
+ID 9011
+SO 970020
+r10 V04 dopravnik 1
+r20 V-POL police 60
+
+ID 9012
+SO 970021
+r10 V-POL police 100
+SO 970022
+r10 V-POL police 50
+SO 970023
+r10 V-POL police 40
+SO 970024
+r10 V-POL police 40
+
+ID 9013
+SO 970025
+r10 V06 kabina 1

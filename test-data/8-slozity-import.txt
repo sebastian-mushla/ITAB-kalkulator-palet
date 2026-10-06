@@ -1,0 +1,40 @@
+ID 7001
+SO 930001
+r10 V06 kabina 4
+r20 V04 dopravnik 6
+r30 V-POL police 700
+SO 930002
+r10 V-POL police 90
+r20 NOVY-1 novy dil 12
+SO 930003
+r10 V06 kabina 2
+r20 V-POL police 156
+
+ID 7002
+SO 930010
+r10 V-POL police 156
+
+ID 7003
+SO 930020
+r10 V-POL police 40
+r20 V-POL police 30
+r30 KRYT-55 kryt pokladny 8
+
+ID 7004
+SO 930030
+r10 V04 dopravnik 25
+r20 V06 kabina 12
+SO 930031
+r10 V-POL police 2000
+
+ID 7005
+SO 930040
+r10 V06 kabina 1
+r20 DRZAK-X drzak displeje velky 3
+r30 V-POL police 10
+
+SO 930050
+r10 V-POL police 470
+
+SO 930060
+r10 V04 dopravnik 1

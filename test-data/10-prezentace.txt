@@ -1,0 +1,193 @@
+ID 8201
+SO 950001
+r10 V-POL police 156
+
+ID 8202
+SO 950002
+r10 V-POL police 90
+
+ID 8203
+SO 950003
+r10 V-POL police 300
+
+ID 8204
+SO 950004
+r10 V-POL police 450
+
+ID 8210
+SO 950005
+r10 V04 dopravnik 1
+
+ID 8211
+SO 950006
+r10 V06 kabina 1
+r20 V-POL police 100
+
+ID 8212
+SO 950007
+r10 V-POL police 1000
+
+ID 8213
+SO 950008
+r10 V06 kabina 2
+r20 V04 dopravnik 2
+
+ID 8220
+SO 950009
+r10 V06 kabina 4
+r20 V-POL police 600
+
+ID 8221
+SO 950010
+r10 V04 dopravnik 6
+r20 V-POL police 800
+
+ID 8222
+SO 950011
+r10 V06 kabina 5
+r20 V04 dopravnik 4
+SO 950012
+r10 V-POL police 900
+
+ID 8230
+SO 950013
+r10 V06 kabina 6
+r20 V04 dopravnik 10
+r30 V-POL police 1240
+
+ID 8231
+SO 950014
+r10 V06 kabina 8
+r20 V04 dopravnik 12
+SO 950015
+r10 V-POL police 1500
+SO 950016
+r10 V06 kabina 3
+r20 V-POL police 300
+
+ID 8232
+SO 950017
+r10 V-POL police 4500
+
+ID 8240
+SO 950018
+r10 V-POL police 200
+SO 950019
+r10 V06 kabina 1
+SO 950020
+r10 V-POL police 80
+
+ID 8241
+SO 950021
+r10 V04 dopravnik 3
+SO 950022
+r10 V04 dopravnik 2
+r20 V-POL police 156
+SO 950023
+r10 V06 kabina 2
+
+ID 8250
+SO 950024
+r10 V-POL police 300
+r20 STOJAN-12 stojan pokladny 6
+SO 950025
+r10 KABEL-SET sada kabelu 20
+
+ID 8251
+SO 950026
+r10 PULT-XL pult pokladni velky 2
+r20 V06 kabina 2
+
+ID 8252
+SO 950027
+r10 MONITOR-22 monitor dotykovy 14
+r20 V-POL police 60
+
+ID 8253
+SO 950028
+r10 V04 dopravnik 5
+r20 NOVY-1 novy dil 12
+SO 950029
+r10 V-POL police 450
+r20 STOJAN-12 stojan pokladny 3
+
+ID 8260
+SO 950030
+r10 V04 dopravnik 1
+r20 V-POL police 600
+SO 950031
+r10 V06 kabina 1
+r20 V-POL police 40
+
+ID 8261
+SO 950032
+r10 V06 kabina 2
+r20 V04 dopravnik 4
+r30 V-POL police 600
+SO 950033
+r10 V06 kabina 2
+r20 V-POL police 40
+
+ID 8262
+SO 950034
+r10 V04 dopravnik 2
+r20 V-POL police 156
+SO 950035
+r10 V06 kabina 2
+r20 V-POL police 600
+SO 950036
+r10 V04 dopravnik 5
+r20 V-POL police 156
+
+ID 8263
+SO 950037
+r10 V06 kabina 1
+r20 V-POL police 312
+SO 950038
+r10 V-POL police 600
+
+ID 8264
+SO 950039
+r10 V06 kabina 2
+r20 V-POL police 156
+SO 950040
+r10 V06 kabina 3
+
+ID 8265
+SO 950041
+r10 V06 kabina 1
+r20 V04 dopravnik 4
+r30 V-POL police 250
+SO 950042
+r10 V06 kabina 4
+SO 950043
+r10 V06 kabina 3
+r20 V04 dopravnik 3
+r30 V-POL police 600
+
+ID 8266
+SO 950044
+r10 V06 kabina 1
+r20 V-POL police 780
+SO 950045
+r10 V06 kabina 3
+
+ID 8267
+SO 950046
+r10 V06 kabina 4
+r20 V-POL police 312
+SO 950047
+r10 V06 kabina 1
+r20 V-POL police 250
+
+ID 8268
+SO 950048
+r10 V04 dopravnik 4
+r20 V-POL police 312
+
+ID 8269
+SO 950049
+r10 V-POL police 600
+SO 950050
+r10 V06 kabina 4
+r20 V-POL police 312

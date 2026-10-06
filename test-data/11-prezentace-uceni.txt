@@ -1,0 +1,249 @@
+ID 8301
+SO 960001
+r10 SKLO-90 ochranne sklo 6
+r20 NOHA-6 noha stojanu 10
+r30 DRZAK-X drzak displeje velky 40
+r40 V04 dopravnik 2
+SO 960002
+r10 DRZAK-X drzak displeje velky 40
+r20 RAM-200 ram pultu 2
+r30 KRYT-55 kryt pokladny 1
+r40 V06 kabina 1
+
+ID 8302
+SO 960003
+r10 NOHA-6 noha stojanu 1
+r20 PANEL-B bocni panel 10
+r30 RAM-200 ram pultu 6
+
+ID 8303
+SO 960004
+r10 PULT-XL pult pokladni velky 40
+r20 KRYT-55 kryt pokladny 10
+r30 STOJAN-12 stojan pokladny 1
+r40 V-POL police 156
+SO 960005
+r10 KRYT-55 kryt pokladny 1
+SO 960006
+r10 DRZAK-X drzak displeje velky 40
+r20 KRYT-55 kryt pokladny 2
+r30 V04 dopravnik 3
+
+ID 8304
+SO 960007
+r10 RAM-200 ram pultu 1
+r20 V06 kabina 2
+SO 960008
+r10 VAHA-15 vaha pultova 20
+r20 KABEL-SET sada kabelu 4
+r30 V-POL police 156
+
+ID 8305
+SO 960009
+r10 STOJAN-12 stojan pokladny 10
+r20 KABEL-SET sada kabelu 40
+r30 V-POL police 60
+SO 960010
+r10 ZASUV-41 zasuvka na penize 1
+r20 KABEL-SET sada kabelu 40
+SO 960011
+r10 MONITOR-22 monitor dotykovy 1
+r20 V06 kabina 3
+
+ID 8306
+SO 960012
+r10 KABEL-SET sada kabelu 20
+r20 KRYT-55 kryt pokladny 2
+SO 960013
+r10 TISK-80 tiskarna uctenek 4
+r20 KABEL-SET sada kabelu 4
+r30 V-POL police 500
+
+ID 8307
+SO 960014
+r10 MONITOR-22 monitor dotykovy 20
+r20 V-POL police 60
+
+ID 8308
+SO 960015
+r10 PULT-XL pult pokladni velky 10
+r20 RAM-200 ram pultu 2
+r30 V06 kabina 1
+SO 960016
+r10 NOHA-6 noha stojanu 20
+r20 PULT-XL pult pokladni velky 6
+r30 ZASUV-41 zasuvka na penize 1
+r40 V06 kabina 1
+
+ID 8309
+SO 960017
+r10 SKLO-90 ochranne sklo 10
+r20 NOHA-6 noha stojanu 4
+
+ID 8310
+SO 960018
+r10 PULT-XL pult pokladni velky 6
+
+ID 8311
+SO 960019
+r10 KRYT-55 kryt pokladny 2
+r20 KABEL-SET sada kabelu 2
+r30 STOJAN-12 stojan pokladny 6
+r40 V-POL police 300
+SO 960020
+r10 ZASUV-41 zasuvka na penize 1
+r20 KABEL-SET sada kabelu 1
+r30 V-POL police 156
+SO 960021
+r10 KRYT-55 kryt pokladny 4
+r20 V06 kabina 2
+
+ID 8312
+SO 960022
+r10 DRZAK-X drzak displeje velky 40
+r20 KRYT-55 kryt pokladny 6
+r30 PULT-XL pult pokladni velky 2
+
+ID 8313
+SO 960023
+r10 SKLO-90 ochranne sklo 10
+r20 V-POL police 156
+SO 960024
+r10 PANEL-B bocni panel 20
+
+ID 8314
+SO 960025
+r10 ZASUV-41 zasuvka na penize 1
+r20 DRZAK-X drzak displeje velky 6
+r30 KRYT-55 kryt pokladny 1
+r40 V-POL police 60
+
+ID 8315
+SO 960026
+r10 MONITOR-22 monitor dotykovy 20
+r20 PANEL-B bocni panel 6
+r30 V-POL police 500
+SO 960027
+r10 VAHA-15 vaha pultova 20
+r20 PULT-XL pult pokladni velky 1
+r30 V-POL police 500
+SO 960028
+r10 RAM-200 ram pultu 1
+r20 KRYT-55 kryt pokladny 4
+r30 NOHA-6 noha stojanu 2
+
+ID 8316
+SO 960029
+r10 STOJAN-12 stojan pokladny 6
+r20 KABEL-SET sada kabelu 6
+r30 SKENER-3 skener carovych kodu 2
+r40 V-POL police 156
+
+ID 8317
+SO 960030
+r10 VAHA-15 vaha pultova 2
+r20 KRYT-55 kryt pokladny 1
+r30 V06 kabina 2
+SO 960031
+r10 RAM-200 ram pultu 20
+r20 PANEL-B bocni panel 10
+r30 V04 dopravnik 2
+
+ID 8318
+SO 960032
+r10 STOJAN-12 stojan pokladny 6
+SO 960033
+r10 SKENER-3 skener carovych kodu 10
+r20 STOJAN-12 stojan pokladny 20
+r30 NOHA-6 noha stojanu 1
+r40 V06 kabina 3
+SO 960034
+r10 TISK-80 tiskarna uctenek 1
+r20 PULT-XL pult pokladni velky 1
+r30 V06 kabina 2
+
+ID 8319
+SO 960035
+r10 PANEL-B bocni panel 40
+r20 SKLO-90 ochranne sklo 4
+r30 PULT-XL pult pokladni velky 4
+r40 V-POL police 500
+
+ID 8320
+SO 960036
+r10 NOHA-6 noha stojanu 40
+r20 STOJAN-12 stojan pokladny 6
+r30 V04 dopravnik 4
+
+ID 8321
+SO 960037
+r10 STOJAN-12 stojan pokladny 1
+r20 KRYT-55 kryt pokladny 1
+r30 KABEL-SET sada kabelu 20
+r40 V-POL police 300
+SO 960038
+r10 PANEL-B bocni panel 6
+r20 TISK-80 tiskarna uctenek 20
+
+ID 8322
+SO 960039
+r10 DRZAK-X drzak displeje velky 1
+r20 VAHA-15 vaha pultova 10
+SO 960040
+r10 SKENER-3 skener carovych kodu 10
+r20 V-POL police 60
+
+ID 8323
+SO 960041
+r10 KABEL-SET sada kabelu 20
+r20 DRZAK-X drzak displeje velky 6
+r30 KRYT-55 kryt pokladny 4
+
+ID 8324
+SO 960042
+r10 PULT-XL pult pokladni velky 10
+r20 RAM-200 ram pultu 2
+r30 V04 dopravnik 3
+SO 960043
+r10 DRZAK-X drzak displeje velky 4
+r20 SKLO-90 ochranne sklo 6
+r30 MONITOR-22 monitor dotykovy 20
+r40 V-POL police 500
+
+ID 8325
+SO 960044
+r10 ZASUV-41 zasuvka na penize 2
+r20 V04 dopravnik 3
+
+ID 8326
+SO 960045
+r10 PULT-XL pult pokladni velky 6
+r20 V06 kabina 1
+
+ID 8327
+SO 960046
+r10 SKLO-90 ochranne sklo 1
+r20 PULT-XL pult pokladni velky 6
+r30 V06 kabina 1
+
+ID 8328
+SO 960047
+r10 RAM-200 ram pultu 6
+r20 VAHA-15 vaha pultova 20
+r30 V-POL police 500
+SO 960048
+r10 KABEL-SET sada kabelu 4
+r20 STOJAN-12 stojan pokladny 40
+
+ID 8329
+SO 960049
+r10 TISK-80 tiskarna uctenek 40
+r20 SKENER-3 skener carovych kodu 10
+r30 RAM-200 ram pultu 1
+SO 960050
+r10 DRZAK-X drzak displeje velky 1
+r20 MONITOR-22 monitor dotykovy 40
+
+ID 8330
+SO 960051
+r10 NOHA-6 noha stojanu 1
