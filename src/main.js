@@ -698,10 +698,22 @@ function askArticle(u, next, left) {
   $('#daForm').reset();
   // names come from the order (ERP / designers) and are not edited here
   $('#daName').value = u.name || ''; $('#daName').readOnly = !!u.name;
+  $('#daPal').innerHTML = state.pallets.map(t => '<option value="' + esc(t.code) + '">' + esc(palOption(t)) + '</option>').join('');
+  $('#daPack').value = state.pallets.length ? 'list' : 'new'; daSections();
   // act on the button press itself; the dialog's close event is not reliable in every browser
   dlg.querySelector('form').onsubmit = ev => {
     if (!ev.submitter || ev.submitter.value !== 'yes') return;
-    const a = { code: u.code, name: $('#daName').value.trim(), pack: $('#daPack').value, pl: toNum($('#daL').value), pw: toNum($('#daW').value), per: Math.max(1, Math.round(toNum($('#daPer').value))), kg: toNum($('#daKg').value) || 0, rot: $('#daRot').checked };
+    const mode = $('#daPack').value, per = Math.max(1, Math.round(toNum($('#daPer').value))), kg = toNum($('#daKg').value) || 0, rot = $('#daRot').checked;
+    const a = { code: u.code, name: $('#daName').value.trim(), pack: mode === 'balik' ? 'balik' : 'paleta', per, kg, rot };
+    if (mode === 'balik') Object.assign(a, { pl: toNum($('#daL').value), pw: toNum($('#daW').value) });
+    else if (mode === 'list') a.pal = $('#daPal').value;
+    else {
+      const code = $('#daPCode').value.trim().toUpperCase();
+      if (typeOf(state.pallets, code)) { ev.preventDefault(); flash('Kód palety ' + code + ' už existuje – vyberte ho ze seznamu nebo zadejte jiný.'); return; }
+      const L = toNum($('#daPL').value), W = toNum($('#daPW').value);
+      state.pallets.push({ code, name: $('#daPName').value.trim() || 'Paleta ' + Math.round(L / 10) + ' × ' + Math.round(W / 10), L, W, H: 0, tare: toNum($('#daPTare').value) || 0, maxKg: 0, rot });
+      persist('pallets'); drawPallets(); a.pal = code;
+    }
     state.catalog.push(a);
     persist('catalog'); drawCatalog(); relearn();
     flash('Artikl ' + u.code + ' uložen do číselníku.');
@@ -712,7 +724,13 @@ function askArticle(u, next, left) {
   (u.name ? $('#daL') : $('#daName')).focus();
 }
 $('#dcRemember').addEventListener('change', e => { $('#dcRule').hidden = !e.target.checked; });
-$('#daPack').addEventListener('change', e => { $('#daPerLabel').textContent = e.target.value === 'balik' ? 'Kusů v balíku' : 'Kusů na paletě'; });
+// show only the fields of the chosen packing; hidden fields are disabled so they are not validated
+function daSections() {
+  const m = $('#daPack').value;
+  document.querySelectorAll('#dlgArticle [data-sec]').forEach(el => { const on = el.dataset.sec === m; el.hidden = !on; el.querySelectorAll('input,select').forEach(i => { i.disabled = !on; }); });
+  $('#daPerLabel').textContent = m === 'balik' ? 'Kusů v balíku' : 'Kusů na paletě';
+}
+$('#daPack').addEventListener('change', daSections);
 onBoth('pointercancel', e => endDrag(e, true));
 
 // ---------- packing list ----------
