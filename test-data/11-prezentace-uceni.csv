@@ -1,0 +1,140 @@
+ID;Zakázka;Artikl;Název;Množství
+8301;960001;SKLO-90;ochranne sklo;6
+8301;960001;NOHA-6;noha stojanu;10
+8301;960001;DRZAK-X;drzak displeje velky;40
+8301;960001;V04;dopravnik;2
+8301;960002;DRZAK-X;drzak displeje velky;40
+8301;960002;RAM-200;ram pultu;2
+8301;960002;KRYT-55;kryt pokladny;1
+8301;960002;V06;kabina;1
+8302;960003;NOHA-6;noha stojanu;1
+8302;960003;PANEL-B;bocni panel;10
+8302;960003;RAM-200;ram pultu;6
+8303;960004;PULT-XL;pult pokladni velky;40
+8303;960004;KRYT-55;kryt pokladny;10
+8303;960004;STOJAN-12;stojan pokladny;1
+8303;960004;V-POL;police;156
+8303;960005;KRYT-55;kryt pokladny;1
+8303;960006;DRZAK-X;drzak displeje velky;40
+8303;960006;KRYT-55;kryt pokladny;2
+8303;960006;V04;dopravnik;3
+8304;960007;RAM-200;ram pultu;1
+8304;960007;V06;kabina;2
+8304;960008;VAHA-15;vaha pultova;20
+8304;960008;KABEL-SET;sada kabelu;4
+8304;960008;V-POL;police;156
+8305;960009;STOJAN-12;stojan pokladny;10
+8305;960009;KABEL-SET;sada kabelu;40
+8305;960009;V-POL;police;60
+8305;960010;ZASUV-41;zasuvka na penize;1
+8305;960010;KABEL-SET;sada kabelu;40
+8305;960011;MONITOR-22;monitor dotykovy;1
+8305;960011;V06;kabina;3
+8306;960012;KABEL-SET;sada kabelu;20
+8306;960012;KRYT-55;kryt pokladny;2
+8306;960013;TISK-80;tiskarna uctenek;4
+8306;960013;KABEL-SET;sada kabelu;4
+8306;960013;V-POL;police;500
+8307;960014;MONITOR-22;monitor dotykovy;20
+8307;960014;V-POL;police;60
+8308;960015;PULT-XL;pult pokladni velky;10
+8308;960015;RAM-200;ram pultu;2
+8308;960015;V06;kabina;1
+8308;960016;NOHA-6;noha stojanu;20
+8308;960016;PULT-XL;pult pokladni velky;6
+8308;960016;ZASUV-41;zasuvka na penize;1
+8308;960016;V06;kabina;1
+8309;960017;SKLO-90;ochranne sklo;10
+8309;960017;NOHA-6;noha stojanu;4
+8310;960018;PULT-XL;pult pokladni velky;6
+8311;960019;KRYT-55;kryt pokladny;2
+8311;960019;KABEL-SET;sada kabelu;2
+8311;960019;STOJAN-12;stojan pokladny;6
+8311;960019;V-POL;police;300
+8311;960020;ZASUV-41;zasuvka na penize;1
+8311;960020;KABEL-SET;sada kabelu;1
+8311;960020;V-POL;police;156
+8311;960021;KRYT-55;kryt pokladny;4
+8311;960021;V06;kabina;2
+8312;960022;DRZAK-X;drzak displeje velky;40
+8312;960022;KRYT-55;kryt pokladny;6
+8312;960022;PULT-XL;pult pokladni velky;2
+8313;960023;SKLO-90;ochranne sklo;10
+8313;960023;V-POL;police;156
+8313;960024;PANEL-B;bocni panel;20
+8314;960025;ZASUV-41;zasuvka na penize;1
+8314;960025;DRZAK-X;drzak displeje velky;6
+8314;960025;KRYT-55;kryt pokladny;1
+8314;960025;V-POL;police;60
+8315;960026;MONITOR-22;monitor dotykovy;20
+8315;960026;PANEL-B;bocni panel;6
+8315;960026;V-POL;police;500
+8315;960027;VAHA-15;vaha pultova;20
+8315;960027;PULT-XL;pult pokladni velky;1
+8315;960027;V-POL;police;500
+8315;960028;RAM-200;ram pultu;1
+8315;960028;KRYT-55;kryt pokladny;4
+8315;960028;NOHA-6;noha stojanu;2
+8316;960029;STOJAN-12;stojan pokladny;6
+8316;960029;KABEL-SET;sada kabelu;6
+8316;960029;SKENER-3;skener carovych kodu;2
+8316;960029;V-POL;police;156
+8317;960030;VAHA-15;vaha pultova;2
+8317;960030;KRYT-55;kryt pokladny;1
+8317;960030;V06;kabina;2
+8317;960031;RAM-200;ram pultu;20
+8317;960031;PANEL-B;bocni panel;10
+8317;960031;V04;dopravnik;2
+8318;960032;STOJAN-12;stojan pokladny;6
+8318;960033;SKENER-3;skener carovych kodu;10
+8318;960033;STOJAN-12;stojan pokladny;20
+8318;960033;NOHA-6;noha stojanu;1
+8318;960033;V06;kabina;3
+8318;960034;TISK-80;tiskarna uctenek;1
+8318;960034;PULT-XL;pult pokladni velky;1
+8318;960034;V06;kabina;2
+8319;960035;PANEL-B;bocni panel;40
+8319;960035;SKLO-90;ochranne sklo;4
+8319;960035;PULT-XL;pult pokladni velky;4
+8319;960035;V-POL;police;500
+8320;960036;NOHA-6;noha stojanu;40
+8320;960036;STOJAN-12;stojan pokladny;6
+8320;960036;V04;dopravnik;4
+8321;960037;STOJAN-12;stojan pokladny;1
+8321;960037;KRYT-55;kryt pokladny;1
+8321;960037;KABEL-SET;sada kabelu;20
+8321;960037;V-POL;police;300
+8321;960038;PANEL-B;bocni panel;6
+8321;960038;TISK-80;tiskarna uctenek;20
+8322;960039;DRZAK-X;drzak displeje velky;1
+8322;960039;VAHA-15;vaha pultova;10
+8322;960040;SKENER-3;skener carovych kodu;10
+8322;960040;V-POL;police;60
+8323;960041;KABEL-SET;sada kabelu;20
+8323;960041;DRZAK-X;drzak displeje velky;6
+8323;960041;KRYT-55;kryt pokladny;4
+8324;960042;PULT-XL;pult pokladni velky;10
+8324;960042;RAM-200;ram pultu;2
+8324;960042;V04;dopravnik;3
+8324;960043;DRZAK-X;drzak displeje velky;4
+8324;960043;SKLO-90;ochranne sklo;6
+8324;960043;MONITOR-22;monitor dotykovy;20
+8324;960043;V-POL;police;500
+8325;960044;ZASUV-41;zasuvka na penize;2
+8325;960044;V04;dopravnik;3
+8326;960045;PULT-XL;pult pokladni velky;6
+8326;960045;V06;kabina;1
+8327;960046;SKLO-90;ochranne sklo;1
+8327;960046;PULT-XL;pult pokladni velky;6
+8327;960046;V06;kabina;1
+8328;960047;RAM-200;ram pultu;6
+8328;960047;VAHA-15;vaha pultova;20
+8328;960047;V-POL;police;500
+8328;960048;KABEL-SET;sada kabelu;4
+8328;960048;STOJAN-12;stojan pokladny;40
+8329;960049;TISK-80;tiskarna uctenek;40
+8329;960049;SKENER-3;skener carovych kodu;10
+8329;960049;RAM-200;ram pultu;1
+8329;960050;DRZAK-X;drzak displeje velky;1
+8329;960050;MONITOR-22;monitor dotykovy;40
+8330;960051;NOHA-6;noha stojanu;1
