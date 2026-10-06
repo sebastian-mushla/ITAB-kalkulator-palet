@@ -356,6 +356,9 @@ const unkKey = el => (el.dataset.so || '') + '|' + el.dataset.code;
 const vehKey = el => el.dataset.v + ':' + el.dataset.p;
 function markSel() {
   document.querySelectorAll('.unk').forEach(el => el.classList.toggle('selected', sel.unk.has(unkKey(el))));
+  // while selecting, articles of other zakázky fade out
+  const selSo = sel.unk.size ? [...sel.unk][0].split('|')[0] : null;
+  document.querySelectorAll('.unk').forEach(el => el.classList.toggle('drop-no', selSo != null && (el.dataset.so || '') !== selSo));
   document.querySelectorAll('#detail .board-pal').forEach(el => el.classList.toggle('selected', sel.board.has(boardKey(el))));
   document.querySelectorAll('.veh-svg .pal').forEach(el => el.classList.toggle('selected', sel.veh.has(vehKey(el))));
   const n = sel.unk.size + sel.board.size + sel.veh.size;
@@ -370,7 +373,13 @@ const toggle = (set, k) => { if (set.has(k)) set.delete(k); else set.add(k); };
 onBoth('pointerdown', e => {
   if (e.shiftKey && e.button === 0) {
     const u0 = e.target.closest('.unk'), b0 = e.target.closest('#detail .board-pal'), v0 = e.target.closest('.veh-svg .pal');
-    if (u0 && isAdmin) { sel.board.clear(); sel.veh.clear(); toggle(sel.unk, unkKey(u0)); }
+    if (u0 && isAdmin) {
+      sel.board.clear(); sel.veh.clear();
+      // one zakázka at a time: pieces of different zakázky can never share a pallet
+      const so0 = u0.dataset.so || '', other = [...sel.unk].find(k => k.split('|')[0] !== so0);
+      if (other && !sel.unk.has(unkKey(u0))) { flash('Vybírat lze jen artikly jedné zakázky (' + other.split('|')[0] + ').'); return; }
+      toggle(sel.unk, unkKey(u0));
+    }
     else if (b0 && isAdmin && !e.target.closest('.bp-x')) { sel.unk.clear(); sel.veh.clear(); toggle(sel.board, boardKey(b0)); }
     else if (v0) { sel.unk.clear(); sel.board.clear(); toggle(sel.veh, vehKey(v0)); }
     else return;
@@ -434,7 +443,7 @@ onBoth('pointermove', e => {
 function endDrag(e, cancel) {
   if (!drag) return;
   const d = drag; drag = null;
-  document.querySelectorAll('.drop-ok,.drop-no').forEach(el => el.classList.remove('drop-ok', 'drop-no'));
+  document.querySelectorAll('.drop-ok,.drop-no').forEach(el => el.classList.remove('drop-ok', 'drop-no')); markSel();
   if (d.ghost) d.ghost.remove();
   d.g.classList.remove('dragging');
   document.querySelectorAll('.drop-target,.drop-host').forEach(x => x.classList.remove('drop-target', 'drop-host'));
