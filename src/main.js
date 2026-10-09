@@ -1,7 +1,7 @@
 import { clone, toNum } from './core/util.js';
 import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, DEFAULT_PALLETS, SAMPLE } from './core/defaults.js';
 import { migrateCatalog, nextCode, typeOf } from './core/palletTypes.js';
-import { freezePlan, moveUnits, setPalletType, removePallet, newId, mergePallets, sameSo } from './core/plan.js';
+import { roomFor, freezePlan, moveUnits, setPalletType, removePallet, newId, mergePallets, sameSo } from './core/plan.js';
 import { parseOrders, rowsToOrderText, ordersToText } from './core/parse.js';
 import { solve } from './core/solve.js';
 import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle, replaceVehicle, DEPOT } from './core/manual.js';
@@ -609,6 +609,10 @@ $('#peBody').addEventListener('click', e => {
       const nt = { name: $('#pmName').value.trim() || 'Paleta ' + Math.round(L / 10) + ' × ' + Math.round(W / 10), L, W, H: toNum($('#pmH').value) || 0, tare: toNum($('#pmTare').value) || 0, maxKg: toNum($('#pmMax').value) || 0, rot: true };
       if ($('#pmSave').checked) { nt.code = nextCode(state.pallets); state.pallets.push(nt); persist('pallets'); drawPallets(); drawCatalog(); after = nid => setPalletType(P, nid, nt.code); }
       else { nt.code = 'JINÁ'; after = nid => setPalletType(P, nid, 'JINÁ', nt); }
+    }
+    if (to !== 'new') {
+      const tb = P.find(x => x.id === to), room = tb && sameSo(tb, c.so) ? roomFor(tb, c, state.pallets) : Infinity;
+      if (room < q) { flash(room > 0 ? 'Na cílovou paletu se vejde jen ' + room + ' ks ' + c.code + ' (limit ' + (c.per || '') + ' ks na paletu).' : 'Cílová paleta je plná – ' + c.code + ' se už nevejde.'); return; }
     }
     const nid = moveUnits(P, pid, c.code, q, to);
     if (!nid) { flash(to !== 'new' && !sameSo(P.find(x => x.id === to) || { contents: [] }, c.so) ? 'Nelze: na cílové paletě je jiná zakázka.' : 'Přesun se nepovedl.'); return; }

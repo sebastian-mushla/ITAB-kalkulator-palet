@@ -1,6 +1,27 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "itab", "runtimeExecutable": "python3", "runtimeArgs": ["-m", "http.server", "5173"], "port": 5173 }
+    {
+      "name": "itab",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5173"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "rezije",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5174",
+        "--directory",
+        "/Users/sebastianstanko/ITAB rezije"
+      ],
+      "port": 5174
+    }
   ]
 }

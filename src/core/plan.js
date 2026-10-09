@@ -91,6 +91,15 @@ export function unplaced(lines, plan) {
   }).filter(x => x.qty > 0);
 }
 
+// How many pieces of content `c` still fit on pallet `to` (fill ≤ 100 %, goods ≤ max load of the type).
+export function roomFor(to, c, types) {
+  const t = typeOf(types, to.pal) || to.custom || {};
+  let n = Infinity;
+  if (!c.ride) n = Math.floor((1 - to.contents.filter(x => !x.ride).reduce((s, x) => s + x.units / (x.per || x.units || 1), 0)) * (c.per || c.units) + 1e-9);
+  if (t.maxKg > 0 && c.kg > 0) n = Math.min(n, Math.floor((t.maxKg - to.contents.reduce((s, x) => s + x.units * (x.kg || 0), 0)) / c.kg + 1e-9));
+  return Math.max(0, n);
+}
+
 // Drop pallet `fromId` onto `toId`: move as many pieces as fit (fill ≤ 100 %, goods ≤ max load); the rest stays.
 // Returns { moved, left } in pieces.
 export function mergePallets(plan, fromId, toId, types) {
