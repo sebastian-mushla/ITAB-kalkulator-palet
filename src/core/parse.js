@@ -43,6 +43,8 @@ export function parseOrders(text) {
     const qty = toNum(qCell);
     if (!isFinite(qty)) { if (isFirst) return; problems.push('řádek ' + (idx + 1) + ': množství „' + qCell + '“ není číslo'); return; }
     if (qty % 1 !== 0 || qty <= 0) { problems.push('řádek ' + (idx + 1) + ': množství musí být celé číslo větší než nula'); return; }
+    // ID;zakázka;artikl;(název;)množství without a header: the first two columns are numbers
+    if (p.length >= 4 && /^\d+$/.test(p[0]) && /^\d+$/.test(p[1]) && !/^\d+$/.test(p[2])) { add(p[0], p[1], p[2], qty, p.slice(3, -1).join(' ').trim()); return; }
     add(p[0], p[0], p[1], qty, p.slice(2, -1).join(' ').trim());
   });
   return { orders, problems };
