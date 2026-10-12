@@ -378,7 +378,16 @@ const sel = { unk: new Set(), board: new Set(), veh: new Set() };
 const boardKey = el => el.dataset.bid || 'i' + el.dataset.pi;
 const unkKey = el => (el.dataset.so || '') + '|' + el.dataset.code;
 const vehKey = el => el.dataset.v + ':' + el.dataset.p;
+// search in the unknown articles tray (kept across redraws)
+let unkQ = '';
+function filterUnk() {
+  const q = unkQ.trim().toLowerCase();
+  document.querySelectorAll('.unk-search').forEach(i => { if (i.value !== unkQ) i.value = unkQ; });
+  document.querySelectorAll('.tray .unk').forEach(el => { el.hidden = !!q && el.textContent.toLowerCase().indexOf(q) < 0; });
+}
+document.addEventListener('input', e => { if (e.target.classList && e.target.classList.contains('unk-search')) { unkQ = e.target.value; filterUnk(); } });
 function markSel() {
+  filterUnk();
   document.querySelectorAll('.unk').forEach(el => el.classList.toggle('selected', sel.unk.has(unkKey(el))));
   // while selecting, articles of other zakázky fade out
   const selSo = sel.unk.size ? [...sel.unk][0].split('|')[0] : null;
