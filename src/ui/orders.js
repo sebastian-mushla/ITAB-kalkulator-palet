@@ -56,7 +56,12 @@ export function svgVehicle(v) {
       const fs = Math.max(9, Math.min(13, ph / 5));
       const maxCh = Math.max(4, Math.floor(pw / (fs * 0.58)));
       const cut = t => (t.length > maxCh ? t.slice(0, maxCh - 1) + '…' : t);
-      s += '<text x="' + cx + '" y="' + (cyy + fs * 1.1) + '" style="' + st + ';font-weight:600;font-size:' + fs.toFixed(1) + 'px">' + esc(cut(it.code + (it.extra ? ' +' + it.extra.length : ''))) + '</text>';
+      // long article codes: smaller font first, then keep the distinctive end (…008-9010) – full code is in the list below
+      const label = it.code + (it.extra ? ' +' + it.extra.length : '');
+      const fc = Math.max(8, Math.min(fs, (pw - 10) / (label.length * 0.6)));
+      const room = Math.max(4, Math.floor((pw - 10) / (fc * 0.6)));
+      const shown = label.length > room ? '…' + label.slice(label.length - room + 1) : label;
+      s += '<text x="' + cx + '" y="' + (cyy + fs * 1.1) + '" style="' + st + ';stroke-width:2px;font-weight:600;font-size:' + fc.toFixed(1) + 'px">' + esc(shown) + '</text>';
       s += '<text x="' + cx + '" y="' + (cyy + fs * 2.25) + '" style="' + st + ';font-weight:500;font-size:' + fs.toFixed(1) + 'px">' + esc(cut(it.units + ' ks' + (partial ? ' · ' + Math.round(it.fill * 100) + ' %' : ''))) + '</text>';
     }
     if (it.showSo && it.so && ph >= 30 && pw >= 46) s += '<text x="' + (px + 3) + '" y="' + (py + 10) + '" style="fill:#fff;font-size:9px;font-weight:700;opacity:.95">' + esc(String(it.so).slice(-6)) + '</text>';
