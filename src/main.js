@@ -460,8 +460,12 @@ function endDrag(e, cancel) {
     // resolve all sources before merging (merging removes emptied pallets)
     const srcs = d.boardPal.map(k => (k.bid && wasPlan ? P.find(b => b.id === k.bid) : filled[Number(k.pi)] || P.find(b => b.id === k.bid))).filter(b => b && b !== dst);
     if (!dst || !srcs.length) return;
+    // dry run: if not everything fits, ask whether to go over the pallet's capacity
+    const dry = JSON.parse(JSON.stringify(P));
+    const over0 = srcs.some(src => { const r1 = mergePallets(dry, src.id, dst.id, state.pallets); return r1.left > 0 && !r1.blocked; });
+    const force = over0 && confirm('Na cílovou paletu se všechno nevejde (limit kusů / nosnost palety). Přeložit i tak – přes kapacitu palety?');
     let moved = 0, left = 0, blocked = 0;
-    srcs.forEach(src => { const r1 = mergePallets(P, src.id, dst.id, state.pallets); moved += r1.moved; left += r1.left; if (r1.blocked) blocked++; });
+    srcs.forEach(src => { const r1 = mergePallets(P, src.id, dst.id, state.pallets, force); moved += r1.moved; left += r1.left; if (r1.blocked) blocked++; });
     if (blocked && !moved) { clearSel(); flash('Nelze: palety jsou z různých zakázek – zakázky se na jedné paletě nemíchají.'); return; }
     clearSel(); state.manual.delete(id); keepScroll(recalc);
     flash(!moved ? 'Cílová paleta je plná – nic se nepřesunulo.' : 'Přeloženo ' + moved + ' ks' + (left ? ', ' + left + ' ks zůstalo na původních paletách (cílová je plná).' : (srcs.length > 1 ? ' z ' + srcs.length + ' palet, ty zmizely.' : ', původní paleta zmizela.')));
@@ -616,7 +620,7 @@ $('#peBody').addEventListener('click', e => {
     }
     if (to !== 'new') {
       const tb = P.find(x => x.id === to), room = tb && sameSo(tb, c.so) ? roomFor(tb, c, state.pallets) : Infinity;
-      if (room < q) { flash(room > 0 ? 'Na cílovou paletu se vejde jen ' + room + ' ks ' + c.code + ' (limit ' + (c.per || '') + ' ks na paletu).' : 'Cílová paleta je plná – ' + c.code + ' se už nevejde.'); return; }
+      if (room < q && !confirm((room > 0 ? 'Na cílovou paletu se vejde jen ' + room + ' ks ' + c.code + '.' : 'Cílová paleta je plná.') + ' Přesunout i tak – přes kapacitu palety?')) return;
     }
     const nid = moveUnits(P, pid, c.code, q, to);
     if (!nid) { flash(to !== 'new' && !sameSo(P.find(x => x.id === to) || { contents: [] }, c.so) ? 'Nelze: na cílové paletě je jiná zakázka.' : 'Přesun se nepovedl.'); return; }

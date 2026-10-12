@@ -102,7 +102,7 @@ export function roomFor(to, c, types) {
 
 // Drop pallet `fromId` onto `toId`: move as many pieces as fit (fill ≤ 100 %, goods ≤ max load); the rest stays.
 // Returns { moved, left } in pieces.
-export function mergePallets(plan, fromId, toId, types) {
+export function mergePallets(plan, fromId, toId, types, force) {
   const from = plan.find(b => b.id === fromId), to = plan.find(b => b.id === toId);
   if (!from || !to || from === to) return { moved: 0, left: 0 };
   // different zakázky are never put on one pallet
@@ -115,8 +115,8 @@ export function mergePallets(plan, fromId, toId, types) {
   from.contents.forEach(c => {
     if (!(c.units > 0)) return;
     let n = c.units;
-    if (!c.ride) n = Math.min(n, Math.floor((1 - fillOf(to)) * (c.per || c.units) + 1e-9));
-    if (t.maxKg > 0 && c.kg > 0) n = Math.min(n, Math.floor((t.maxKg - goodsKg(to)) / c.kg + 1e-9));
+    if (!c.ride && !force) n = Math.min(n, Math.floor((1 - fillOf(to)) * (c.per || c.units) + 1e-9));
+    if (!force && t.maxKg > 0 && c.kg > 0) n = Math.min(n, Math.floor((t.maxKg - goodsKg(to)) / c.kg + 1e-9));
     if (n <= 0) return;
     const d = to.contents.find(x => low(x.code) === low(c.code) && (x.so || '') === (c.so || '') && !!x.ride === !!c.ride);
     if (d) d.units += n; else to.contents.push(Object.assign({}, c, { units: n }));
