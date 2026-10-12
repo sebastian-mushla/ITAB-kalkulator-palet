@@ -583,9 +583,10 @@ function addCombos(rules) {
   state.combos = rules.concat(state.combos.filter(c => !codes.has(key(c))));
 }
 // small yes/no dialog in the app's style (instead of the browser's confirm, which freezes the page)
-function ask(title, text, yes) {
+function ask(title, text, yes, check) {
   return new Promise(res => {
     $('#askTitle').textContent = title; $('#askText').textContent = text; $('#askYes').textContent = yes || 'Ano';
+    $('#askChkWrap').hidden = !check; $('#askChk').checked = false; $('#askChkText').textContent = check || '';
     $('#dlgAsk').querySelector('form').onsubmit = ev => res(!!ev.submitter && ev.submitter.value === 'yes');
     $('#dlgAsk').showModal();
   });
@@ -678,7 +679,7 @@ function drawPalEditor() {
     (b.contents.length ? b.contents.map((c, i) => '<div class="pe-row"><span><b>' + esc(c.code) + '</b><span class="muted">' + esc(c.name || '') + (c.ride ? ' · navrch' : '') + '</span></span><span>' + c.units + ' ks</span>' +
       (peCur.row === i ? '' : '<button type="button" class="btn small" data-po="' + i + '">Přesunout…</button>') + '</div>' + (peCur.row === i ? movePanel(c, i) : '')).join('')
       : '<p class="muted">Paleta je prázdná. Přetáhněte na ni materiál na ploše nebo ji smažte.</p>');
-  $('#peDelete').hidden = b.contents.some(c => c.units > 0);
+  $('#peDelete').hidden = false;
 }
 $('#peBody').addEventListener('click', e => {
   const po = e.target.getAttribute('data-po');
@@ -738,9 +739,27 @@ $('#peBody').addEventListener('change', e => {
   const f = { other: '#pmOther', new: '#pmL', exist: '#pmExist' }[e.target.value];
   if (f && $(f)) $(f).focus();
 });
-$('#peDelete').addEventListener('click', () => {
-  if (removePallet(state.plan.get(peCur.id), peCur.pid)) { state.manual.delete(peCur.id); keepScroll(() => recalcOne()); }
-  $('#dlgPalEdit').close();
+// delete a pallet: its pieces go back to the right side; optionally the article definition is deleted too
+$('#peDelete').addEventListener('click', async () => {
+  const { id, pid } = peCur, P = state.plan.get(id), b = P && P.find(x => x.id === pid); if (!b) return;
+  const full = b.contents.filter(c => c.units > 0);
+  if (!full.length) { removePallet(P, pid); state.manual.delete(id); $('#dlgPalEdit').close(); keepScroll(() => recalcOne()); return; }
+  const codes = [...new Set(full.map(c => c.code))];
+  const inCat = codes.filter(c => state.catalog.some(a => String(a.code).toLowerCase() === c.toLowerCase()));
+  const ok = await ask('Smazat paletu?', 'Kusy (' + full.map(c => c.code + ' ' + c.units + ' ks').join(', ') + ') se vrátí vpravo mezi nezařazené.', 'Smazat paletu',
+    inCat.length ? 'Smazat i definici artiklu ' + inCat.join(', ') + ' z číselníku (pro všechny zakázky)' : '');
+  if (!ok) return;
+  P.splice(P.indexOf(b), 1);
+  if (inCat.length && $('#askChk').checked) {
+    const del = new Set(inCat.map(c => c.toLowerCase()));
+    state.catalog = state.catalog.filter(a => !del.has(String(a.code).toLowerCase()));
+    persist('catalog'); drawCatalog();
+    $('#dlgPalEdit').close(); state.manual.delete(id); recalc();
+    flash('Paleta smazána, ' + inCat.join(', ') + ' odstraněn z číselníku.');
+    return;
+  }
+  $('#dlgPalEdit').close(); state.manual.delete(id); keepScroll(() => recalcOne());
+  flash('Paleta smazána, kusy jsou vpravo.');
 });
 
 function addBoardPallet(id, b) {
