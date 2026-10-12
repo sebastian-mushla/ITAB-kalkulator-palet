@@ -82,12 +82,33 @@ function ctx(id) {
   // one-off moves (not remembered) apply only to that order and win over saved rules
   return { catalog: state.catalog, vehicles: state.vehicles, pallets: state.pallets, rules: state.rules, combos: (state.oneOff.get(id) || []).concat(state.combos), forced: state.forced.has(id) ? state.forced.get(id) : null, added: state.board.get(id) || [], plan: state.plan.get(id) || null };
 }
+// Full recalculation (catalog, vehicles, rules … changed): the open order first, the rest in small
+// chunks in the background so the page never freezes.
+let recalcGen = 0;
 function recalc() {
-  state.results = new Map();
+  const gen = ++recalcGen;
   state.forced.forEach((vi, id) => { if (!(vi < state.vehicles.length)) state.forced.delete(id); });
-  state.orders.forEach(o => state.results.set(o.id, solve(o, ctx(o.id))));
-  state.manual.forEach((m, id) => { if (!m.touched) state.manual.delete(id); });
+  [...state.results.keys()].forEach(id => { if (!state.orders.has(id)) state.results.delete(id); });
   if (!state.orders.has(state.sel)) state.sel = state.orders.size ? state.orders.keys().next().value : null;
+  const ids = [...state.orders.keys()].sort((a, b) => (b === state.sel) - (a === state.sel));
+  const one = id => { state.results.set(id, solve(state.orders.get(id), ctx(id))); const m = state.manual.get(id); if (m && !m.touched) state.manual.delete(id); };
+  // first paint: the open order plus everything that has no result yet
+  ids.filter((id, i) => i === 0 || !state.results.has(id)).forEach(one);
+  renderOverview();
+  const rest = ids.slice(1).filter(id => state.results.has(id));
+  const step = () => {
+    if (gen !== recalcGen) return;
+    const t0 = performance.now();
+    while (rest.length && performance.now() - t0 < 30) one(rest.shift());
+    if (rest.length) setTimeout(step, 0); else renderOverview();
+  };
+  if (rest.length) setTimeout(step, 0);
+}
+// Only the open order changed (its pallets, board, one-off moves): recalculate just that one.
+function recalcOne(id = state.sel) {
+  const o = state.orders.get(id); if (!o) { recalc(); return; }
+  state.results.set(id, solve(o, ctx(id)));
+  const m = state.manual.get(id); if (m && !m.touched) state.manual.delete(id);
   renderOverview();
 }
 // result as shown: with the operator's manual loading plan applied
@@ -335,8 +356,8 @@ onBoth('click', e => {
   }
   if (e.target.id === 'newPalBtn') { askPallet(id); return; }
   const rmb = e.target.getAttribute('data-rmb');
-  if (rmb) { keepScroll(() => { const P = state.plan.get(id); if (P) removePallet(P, rmb); else state.board.set(id, (state.board.get(id) || []).filter(b => b.id !== rmb)); state.manual.delete(id); recalc(); }); return; }
-  if (e.target.id === 'resetPlan') { keepScroll(() => { state.plan.delete(id); state.manual.delete(id); recalc(); }); return; }
+  if (rmb) { keepScroll(() => { const P = state.plan.get(id); if (P) removePallet(P, rmb); else state.board.set(id, (state.board.get(id) || []).filter(b => b.id !== rmb)); state.manual.delete(id); recalcOne(); }); return; }
+  if (e.target.id === 'resetPlan') { keepScroll(() => { state.plan.delete(id); state.manual.delete(id); recalcOne(); }); return; }
   const bp = e.target.closest('.board-pal');
   if (bp && !e.target.closest('.bp-x') && isAdmin && !suppressClick && !e.shiftKey) { openPalEditor(id, bp.dataset.bid, Number(bp.dataset.pi)); return; }
   const rm = e.target.getAttribute('data-rmveh');
@@ -467,7 +488,7 @@ function endDrag(e, cancel) {
     let moved = 0, left = 0, blocked = 0;
     srcs.forEach(src => { const r1 = mergePallets(P, src.id, dst.id, state.pallets, force); moved += r1.moved; left += r1.left; if (r1.blocked) blocked++; });
     if (blocked && !moved) { clearSel(); flash('Nelze: palety jsou z různých zakázek – zakázky se na jedné paletě nemíchají.'); return; }
-    clearSel(); state.manual.delete(id); keepScroll(recalc);
+    clearSel(); state.manual.delete(id); keepScroll(() => recalcOne());
     flash(!moved ? 'Cílová paleta je plná – nic se nepřesunulo.' : 'Přeloženo ' + moved + ' ks' + (left ? ', ' + left + ' ks zůstalo na původních paletách (cílová je plná).' : (srcs.length > 1 ? ' z ' + srcs.length + ' palet, ty zmizely.' : ', původní paleta zmizela.')));
     return;
   }
@@ -476,7 +497,7 @@ function endDrag(e, cancel) {
     const id = state.sel, list = state.board.get(id) || [];
     list.push({ id: 'b' + Date.now().toString(36), pal: d.ptype, contents: [] });
     state.board.set(id, list); state.manual.delete(id);
-    keepScroll(recalc);
+    keepScroll(() => recalcOne());
     flash('Přidána prázdná paleta ' + d.ptype + '. Přetáhněte na ni materiál.');
     return;
   }
@@ -555,7 +576,7 @@ function openPalEditor(id, bid, pi) {
   const b = (wasPlan && bid && P.find(x => x.id === bid)) || filled[pi] || P.find(x => x.id === bid);
   if (!b) return;
   peCur = { id, pid: b.id, row: null };
-  if (!wasPlan) keepScroll(recalc);
+  if (!wasPlan) keepScroll(() => recalcOne());
   drawPalEditor();
   $('#dlgPalEdit').showModal();
 }
@@ -626,7 +647,7 @@ $('#peBody').addEventListener('click', e => {
     if (!nid) { flash(to !== 'new' && !sameSo(P.find(x => x.id === to) || { contents: [] }, c.so) ? 'Nelze: na cílové paletě je jiná zakázka.' : 'Přesun se nepovedl.'); return; }
     if (after) after(nid);
     peCur.row = null;
-    state.manual.delete(id); keepScroll(recalc);
+    state.manual.delete(id); keepScroll(() => recalcOne());
     flash('Přesunuto ' + q + ' ks ' + c.code + '.');
     drawPalEditor();
     return;
@@ -634,7 +655,7 @@ $('#peBody').addEventListener('click', e => {
   if (e.target.id === 'peTypeBtn') {
     const v = $('#peType').value.trim(), code = v.split(' · ')[0].trim(), t = typeOf(state.pallets, code);
     if (!t) { flash('Vyberte typ palety z nabídky.'); return; }
-    setPalletType(state.plan.get(peCur.id), peCur.pid, t.code); state.manual.delete(peCur.id); keepScroll(recalc); drawPalEditor();
+    setPalletType(state.plan.get(peCur.id), peCur.pid, t.code); state.manual.delete(peCur.id); keepScroll(() => recalcOne()); drawPalEditor();
   }
 });
 // show the extra fields only for the chosen option
@@ -644,17 +665,17 @@ $('#peBody').addEventListener('change', e => {
   if (f && $(f)) $(f).focus();
 });
 $('#peDelete').addEventListener('click', () => {
-  if (removePallet(state.plan.get(peCur.id), peCur.pid)) { state.manual.delete(peCur.id); keepScroll(recalc); }
+  if (removePallet(state.plan.get(peCur.id), peCur.pid)) { state.manual.delete(peCur.id); keepScroll(() => recalcOne()); }
   $('#dlgPalEdit').close();
 });
 
 function addBoardPallet(id, b) {
   const P = state.plan.get(id);
-  if (P) { P.push(Object.assign({ id: newId(), contents: [] }, b)); state.manual.delete(id); keepScroll(recalc); return; }
+  if (P) { P.push(Object.assign({ id: newId(), contents: [] }, b)); state.manual.delete(id); keepScroll(() => recalcOne()); return; }
   const list = state.board.get(id) || [];
   list.push(Object.assign({ id: 'b' + Date.now().toString(36) + list.length, contents: [] }, b));
   state.board.set(id, list); state.manual.delete(id);
-  keepScroll(recalc);
+  keepScroll(() => recalcOne());
 }
 function askPallet(id) {
   const dlg = $('#dlgPallet');
@@ -703,7 +724,7 @@ function askMaterial(listU, bid) {
     });
     if (save) { persist('catalog'); drawCatalog(); drawPallets(); if (!P && !b.contents.length) state.board.set(id, list.filter(x => x !== b)); }
     flash((save ? 'Uloženo do číselníku a položeno: ' : 'Položeno jen pro tuto zakázku: ') + listU.map(u => u.code).join(', ') + ' → ' + t.code + '.');
-    clearSel(); state.manual.delete(id); recalc();
+    clearSel(); state.manual.delete(id); if (save) recalc(); else recalcOne();
   };
   dlg.returnValue = ''; dlg.showModal();
   $('#dmRows input').focus();
