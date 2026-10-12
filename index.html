@@ -329,6 +329,28 @@ document.documentElement.setAttribute('data-theme',t);})();
     <div class="acts"><button class="btn" value="no" formnovalidate>Zrušit</button><button class="btn primary" value="yes">Položit na paletu</button></div>
   </form>
 </dialog>
+<dialog class="dlg" id="dlgAsk">
+  <form method="dialog">
+    <h2 id="askTitle">Přes kapacitu palety?</h2>
+    <p id="askText"></p>
+    <div class="acts"><button class="btn" value="no">Zrušit</button><button class="btn primary" value="yes" id="askYes">Ano</button></div>
+  </form>
+</dialog>
+<dialog class="dlg" id="dlgMerge">
+  <form method="dialog">
+    <h2 id="mgTitle">Přeložit na paletu</h2>
+    <p id="mgText"></p>
+    <div id="mgRows" class="lr-rows"></div>
+    <div id="mgOver" class="mg-over">
+      <p class="warn-text" id="mgOverText"></p>
+      <label class="inline"><input type="radio" name="mgMode" value="fit" checked>Jen co se vejde (zbytek zůstane na původní paletě)</label>
+      <label class="inline"><input type="radio" name="mgMode" value="all">Přeložit vše – přes kapacitu palety</label>
+    </div>
+    <label class="inline" id="mgRemWrap"><input type="checkbox" id="mgRemember">Zapamatovat kombinaci pro další zakázky</label>
+    <p class="hint" id="mgRule"></p>
+    <div class="acts"><button class="btn" value="no">Zrušit</button><button class="btn primary" value="yes">Přeložit</button></div>
+  </form>
+</dialog>
 <dialog class="dlg" id="dlgCombo">
   <form method="dialog">
     <h2 id="dcTitle">Přesunout artikl na paletu</h2>

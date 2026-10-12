@@ -513,3 +513,4 @@ tr.so-head td{background:var(--soft);font-size:13px;padding:6px 10px;color:var(-
 .board-pal.drop-no{opacity:.25;filter:grayscale(.8);transition:opacity .15s}
 .board-pal.drop-ok{box-shadow:0 0 0 3px #7866EE,0 0 14px rgba(120,102,238,.55);transition:box-shadow .15s}
 .unk.drop-no{opacity:.35;filter:grayscale(1)}
+.mg-over{margin:10px 0;padding:10px 12px;border-radius:10px;background:rgba(245,158,11,.12)}.mg-over .warn-text{margin:0 0 6px;color:#b45309;font-weight:600}

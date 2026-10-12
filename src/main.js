@@ -481,15 +481,7 @@ function endDrag(e, cancel) {
     // resolve all sources before merging (merging removes emptied pallets)
     const srcs = d.boardPal.map(k => (k.bid && wasPlan ? P.find(b => b.id === k.bid) : filled[Number(k.pi)] || P.find(b => b.id === k.bid))).filter(b => b && b !== dst);
     if (!dst || !srcs.length) return;
-    // dry run: if not everything fits, ask whether to go over the pallet's capacity
-    const dry = JSON.parse(JSON.stringify(P));
-    const over0 = srcs.some(src => { const r1 = mergePallets(dry, src.id, dst.id, state.pallets); return r1.left > 0 && !r1.blocked; });
-    const force = over0 && confirm('Na cílovou paletu se všechno nevejde (limit kusů / nosnost palety). Přeložit i tak – přes kapacitu palety?');
-    let moved = 0, left = 0, blocked = 0;
-    srcs.forEach(src => { const r1 = mergePallets(P, src.id, dst.id, state.pallets, force); moved += r1.moved; left += r1.left; if (r1.blocked) blocked++; });
-    if (blocked && !moved) { clearSel(); flash('Nelze: palety jsou z různých zakázek – zakázky se na jedné paletě nemíchají.'); return; }
-    clearSel(); state.manual.delete(id); keepScroll(() => recalcOne());
-    flash(!moved ? 'Cílová paleta je plná – nic se nepřesunulo.' : 'Přeloženo ' + moved + ' ks' + (left ? ', ' + left + ' ks zůstalo na původních paletách (cílová je plná).' : (srcs.length > 1 ? ' z ' + srcs.length + ' palet, ty zmizely.' : ', původní paleta zmizela.')));
+    askMerge(id, P, srcs, dst, Number(tp.dataset.pi) + 1);
     return;
   }
   if (d.ptype) {
@@ -536,6 +528,48 @@ function endDrag(e, cancel) {
 onBoth('pointerup', e => endDrag(e, false));
 
 // ---------- learning: save a combination or a new article from the drop ----------
+// ---------- pallet onto pallet: one dialog (capacity, remember combination) ----------
+function askMerge(id, P, srcs, dst, dstNo) {
+  // different zakázky never share a pallet
+  const dry = JSON.parse(JSON.stringify(P));
+  let fit = 0, left = 0, blocked = 0;
+  srcs.forEach(src => { const r1 = mergePallets(dry, src.id, dst.id, state.pallets); fit += r1.moved; left += r1.left; if (r1.blocked) blocked++; });
+  if (blocked === srcs.length) { clearSel(); flash('Nelze: palety jsou z různých zakázek – zakázky se na jedné paletě nemíchají.'); return; }
+  const host = (dst.contents.find(c => !c.ride && c.units > 0) || dst.contents[0] || {}).code || '';
+  const arts = new Map();
+  srcs.forEach(b => b.contents.forEach(c => { if (!(c.units > 0)) return; const k = c.code.toLowerCase(); const g = arts.get(k) || { code: c.code, name: c.name || '', units: 0, kg: c.kg || 0 }; g.units += c.units; arts.set(k, g); }));
+  const list = [...arts.values()], riders = list.filter(a => a.code.toLowerCase() !== host.toLowerCase());
+  $('#mgTitle').textContent = 'Přeložit na paletu č. ' + dstNo + (host ? ' (' + host + ')' : '');
+  $('#mgText').textContent = srcs.length > 1 ? 'Z ' + srcs.length + ' palet:' : 'Z palety:';
+  $('#mgRows').innerHTML = '<div class="lr-h"><span>Artikl</span><span>Kusů</span><span></span></div>' + list.map(a => '<div class="lr"><span><b>' + esc(a.code) + '</b><small>' + esc(a.name) + '</small></span><span>' + a.units + ' ks</span><span></span></div>').join('');
+  $('#mgOver').hidden = !left;
+  $('#mgOverText').textContent = 'Vejde se jen ' + fit + ' ks z ' + (fit + left) + ' (limit kusů / nosnost palety).';
+  $('#dlgMerge').querySelector('input[value="fit"]').checked = true;
+  $('#mgRemWrap').hidden = !host || !riders.length; $('#mgRemember').checked = false; $('#mgRule').hidden = true;
+  $('#mgRule').textContent = 'Pravidlo: ' + riders.map(a => a.code).join(', ') + ' pojede na paletách ' + host + ' (když je v zakázce ' + host + ' a kusů je nejvýše tolik jako teď).';
+  $('#mgRemember').onchange = e => { $('#mgRule').hidden = !e.target.checked; };
+  $('#dlgMerge').querySelector('form').onsubmit = ev => {
+    if (!ev.submitter || ev.submitter.value !== 'yes') { clearSel(); return; }
+    const force = !!left && $('#dlgMerge').querySelector('input[value="all"]').checked;
+    let moved = 0, rest = 0;
+    srcs.forEach(src => { const r1 = mergePallets(P, src.id, dst.id, state.pallets, force); moved += r1.moved; rest += r1.left; });
+    if ($('#mgRemember').checked && riders.length) {
+      state.combos.push(...riders.map(a => ({ on: true, code: a.code, withCode: host, min: 0, max: a.units, mode: 'host', host, pl: 0, pw: 0, per: 0, kg: a.kg, name: a.name, note: 'Uloženo z palet' })));
+      persist('combos'); drawCombos();
+    }
+    clearSel(); state.manual.delete(id); keepScroll(() => recalcOne());
+    flash(!moved ? 'Cílová paleta je plná – nic se nepřesunulo.' : 'Přeloženo ' + moved + ' ks' + (rest ? ', ' + rest + ' ks zůstalo na původní paletě.' : '.') + ($('#mgRemember').checked && riders.length ? ' Kombinace uložena.' : ''));
+  };
+  $('#dlgMerge').showModal();
+}
+// small yes/no dialog in the app's style (instead of the browser's confirm, which freezes the page)
+function ask(title, text, yes) {
+  return new Promise(res => {
+    $('#askTitle').textContent = title; $('#askText').textContent = text; $('#askYes').textContent = yes || 'Ano';
+    $('#dlgAsk').querySelector('form').onsubmit = ev => res(!!ev.submitter && ev.submitter.value === 'yes');
+    $('#dlgAsk').showModal();
+  });
+}
 function relearn() { state.manual.delete(state.sel); recalc(); }
 // one or more unknown articles ride on the pallets of article `host`
 function askCombo(list, host) {
@@ -641,8 +675,13 @@ $('#peBody').addEventListener('click', e => {
     }
     if (to !== 'new') {
       const tb = P.find(x => x.id === to), room = tb && sameSo(tb, c.so) ? roomFor(tb, c, state.pallets) : Infinity;
-      if (room < q && !confirm((room > 0 ? 'Na cílovou paletu se vejde jen ' + room + ' ks ' + c.code + '.' : 'Cílová paleta je plná.') + ' Přesunout i tak – přes kapacitu palety?')) return;
+      if (room < q) {
+        ask('Přes kapacitu palety?', (room > 0 ? 'Na cílovou paletu se vejde jen ' + room + ' ks ' + c.code + '.' : 'Cílová paleta je plná.') + ' Přesunout i tak všech ' + q + ' ks?', 'Přesunout vše').then(ok => { if (ok) doMove(); });
+        return;
+      }
     }
+    doMove();
+    function doMove() {
     const nid = moveUnits(P, pid, c.code, q, to);
     if (!nid) { flash(to !== 'new' && !sameSo(P.find(x => x.id === to) || { contents: [] }, c.so) ? 'Nelze: na cílové paletě je jiná zakázka.' : 'Přesun se nepovedl.'); return; }
     if (after) after(nid);
@@ -650,6 +689,7 @@ $('#peBody').addEventListener('click', e => {
     state.manual.delete(id); keepScroll(() => recalcOne());
     flash('Přesunuto ' + q + ' ks ' + c.code + '.');
     drawPalEditor();
+    }
     return;
   }
   if (e.target.id === 'peTypeBtn') {
