@@ -556,13 +556,19 @@ function askMerge(id, P, srcs, dst, dstNo) {
     let moved = 0, rest = 0;
     srcs.forEach(src => { const r1 = mergePallets(P, src.id, dst.id, state.pallets, force); moved += r1.moved; rest += r1.left; });
     if ($('#mgRemember').checked && riders.length) {
-      state.combos.push(...riders.map(a => ({ on: true, code: a.code, withCode: host, min: 0, max: a.units, mode: 'host', host, pl: 0, pw: 0, per: 0, kg: a.kg, name: a.name, note: 'Uloženo z palet' })));
+      addCombos(riders.map(a => ({ on: true, code: a.code, withCode: host, min: 0, max: a.units, mode: 'host', host, pl: 0, pw: 0, per: 0, kg: a.kg, name: a.name, note: 'Uloženo z palet' })));
       persist('combos'); drawCombos();
     }
     clearSel(); state.manual.delete(id); keepScroll(() => recalcOne());
     flash(!moved ? 'Cílová paleta je plná – nic se nepřesunulo.' : 'Přeloženo ' + moved + ' ks' + (rest ? ', ' + rest + ' ks zůstalo na původní paletě.' : '.') + ($('#mgRemember').checked && riders.length ? ' Kombinace uložena.' : ''));
   };
   $('#dlgMerge').showModal();
+}
+// a new rule wins over older ones for the same article + host: those are dropped, the new one goes first
+function addCombos(rules) {
+  const key = c => (String(c.code) + '|' + String(c.withCode || '')).toLowerCase();
+  const codes = new Set(rules.map(key));
+  state.combos = rules.concat(state.combos.filter(c => !codes.has(key(c))));
 }
 // small yes/no dialog in the app's style (instead of the browser's confirm, which freezes the page)
 function ask(title, text, yes) {
@@ -591,7 +597,7 @@ function askCombo(list, host, bid) {
   dlg.querySelector('form').onsubmit = ev => {
     if (!ev.submitter || ev.submitter.value !== 'yes') return;
     const rules = list.map((u, i) => ({ on: true, code: u.code, withCode: host, min: 0, max: u.qty, mode: 'host', host, pl: 0, pw: 0, per: Math.max(0, Math.floor(toNum($('#dcRows [data-cp="' + i + '"]').value) || 0)), kg: toNum($('#dcRows [data-ck="' + i + '"]').value) || 0, name: u.name || '', note: 'Uloženo z nakládky' }));
-    if ($('#dcRemember').checked) { state.combos.push(...rules); persist('combos'); drawCombos(); flash('Přesunuto ' + rules.length + '× a kombinace uloženy.'); }
+    if ($('#dcRemember').checked) { addCombos(rules); persist('combos'); drawCombos(); flash('Přesunuto ' + rules.length + '× a kombinace uloženy.'); }
     else { const id = state.sel; state.oneOff.set(id, (state.oneOff.get(id) || []).concat(rules)); flash('Přesunuto jen pro tuto zakázku.'); }
     // pallets edited by hand: rules do not change them, so the pieces are put on the host pallets right away
     const P = state.plan.get(state.sel);
