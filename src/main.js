@@ -568,6 +568,15 @@ function askMerge(id, P, srcs, dst, dstNo) {
 function addCombos(rules) {
   const key = c => (String(c.code) + '|' + String(c.withCode || '')).toLowerCase();
   const codes = new Set(rules.map(key));
+  // same rule as before, only more pieces now: keep one rule, max = the larger count, keep its limit per pallet
+  const o = state.orders.get(state.sel);
+  rules.forEach(r => {
+    const total = o ? [...o.lines.values()].filter(l => l.code.toLowerCase() === String(r.code).toLowerCase()).reduce((m, l) => Math.max(m, l.qty), 0) : 0;
+    const old = state.combos.find(c => key(c) === key(r));
+    r.max = Math.max(r.max || 0, total, old ? old.max || 0 : 0);
+    if (old && !(r.per > 0) && old.per > 0) r.per = old.per;
+    if (old && !(r.kg > 0) && old.kg > 0) r.kg = old.kg;
+  });
   state.combos = rules.concat(state.combos.filter(c => !codes.has(key(c))));
 }
 // small yes/no dialog in the app's style (instead of the browser's confirm, which freezes the page)
