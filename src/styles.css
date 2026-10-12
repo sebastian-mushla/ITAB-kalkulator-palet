@@ -523,3 +523,5 @@ tr.so-head td{background:var(--soft);font-size:13px;padding:6px 10px;color:var(-
 .howto summary{cursor:pointer;color:#7866EE;font-weight:600}
 .howto pre{background:var(--bg,#f4f3fb);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;overflow:auto;margin:6px 0}
 .howto ul{margin:6px 0 0 18px;padding:0}.howto li{margin:3px 0}.howto p{margin:8px 0 4px}
+@media (min-width:1201px){.load.with-tray{grid-template-columns:minmax(0,1fr) 340px}}
+.unk-top b{font-size:14px;letter-spacing:-.01em}
