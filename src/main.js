@@ -495,13 +495,15 @@ function endDrag(e, cancel) {
   }
   if (d.unk) {
     const manualPal = over && over.closest('.board-pal[data-bid]');
-    if (manualPal) { askMaterial(d.unk, manualPal.dataset.bid); return; }
+    // empty pallet: define the article on this pallet type; pallet with goods: the article rides on it
+    const mp = manualPal && ((state.plan.get(state.sel) || state.board.get(state.sel) || []).find(b => b.id === manualPal.dataset.bid));
+    if (manualPal && !(mp && mp.contents.some(c => c.units > 0))) { askMaterial(d.unk, manualPal.dataset.bid); return; }
     const boardPal = over && over.closest('.board-pal');
     if (boardPal) {
       // pallets never mix zakázky: the article must ride on a pallet of its own zakázka
       const pso = boardPal.dataset.so, bad = pso && d.unk.find(u => u.so && u.so !== pso);
       if (bad) { flash('Artikl ' + bad.code + ' je ze zakázky ' + bad.so + ', paleta ze zakázky ' + pso + '. Zakázky se na paletě nemíchají – položte ho na paletu své zakázky nebo na volné místo.'); return; }
-      askCombo(d.unk, boardPal.dataset.code); return;
+      askCombo(d.unk, boardPal.dataset.code, boardPal.dataset.bid); return;
     }
     if (over && over.closest('.board')) { askArticles(d.unk); return; }
     const hostG = over && over.closest('.pal');
@@ -572,7 +574,7 @@ function ask(title, text, yes) {
 }
 function relearn() { state.manual.delete(state.sel); recalc(); }
 // one or more unknown articles ride on the pallets of article `host`
-function askCombo(list, host) {
+function askCombo(list, host, bid) {
   // the rule only works inside one zakázka: the host article must be on a pallet of the same zakázka
   const r0 = view(state.sel), lowH = host.toLowerCase();
   const miss = r0 && list.find(u => u.so && !r0.pallets.some(p => p.so === u.so && p.code.toLowerCase() === lowH));
@@ -591,6 +593,20 @@ function askCombo(list, host) {
     const rules = list.map((u, i) => ({ on: true, code: u.code, withCode: host, min: 0, max: u.qty, mode: 'host', host, pl: 0, pw: 0, per: Math.max(0, Math.floor(toNum($('#dcRows [data-cp="' + i + '"]').value) || 0)), kg: toNum($('#dcRows [data-ck="' + i + '"]').value) || 0, name: u.name || '', note: 'Uloženo z nakládky' }));
     if ($('#dcRemember').checked) { state.combos.push(...rules); persist('combos'); drawCombos(); flash('Přesunuto ' + rules.length + '× a kombinace uloženy.'); }
     else { const id = state.sel; state.oneOff.set(id, (state.oneOff.get(id) || []).concat(rules)); flash('Přesunuto jen pro tuto zakázku.'); }
+    // pallets edited by hand: rules do not change them, so the pieces are put on the host pallets right away
+    const P = state.plan.get(state.sel);
+    if (P) list.forEach((u, i) => {
+      const rule = rules[i], cap = rule.per > 0 ? rule.per : Infinity;
+      const hosts = P.filter(b => b.contents.some(c => c.units > 0 && c.code.toLowerCase() === lowH && (!u.so || !c.so || c.so === u.so)));
+      hosts.sort((a, b) => (b.id === bid) - (a.id === bid));
+      let left = u.qty;
+      hosts.forEach(b => {
+        if (left <= 0) return;
+        const has = b.contents.filter(c => c.ride && c.code === u.code).reduce((s, c) => s + c.units, 0), n = Math.min(left, cap - has);
+        if (n <= 0) return;
+        b.contents.push({ code: u.code, name: u.name || '', units: n, per: n, kg: rule.kg, so: u.so, ride: true }); left -= n;
+      });
+    });
     clearSel(); relearn();
   };
   dlg.returnValue = ''; dlg.showModal();
