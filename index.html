@@ -393,7 +393,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
     <p>Doplňte údaje, artikl se uloží do číselníku pro všechny.</p>
     <label>Název<input type="text" id="daName"></label>
     <label>Balení<select id="daPack"><option value="list">paleta ze seznamu</option><option value="new">nová paleta</option><option value="balik">balík</option></select></label>
-    <div data-sec="list"><label>Typ palety<select id="daPal"></select></label></div>
+    <div data-sec="list"><label>Typ palety<input type="search" id="daPal" list="daPalList" placeholder="Hledat: kód, název nebo rozměr (např. 1200, EURO, PAL-0013)" autocomplete="off" required><datalist id="daPalList"></datalist></label></div>
     <div data-sec="new">
       <div class="two"><label>Kód palety<input type="text" id="daPCode" placeholder="např. PAL-0010" required></label><label>Název palety<input type="text" id="daPName" placeholder="např. Paleta 120 × 100"></label></div>
       <div class="two"><label>Délka palety, mm<input type="number" id="daPL" min="1" value="1200" required></label><label>Šířka palety, mm<input type="number" id="daPW" min="1" value="800" required></label></div>

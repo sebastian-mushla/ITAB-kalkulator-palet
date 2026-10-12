@@ -814,7 +814,8 @@ function askArticle(u, next, left) {
   $('#daForm').reset();
   // names come from the order (ERP / designers) and are not edited here
   $('#daName').value = u.name || ''; $('#daName').readOnly = !!u.name;
-  $('#daPal').innerHTML = state.pallets.map(t => '<option value="' + esc(t.code) + '">' + esc(palOption(t)) + '</option>').join('');
+  $('#daPalList').innerHTML = state.pallets.map(t => '<option value="' + esc(palOption(t)) + '"></option>').join('');
+  $('#daPal').value = '';
   $('#daPack').value = state.pallets.length ? 'list' : 'new'; daSections();
   // act on the button press itself; the dialog's close event is not reliable in every browser
   dlg.querySelector('form').onsubmit = ev => {
@@ -822,7 +823,11 @@ function askArticle(u, next, left) {
     const mode = $('#daPack').value, per = Math.max(1, Math.round(toNum($('#daPer').value))), kg = toNum($('#daKg').value) || 0, rot = $('#daRot').checked;
     const a = { code: u.code, name: $('#daName').value.trim(), pack: mode === 'balik' ? 'balik' : 'paleta', per, kg, rot };
     if (mode === 'balik') Object.assign(a, { pl: toNum($('#daL').value), pw: toNum($('#daW').value) });
-    else if (mode === 'list') a.pal = $('#daPal').value;
+    else if (mode === 'list') {
+      const v = $('#daPal').value.trim(), t = typeOf(state.pallets, v.split(' · ')[0].trim()) || state.pallets.find(p => palOption(p).toLowerCase() === v.toLowerCase());
+      if (!t) { ev.preventDefault(); flash('Vyberte typ palety z nabídky (začněte psát kód, název nebo rozměr).'); $('#daPal').focus(); return; }
+      a.pal = t.code;
+    }
     else {
       const code = $('#daPCode').value.trim().toUpperCase();
       if (typeOf(state.pallets, code)) { ev.preventDefault(); flash('Kód palety ' + code + ' už existuje – vyberte ho ze seznamu nebo zadejte jiný.'); return; }
