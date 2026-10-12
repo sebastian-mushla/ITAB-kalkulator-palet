@@ -514,6 +514,10 @@ onBoth('pointerup', e => endDrag(e, false));
 function relearn() { state.manual.delete(state.sel); recalc(); }
 // one or more unknown articles ride on the pallets of article `host`
 function askCombo(list, host) {
+  // the rule only works inside one zakázka: the host article must be on a pallet of the same zakázka
+  const r0 = view(state.sel), lowH = host.toLowerCase();
+  const miss = r0 && list.find(u => u.so && !r0.pallets.some(p => p.so === u.so && p.code.toLowerCase() === lowH));
+  if (miss) { flash('Artikl ' + miss.code + ' je v zakázce ' + miss.so + ', kde nejsou palety ' + host + '. Zakázky se na paletě nemíchají – vyberte paletu ze stejné zakázky nebo volné místo (nový artikl).'); return; }
   const dlg = $('#dlgCombo');
   const hostArt = state.catalog.find(a => String(a.code).toLowerCase() === host.toLowerCase());
   $('#dcTitle').textContent = list.length > 1 ? 'Přesunout ' + list.length + ' artikly na paletu' : 'Přesunout artikl na paletu';
