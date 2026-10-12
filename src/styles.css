@@ -534,3 +534,4 @@ tr.so-head td{background:var(--soft);font-size:13px;padding:6px 10px;color:var(-
 }
 #dlgArticle .two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#dlgArticle input,#dlgArticle select{box-sizing:border-box;max-width:100%;min-width:0}#dlgArticle form{overflow-x:hidden}
 .unk-search{width:100%;box-sizing:border-box;margin:0 0 10px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);font:inherit;font-size:13px}
+.tray .unk-search{flex-basis:100%}
