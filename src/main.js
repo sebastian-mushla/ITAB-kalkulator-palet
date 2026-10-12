@@ -244,10 +244,13 @@ $('#orderList').addEventListener('click', e => {
 });
 
 // ---------- order import ----------
-$('#btnClear').addEventListener('click', () => {
+$('#btnClear').addEventListener('click', async () => {
   if (!state.orders.size && !$('#csv').value) return;
-  if (!confirm('Smazat všechny zakázky z importu?')) return;
-  [...state.orders.keys()].forEach(id => removeOrder(id));
+  if (!await ask('Smazat všechny zakázky?', 'Smažou se všechny zakázky z importu i ruční úpravy. Číselník, palety, vozidla a pravidla zůstanou.', 'Smazat vše')) return;
+  // everything at once (removing one by one would redraw the page for every order)
+  ['orders', 'results', 'forced', 'manual', 'board', 'plan', 'oneOff'].forEach(k => state[k].clear());
+  state.done.clear(); save('itab.done.v1', []); state.ordered.clear(); save('itab.ordered.v1', []);
+  saveOrderList();
   state.csv = ''; $('#csv').value = ''; save(KEYS.csv, ''); $('#problems').textContent = '';
   state.sel = null; recalc(); flash('Všechny zakázky smazány.');
 });
@@ -950,8 +953,8 @@ $('#catAdd').addEventListener('click', () => {
   state.catView = { q: '', page: 0 }; $('#catSearch').value = '';
   persist('catalog'); drawCatalog(); recalc();
 });
-$('#catReset').addEventListener('click', () => {
-  if (!confirm('Vrátit číselník na ukázková data? Nahrané artikly se smažou.')) return;
+$('#catReset').addEventListener('click', async () => {
+  if (!await ask('Vrátit ukázku?', 'Číselník se vrátí na ukázková data. Nahrané artikly se smažou.', 'Vrátit')) return;
   state.catalog = clone(DEFAULT_CATALOG); persist('catalog'); drawCatalog(); recalc(); $('#catReport').innerHTML = '';
 });
 $('#catExport').addEventListener('click', () => download('ciselnik-artiklu.csv',
@@ -1048,8 +1051,8 @@ $('#vehAdd').addEventListener('click', () => {
   state.vehicles.push({ name: 'Nové vozidlo', type: 'jine', L: 4, W: 2, kg: 1000, eup: 0, lift: false, cost: 0.5 });
   persist('vehicles'); drawVehicles(); recalc();
 });
-$('#vehReset').addEventListener('click', () => {
-  if (!confirm('Vrátit vozidla na výchozí hodnoty?')) return;
+$('#vehReset').addEventListener('click', async () => {
+  if (!await ask('Vrátit výchozí vozidla?', 'Seznam vozidel se vrátí na výchozí hodnoty.', 'Vrátit')) return;
   state.vehicles = clone(DEFAULT_VEHICLES); persist('vehicles'); drawVehicles(); recalc(); $('#vehReport').innerHTML = '';
 });
 $('#vehExport').addEventListener('click', () => download('vozidla.csv',
