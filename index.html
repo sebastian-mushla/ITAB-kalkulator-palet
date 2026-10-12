@@ -180,6 +180,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
           </div>
           <p class="hint">Pravidla se zkoušejí shora dolů, použije se první, které sedí. Příklad: <b>V04</b>, když je v zakázce <b>V06</b>, množství do <b>10</b> → pojede <b>na paletě artiklu V06</b>. Rozměr palety se nemění, přičte se jen váha. Co se na hostitelské palety nevejde (max ks na paletu), jede normálně. Prázdné pole = bez podmínky.</p>
           <div id="comboReport"></div>
+          <details class="howto"><summary>Historie změn (Zkontrolovat a uložit)</summary><ul id="comboLog" class="log"></ul></details>
           <div class="tscroll">
             <table>
               <thead><tr><th>Aktivní</th><th>Artikl</th><th>Když je v zakázce</th><th>Množství od</th><th>Množství do</th><th>Pojede</th><th>Na paletě artiklu / typ palety</th><th>Délka palety, mm</th><th>Šířka palety, mm</th><th>Max ks na paletu</th><th>Váha kusu, kg</th><th>Poznámka</th><th></th></tr></thead>
@@ -353,6 +354,14 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
     <div id="dmRows" class="lr-rows"></div>
     <label class="inline"><input type="checkbox" id="dmSave" checked><span id="dmSaveText">Uložit do číselníku</span></label>
     <div class="acts"><button class="btn" value="no" formnovalidate>Zrušit</button><button class="btn primary" value="yes">Položit na paletu</button></div>
+  </form>
+</dialog>
+<dialog class="dlg" id="dlgAudit">
+  <form method="dialog">
+    <h2 id="auTitle">Zkontrolovat a uložit</h2>
+    <p class="hint">Porovná uložené kombinace a definice artiklů s paletami této zakázky. Zaškrtnuté změny se provedou, palety zakázky se uloží a změny se zapíšou do historie (záložka Kombinace).</p>
+    <div id="auRows" class="au-rows"></div>
+    <div class="acts"><button class="btn" value="no">Zrušit</button><button class="btn primary" value="yes">Uložit</button></div>
   </form>
 </dialog>
 <dialog class="dlg" id="dlgAsk">

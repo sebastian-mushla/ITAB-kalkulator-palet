@@ -4,6 +4,8 @@ import { migrateCatalog, nextCode, typeOf } from './core/palletTypes.js';
 import { roomFor, freezePlan, moveUnits, setPalletType, removePallet, newId, mergePallets, sameSo } from './core/plan.js';
 import { parseOrders, rowsToOrderText, ordersToText } from './core/parse.js';
 import { solve } from './core/solve.js';
+import { auditOrder } from './core/audit.js';
+import { ruleText } from './core/combos.js';
 import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle, replaceVehicle, DEPOT } from './core/manual.js';
 import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, rowsToPallets, mergeBy, toCsv } from './io/importTable.js';
 import { renderKpis, renderPriorities, renderList, renderDetail, renderDock, requestText, loadPlanHtml, palOption, setNameLookup } from './ui/orders.js';
@@ -45,7 +47,8 @@ const state = {
   pallets: Array.isArray(shared.pallets) && shared.pallets.length ? shared.pallets : clone(DEFAULT_PALLETS),
   rules: Object.assign(clone(DEFAULT_RULES), shared.rules || {}),
   csv: load(KEYS.csv, SAMPLE),
-  orders: new Map(), results: new Map(), forced: new Map(), manual: new Map(), board: new Map(), plan: new Map(),
+  orders: new Map(), results: new Map(), forced: new Map(), manual: new Map(), board: new Map(), plan: new Map(Object.entries(load('itab.plans.v1', {})).map(([k, v]) => [k, v.plan])),
+  saved: new Map(Object.entries(load('itab.plans.v1', {})).map(([k, v]) => [k, v.at])),
   ordered: new Set(load('itab.ordered.v1', [])), listUi: Object.assign({ sort: { key: null, dir: 'asc' }, filters: {} }, load('itab.listui.v1', {}), { open: null }), oneOff: new Map(), done: new Set(load('itab.done.v1', [])), isAdmin, sel: null, prioHidden: false,
   catView: { q: '', page: 0 }
 };
@@ -143,6 +146,9 @@ function importOrders(text, open, initial) {
     save('itab.done.v1', [...state.done]); save('itab.ordered.v1', [...state.ordered]);
   }
   fresh.forEach(id => { state.forced.delete(id); state.manual.delete(id); state.oneOff.delete(id); state.board.delete(id); state.plan.delete(id); state.orders.delete(id); });
+  // pallets saved with „Zkontrolovat a uložit“ come back for the same ID
+  const savedPlans = load('itab.plans.v1', {});
+  fresh.forEach(id => { if (savedPlans[id]) state.plan.set(id, savedPlans[id].plan); });
   state.orders = new Map([...res.orders, ...state.orders]);
   state.prioHidden = false;
   $('#problems').textContent = res.problems.length ? 'Nerozpoznáno: ' + res.problems.join('; ') + '.' : '';
@@ -152,7 +158,7 @@ function importOrders(text, open, initial) {
   if (open && fresh.length) goDetail();
 }
 function removeOrder(id) {
-  state.orders.delete(id); state.results.delete(id); state.forced.delete(id); state.manual.delete(id); state.board.delete(id); state.plan.delete(id); state.oneOff.delete(id);
+  state.orders.delete(id); state.results.delete(id); state.forced.delete(id); state.manual.delete(id); state.board.delete(id); state.plan.delete(id); state.oneOff.delete(id); unsavePlan(id);
   if (state.done.delete(id)) save('itab.done.v1', [...state.done]);
   if (state.ordered.delete(id)) save('itab.ordered.v1', [...state.ordered]);
   if (state.sel === id) state.sel = state.orders.size ? state.orders.keys().next().value : null;
@@ -248,7 +254,7 @@ $('#btnClear').addEventListener('click', async () => {
   if (!state.orders.size && !$('#csv').value) return;
   if (!await ask('Smazat všechny zakázky?', 'Smažou se všechny zakázky z importu i ruční úpravy. Číselník, palety, vozidla a pravidla zůstanou.', 'Smazat vše')) return;
   // everything at once (removing one by one would redraw the page for every order)
-  ['orders', 'results', 'forced', 'manual', 'board', 'plan', 'oneOff'].forEach(k => state[k].clear());
+  ['orders', 'results', 'forced', 'manual', 'board', 'plan', 'oneOff', 'saved'].forEach(k => state[k].clear()); save('itab.plans.v1', {});
   state.done.clear(); save('itab.done.v1', []); state.ordered.clear(); save('itab.ordered.v1', []);
   saveOrderList();
   state.csv = ''; $('#csv').value = ''; save(KEYS.csv, ''); $('#problems').textContent = '';
@@ -360,7 +366,7 @@ onBoth('click', e => {
   if (e.target.id === 'newPalBtn') { askPallet(id); return; }
   const rmb = e.target.getAttribute('data-rmb');
   if (rmb) { keepScroll(() => { const P = state.plan.get(id); if (P) removePallet(P, rmb); else state.board.set(id, (state.board.get(id) || []).filter(b => b.id !== rmb)); state.manual.delete(id); recalcOne(); }); return; }
-  if (e.target.id === 'resetPlan') { keepScroll(() => { state.plan.delete(id); state.manual.delete(id); recalcOne(); }); return; }
+  if (e.target.id === 'resetPlan') { keepScroll(() => { state.plan.delete(id); unsavePlan(id); state.manual.delete(id); recalcOne(); }); return; }
   const bp = e.target.closest('.board-pal');
   if (bp && !e.target.closest('.bp-x') && isAdmin && !suppressClick && !e.shiftKey) { openPalEditor(id, bp.dataset.bid, Number(bp.dataset.pi)); return; }
   const rm = e.target.getAttribute('data-rmveh');
@@ -600,6 +606,60 @@ function ask(title, text, yes, check) {
     $('#dlgAsk').showModal();
   });
 }
+// ---------- check & save an order: combinations, article definitions, its pallets ----------
+function unsavePlan(id) {
+  const all = load('itab.plans.v1', {}); if (!(id in all)) return;
+  delete all[id]; save('itab.plans.v1', all); state.saved.delete(id);
+}
+function logChanges(id, items) {
+  const log = load('itab.log.v1', []);
+  log.unshift({ at: new Date().toLocaleString('cs-CZ'), who: (me && me.user && me.user.email) || '', id, items });
+  save('itab.log.v1', log.slice(0, 300)); drawLog();
+}
+function drawLog() {
+  const el = $('#comboLog'); if (!el) return;
+  const log = load('itab.log.v1', []);
+  el.innerHTML = log.length ? log.slice(0, 50).map(e => '<li><b>' + esc(e.at) + '</b> · zakázka ' + esc(e.id) + (e.who ? ' · ' + esc(e.who) : '') + '<ul>' + e.items.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul></li>').join('') : '<li class="muted">Zatím žádné změny.</li>';
+}
+onBoth('click', e => {
+  if (e.target.id !== 'auditBtn') return;
+  const id = state.sel, o = state.orders.get(id), r = view(id); if (!o || !r) return;
+  const plan = state.plan.get(id) || freezePlan(r, state.catalog);
+  const res = auditOrder(o, plan, state.combos, state.catalog);
+  const rows = [];
+  res.drop.forEach(i => rows.push({ k: 'drop', i, t: 'Smazat neplatnou kombinaci: ' + ruleText(state.combos[i]) }));
+  res.update.forEach(u => rows.push({ k: 'upd', u, t: 'Upravit kombinaci ' + ruleText(state.combos[u.i]) + ' → ' + Object.entries(u.ch).map(([k, v]) => (k === 'per' ? 'max ' + v + ' ks/paleta' : 'do ' + v + ' ks')).join(', ') }));
+  res.add.forEach(a => rows.push({ k: 'add', a, t: 'Nová kombinace: ' + ruleText(a) }));
+  res.defs.forEach(d => rows.push({ k: 'def', d, t: 'Artikl ' + d.code + ': typ palety ' + (d.was || '–') + ' → ' + d.pal }));
+  const unk = (r.unknown || []).length;
+  $('#auTitle').textContent = 'Zkontrolovat a uložit – zakázka ' + id;
+  $('#auRows').innerHTML = (rows.length ? rows.map((x, n) => '<label class="inline au-' + x.k + '"><input type="checkbox" data-au="' + n + '" checked>' + esc(x.t) + '</label>').join('') : '<p class="ok">Kombinace i definice artiklů odpovídají paletám ✓</p>') +
+    (unk ? '<p class="problems">Pozor: ' + unk + ' ' + (unk === 1 ? 'artikl ještě není' : 'artiklů ještě není') + ' zařazeno.</p>' : '');
+  $('#dlgAudit').querySelector('form').onsubmit = ev => {
+    if (!ev.submitter || ev.submitter.value !== 'yes') return;
+    const on = n => $('#auRows [data-au="' + n + '"]').checked, done = [];
+    rows.forEach((x, n) => {
+      if (!on(n)) return;
+      if (x.k === 'upd') Object.assign(state.combos[x.u.i], x.u.ch);
+      if (x.k === 'def') { const a = state.catalog.find(c => String(c.code).toLowerCase() === x.d.code.toLowerCase()); if (a) a.pal = x.d.pal; }
+      done.push(x.t);
+    });
+    const dropSet = new Set(rows.filter((x, n) => x.k === 'drop' && on(n)).map(x => x.i));
+    const adds = rows.filter((x, n) => x.k === 'add' && on(n)).map(x => x.a);
+    state.combos = adds.concat(state.combos.filter((c, i) => !dropSet.has(i)));
+    if (rows.some((x, n) => on(n) && x.k !== 'def')) { persist('combos'); drawCombos(); }
+    if (rows.some((x, n) => on(n) && x.k === 'def')) { persist('catalog'); drawCatalog(); }
+    // the order's pallets are kept as they are now (also after reload and re-import of the same ID)
+    state.plan.set(id, plan);
+    const at = new Date().toLocaleString('cs-CZ', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const all = load('itab.plans.v1', {}); all[id] = { plan, at }; save('itab.plans.v1', all); state.saved.set(id, at);
+    done.push('Palety zakázky uloženy (' + plan.length + ')');
+    logChanges(id, done);
+    recalc();
+    flash('Uloženo: ' + (done.length - 1 ? (done.length - 1) + ' změn, ' : '') + 'palety zakázky ' + id + '.');
+  };
+  $('#dlgAudit').showModal();
+});
 function relearn() { state.manual.delete(state.sel); recalc(); }
 // one or more unknown articles ride on the pallets of article `host`
 function askCombo(list, host, bid) {
@@ -1235,4 +1295,5 @@ const td = new Date().toLocaleDateString('cs-CZ', { weekday: 'long', day: 'numer
 $('#today').textContent = td.charAt(0).toUpperCase() + td.slice(1);
 $('#csv').value = state.csv;
 drawCatalog(); drawPallets(); drawVehicles(); drawCombos(); renderRules(state.rules);
+drawLog();
 importOrders(load(KEYS.list, null) || state.csv, false, true);

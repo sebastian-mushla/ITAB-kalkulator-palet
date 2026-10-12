@@ -336,7 +336,7 @@ function palletBoardHtml(r, isAdmin, board, types) {
 }
 
 // ---------- tab 1: calculator ----------
-export function renderDetail(r, { rules, isAdmin, board, pallets }) {
+export function renderDetail(r, { rules, isAdmin, board, pallets, saved }) {
   const el = $('#detail');
   if (!r) { el.innerHTML = '<div class="empty">Vložte zakázky do importu a klikněte na „Spočítat“.</div>'; return; }
   let h = '<div class="sec-head"><h2>' + idTitle(r) + '</h2></div>' + decisionHtml(r, rules, false);
@@ -356,7 +356,7 @@ export function renderDetail(r, { rules, isAdmin, board, pallets }) {
   h += '<div class="sec-head vis"><h2>Palety zakázky</h2></div>';
   h += '<div class="load' + (tray ? ' with-tray' : '') + '"><div class="load-main">' + palletBoardHtml(r, isAdmin, board && board.get(r.id) || [], pallets) + '</div>' + tray + '</div>';
   const ready = !n && r.mode !== 'empty';
-  h += '<div class="go-dock">' + (r.pallets.length || r.parcels.length ? '<button class="btn big print" id="packBtn"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>Tisk pro balení</button>' : '') + '<button class="btn primary big" id="goDock"' + (ready ? '' : ' disabled') + '>Přejít k nakládce →</button>' +
+  h += '<div class="go-dock">' + (r.pallets.length || r.parcels.length ? '<button class="btn big print" id="packBtn"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>Tisk pro balení</button>' : '') + (isAdmin && r.pallets.length ? '<button class="btn big" id="auditBtn" title="Zkontroluje kombinace a definice artiklů podle palet této zakázky a uloží palety">✓ Zkontrolovat a uložit</button>' : '') + (saved && saved.has(r.id) ? '<span class="muted saved-at">Uloženo ' + esc(saved.get(r.id)) + '</span>' : '') + '<button class="btn primary big" id="goDock"' + (ready ? '' : ' disabled') + '>Přejít k nakládce →</button>' +
     '<span class="muted">' + (ready ? 'Palety jsou spočítané. V nakládce je rozložíte do vozidel a objednáte dopravu.' : (n ? 'Nejdřív zařaďte ' + n + ' ' + plural(n, ['neznámý artikl', 'neznámé artikly', 'neznámých artiklů']) + '.' : 'Zakázka nemá žádné palety.')) + '</span></div>';
   el.innerHTML = h;
 }

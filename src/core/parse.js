@@ -39,7 +39,9 @@ export function parseOrders(text) {
     }
     // ERP position without "r": "10<TAB>artikl<TAB>název<TAB>1,00" (pasted from the ERP grid)
     const cells = line.split(/\t|;/).map(c => c.trim());
-    if (cells.length >= 3 && /^\d{1,4}$/.test(cells[0]) && !/^\d{5,}$/.test(cells[1]) && isFinite(toNum(cells[cells.length - 1])) && cells[cells.length - 1] !== '') {
+    if (cells.length >= 3 && /^\d{1,4}$/.test(cells[0]) && !/^\d{5,}$/.test(cells[1]) && isFinite(toNum(cells[cells.length - 1])) && cells[cells.length - 1] !== ''
+      // only under an SO line or with an ERP quantity like 1,00 – otherwise it is the table zakázka;artikl;…
+      && (cur || /[.,]\d{2}$/.test(cells[cells.length - 1]))) {
       const q = toNum(cells[cells.length - 1]);
       if (q % 1 !== 0 || q <= 0) { problems.push('řádek ' + (idx + 1) + ': množství musí být celé číslo větší než nula'); return; }
       if (!cur) { cur = 'BEZ-SO'; problems.push('chybí řádek „SO číslo“ – položky jsou v zakázce BEZ-SO'); }
