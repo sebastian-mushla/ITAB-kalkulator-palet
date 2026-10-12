@@ -518,3 +518,4 @@ tr.so-head td{background:var(--soft);font-size:13px;padding:6px 10px;color:var(-
 .unk{position:relative;padding-bottom:22px}
 .unk-top b{overflow-wrap:anywhere;min-width:0}
 .unk-top span{position:absolute;right:12px;bottom:6px;white-space:nowrap}
+#catReport .ok{color:var(--green);font-weight:600}#catReport ul{margin:6px 0 0 18px;max-height:260px;overflow:auto}

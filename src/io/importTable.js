@@ -96,8 +96,8 @@ export const CATALOG_FIELDS = {
   pack: ['baleni', 'pack', 'packaging', 'упаковка', 'typ baleni'],
   pal: ['paleta', 'typ palety', 'pallet type', 'паллета'],
   per: ['units_per_pallet', 'ks na palete', 'kusu na palete', 'ks/paleta', 'per pallet', 'шт на паллете', 'шт на палете', 'per', 'ks', 'pcs'],
-  pl: ['pallet_length_mm', 'delka', 'length', 'длина', 'pl'],
-  pw: ['pallet_width_mm', 'sirka', 'width', 'ширина', 'pw'],
+  pl: ['balik_delka_mm', 'balik delka', 'pallet_length_mm', 'delka', 'length', 'длина', 'pl'],
+  pw: ['balik_sirka_mm', 'balik sirka', 'pallet_width_mm', 'sirka', 'width', 'ширина', 'pw'],
   kg: ['unit_kg', 'vaha', 'hmotnost', 'weight', 'вес', 'kg'],
   rot: ['rotatable', 'otacet', 'rotate', 'поворот', 'rot']
 };
@@ -127,10 +127,10 @@ export function rowsToCatalog(rows) {
     const pal = String(get(r, 'pal')).trim().toUpperCase(), pack = packValue(get(r, 'pack'));
     const bad = [];
     if (!(per >= 1) || per % 1 !== 0) bad.push('počet kusů musí být celé číslo ≥ 1');
-    if (!pal || pack === 'balik') {
-      if (!(pl > 0)) bad.push('chybí typ palety nebo délka');
-      if (!(pw > 0)) bad.push('chybí typ palety nebo šířka');
-    }
+    if (pack === 'balik') {
+      if (!(pl > 0)) bad.push('chybí délka balíku');
+      if (!(pw > 0)) bad.push('chybí šířka balíku');
+    } else if (!pal && !(pl > 0 && pw > 0)) bad.push('chybí typ palety (PAL-xxxx)');
     if (!(kg >= 0)) bad.push('váha není číslo');
     if (bad.length) { errors.push('řádek ' + line + ' (' + code + '): ' + bad.join(', ')); return; }
     items.push({

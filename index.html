@@ -93,14 +93,15 @@ document.documentElement.setAttribute('data-theme',t);})();
       </section>
 
       <section id="view-catalog" hidden>
-        <div class="pagehead"><div><h1>Číselník artiklů</h1><p>Kolik kusů jde na paletu, rozměr palety a váha kusu. Z toho se počítá každá zakázka.</p></div></div>
+        <div class="pagehead"><div><h1>Číselník artiklů</h1><p>Na jakém typu palety (PAL-xxxx) artikl jede, kolik kusů se na ni vejde a váha kusu. Z toho se počítá každá zakázka.</p></div></div>
         <div class="card cat">
           <div class="toolbar">
             <label class="btn primary">Nahrát CSV / Excel<input type="file" id="catFile" accept=".csv,.txt,.tsv,.xlsx,.xls,.ods" hidden></label>
             <label class="check"><input type="checkbox" id="catReplace">Nahradit celý číselník</label>
             <button class="btn" id="catExport">Stáhnout CSV (šablona)</button>
+            <button class="btn" id="catCheck">Zkontrolovat číselník</button>
           </div>
-          <p class="hint">Sloupce poznáme podle záhlaví (česky, anglicky i rusky): artikl, název, balení (paleta / balík), délka mm, šířka mm, ks na paletě (u balíku ks v balíku), váha kusu kg, lze otáčet. Délka palety jde podél korby. Změny se ukládají v tomto prohlížeči.</p>
+          <p class="hint">Sloupce: <b>artikl; nazev; baleni</b> (paleta / balík); <b>paleta</b> (kód typu, např. PAL-0013 – rozměr se bere ze záložky Palety); <b>ks_na_palete</b> (u balíku ks v balíku); <b>vaha_kusu_kg; lze_otacet</b>. Jen u balíku navíc <b>balik_delka_mm; balik_sirka_mm</b>.</p>
           <div id="catReport"></div>
           <div class="toolbar">
             <label class="search"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="catSearch" type="search" placeholder="Hledat artikl…" aria-label="Hledat v číselníku"></label>

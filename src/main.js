@@ -955,8 +955,30 @@ $('#catReset').addEventListener('click', () => {
   state.catalog = clone(DEFAULT_CATALOG); persist('catalog'); drawCatalog(); recalc(); $('#catReport').innerHTML = '';
 });
 $('#catExport').addEventListener('click', () => download('ciselnik-artiklu.csv',
-  [['artikl', 'nazev', 'baleni', 'paleta', 'delka_mm', 'sirka_mm', 'ks_na_palete', 'vaha_kusu_kg', 'lze_otacet']]
-    .concat(state.catalog.map(a => [a.code, a.name, a.pack || 'paleta', a.pack === 'balik' ? '' : (a.pal || ''), a.pack === 'balik' ? a.pl : '', a.pack === 'balik' ? a.pw : '', a.per, String(a.kg).replace('.', ','), a.rot ? 'ano' : 'ne']))));
+  [['artikl', 'nazev', 'baleni', 'paleta', 'ks_na_palete', 'vaha_kusu_kg', 'lze_otacet', 'balik_delka_mm', 'balik_sirka_mm']]
+    .concat(state.catalog.map(a => [a.code, a.name, a.pack || 'paleta', a.pack === 'balik' ? '' : (a.pal || ''), a.per, String(a.kg).replace('.', ','), a.rot ? 'ano' : 'ne', a.pack === 'balik' ? a.pl : '', a.pack === 'balik' ? a.pw : '']))));
+// full check of the catalog: every problem that would make an order wrong
+function catalogProblems() {
+  const out = [], seen = new Map();
+  state.catalog.forEach(a => {
+    const k = String(a.code).trim().toLowerCase(), p = [];
+    if (seen.has(k)) p.push('je v číselníku víckrát'); seen.set(k, 1);
+    if (a.pack === 'balik') { if (!(a.pl > 0 && a.pw > 0)) p.push('balík bez rozměru'); }
+    else if (!a.pal) p.push('chybí typ palety');
+    else if (!typeOf(state.pallets, a.pal)) p.push('typ palety ' + a.pal + ' neexistuje (záložka Palety)');
+    if (!(a.per >= 1)) p.push('chybí počet kusů na paletě');
+    if (!(a.kg > 0)) p.push('váha kusu je 0');
+    if (!a.name) p.push('bez názvu');
+    if (p.length) out.push('<li><b>' + esc(a.code) + '</b>: ' + p.join(', ') + '</li>');
+  });
+  return out;
+}
+$('#catCheck').addEventListener('click', () => {
+  const pr = catalogProblems();
+  $('#catReport').innerHTML = pr.length
+    ? '<div class="problems"><b>Kontrola: ' + pr.length + ' ' + (pr.length === 1 ? 'artikl má' : pr.length <= 4 ? 'artikly mají' : 'artiklů má') + ' problém</b> (z ' + state.catalog.length + ')<ul>' + pr.slice(0, 200).join('') + '</ul>' + (pr.length > 200 ? '<p>… a dalších ' + (pr.length - 200) + '</p>' : '') + '</div>'
+    : '<p class="ok">Kontrola: všech ' + state.catalog.length + ' artiklů je v pořádku ✓</p>';
+});
 $('#catFile').addEventListener('change', async e => {
   const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
   try {
@@ -968,6 +990,9 @@ $('#catFile').addEventListener('change', async e => {
       state.catalog = m.catalog; if (m.types.length !== state.pallets.length) { state.pallets = m.types; persist('pallets'); drawPallets(); }
       persist('catalog'); drawCatalog(); recalc();
     }
+    // pallet codes that do not exist are reported right away
+    const unknownPal = res.items.filter(a => a.pack !== 'balik' && a.pal && !typeOf(state.pallets, a.pal));
+    if (unknownPal.length) res.errors.push(...unknownPal.map(a => a.code + ': typ palety ' + a.pal + ' neexistuje – doplňte ho na záložce Palety.'));
     importReport($('#catReport'), res, merged, replace);
   } catch (err) { $('#catReport').innerHTML = '<p class="problems">' + err.message + '</p>'; }
 });
