@@ -59,7 +59,7 @@ export function evalLoad(items, L, W, maxKg) {
   const usedL = Math.max(...items.map(i => i.x + i.w));
   const area = items.reduce((s, i) => s + i.w * i.h, 0);
   const gapPct = Math.max(0, 1 - area / (usedL * W)) * 100;
-  const st = loadStats(items, W), cgPct = st.cg / L * 100;
+  const st = loadStats(items, W) || { cg: 0, leftPct: 50 }, cgPct = st.cg / L * 100;
   const heavy = maxKg > 0 && kg / maxKg * 100 >= norms.heavyShare;
   const latBad = Math.max(0, Math.abs(st.leftPct - 50) - (norms.lrTol - 50));
   const cgBad = heavy ? Math.max(0, norms.cgMin - cgPct, cgPct - norms.cgMax) : 0;
@@ -117,7 +117,8 @@ export function balanceLoad(items, W, L, maxKg) {
     }
   }
   // sideways sliding opens gaps, so only when left/right is out of tolerance
-  if (Math.abs(loadStats(out, W).leftPct - 50) > norms.lrTol - 50) slideAcross(out, W);
+  const st0 = loadStats(out, W); // null when the load weighs nothing (weights not filled in yet)
+  if (st0 && Math.abs(st0.leftPct - 50) > norms.lrTol - 50) slideAcross(out, W);
   return out;
 }
 
