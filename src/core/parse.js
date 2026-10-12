@@ -15,7 +15,10 @@ export function parseOrders(text) {
   let first = true, cur = null, curId = null;
   function add(id, so, code, qty, name) {
     if (!orders.has(id)) orders.set(id, { id, sos: [], lines: new Map() });
-    const o = orders.get(id), k = so.toLowerCase() + '|' + code.toLowerCase();
+    const o = orders.get(id);
+    // ERP lists the pallets themselves as items (PAL-0013 EURO paleta 2×): not goods, kept as a note
+    if (/^PAL-\d+$/i.test(code)) { (o.pals = o.pals || []).push({ so, code: code.toUpperCase(), qty, name: name || '' }); if (!o.sos.includes(so)) o.sos.push(so); return; }
+    const k = so.toLowerCase() + '|' + code.toLowerCase();
     if (!o.sos.includes(so)) o.sos.push(so);
     if (o.lines.has(k)) { const l = o.lines.get(k); l.qty += qty; if (!l.name && name) l.name = name; }
     else o.lines.set(k, { so, code, qty, name: name && name !== '-' ? name : '' });
@@ -33,6 +36,14 @@ export function parseOrders(text) {
       const q = toNum(rw[3]);
       if (!isFinite(q) || q % 1 !== 0 || q <= 0) { problems.push('řádek ' + (idx + 1) + ': množství musí být celé číslo větší než nula'); return; }
       add(curId || cur, cur, rw[1], q, (rw[2] || '').trim()); return;
+    }
+    // ERP position without "r": "10<TAB>artikl<TAB>název<TAB>1,00" (pasted from the ERP grid)
+    const cells = line.split(/\t|;/).map(c => c.trim());
+    if (cells.length >= 3 && /^\d{1,4}$/.test(cells[0]) && !/^\d{5,}$/.test(cells[1]) && isFinite(toNum(cells[cells.length - 1])) && cells[cells.length - 1] !== '') {
+      const q = toNum(cells[cells.length - 1]);
+      if (q % 1 !== 0 || q <= 0) { problems.push('řádek ' + (idx + 1) + ': množství musí být celé číslo větší než nula'); return; }
+      if (!cur) { cur = 'BEZ-SO'; problems.push('chybí řádek „SO číslo“ – položky jsou v zakázce BEZ-SO'); }
+      add(curId || cur, cur, cells[1], q, cells.slice(2, -1).join(' ').trim()); return;
     }
     const sep = line.indexOf(';') >= 0 ? ';' : (line.indexOf('\t') >= 0 ? '\t' : ',');
     const p = line.split(sep).map(s => s.trim().replace(/^"(.*)"$/, '$1'));
@@ -59,6 +70,7 @@ export function ordersToText(orders) {
       out.push('SO ' + so);
       let n = 10;
       o.lines.forEach(l => { if (l.so === so) { out.push('r' + n + ' ' + l.code + ' ' + (l.name || '-').replace(/\s+/g, ' ') + ' ' + l.qty); n += 10; } });
+      (o.pals || []).forEach(l => { if (l.so === so) { out.push('r' + n + ' ' + l.code + ' ' + (l.name || '-').replace(/\s+/g, ' ') + ' ' + l.qty); n += 10; } });
     });
     out.push('');
   });
