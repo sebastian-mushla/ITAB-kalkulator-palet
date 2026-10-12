@@ -817,6 +817,8 @@ function askArticle(u, next, left) {
   $('#daPalList').innerHTML = state.pallets.map(t => '<option value="' + esc(palOption(t)) + '"></option>').join('');
   $('#daPal').value = '';
   $('#daPack').value = state.pallets.length ? 'list' : 'new'; daSections();
+  // default: the whole quantity of the order fits on one pallet / parcel
+  $('#daPer').value = Math.max(1, u.qty || 1);
   // act on the button press itself; the dialog's close event is not reliable in every browser
   dlg.querySelector('form').onsubmit = ev => {
     if (!ev.submitter || ev.submitter.value !== 'yes') return;

@@ -532,3 +532,4 @@ tr.so-head td{background:var(--soft);font-size:13px;padding:6px 10px;color:var(-
   .load.with-tray .load-main{display:flex;flex-direction:column}
   .load.with-tray .load-main .board{flex:1 1 auto;min-height:360px}
 }
+#dlgArticle .two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#dlgArticle input,#dlgArticle select{box-sizing:border-box;max-width:100%;min-width:0}#dlgArticle form{overflow-x:hidden}
