@@ -525,3 +525,10 @@ tr.so-head td{background:var(--soft);font-size:13px;padding:6px 10px;color:var(-
 .howto ul{margin:6px 0 0 18px;padding:0}.howto li{margin:3px 0}.howto p{margin:8px 0 4px}
 @media (min-width:1201px){.load.with-tray{grid-template-columns:minmax(0,1fr) 340px}}
 .unk-top b{font-size:14px;letter-spacing:-.01em}
+/* long lists of unknown articles: the tray scrolls on its own and stays in view, the board stretches to its height */
+@media (min-width:1201px){
+  .tray{max-height:calc(100vh - 32px);overflow-y:auto}
+  .load.with-tray{align-items:stretch}
+  .load.with-tray .load-main{display:flex;flex-direction:column}
+  .load.with-tray .load-main .board{flex:1 1 auto;min-height:360px}
+}
