@@ -67,7 +67,27 @@ document.documentElement.setAttribute('data-theme',t);})();
               <button class="btn" id="btnClear" title="Smazat všechny zakázky" aria-label="Smazat všechny zakázky"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></button>
               <label class="check"><input type="checkbox" id="keepOld">Ponechat dosavadní zakázky</label>
             </div>
-            <p class="hint">Soubor sem můžete i přetáhnout (TXT, CSV, Excel). Formát z ERP: řádek „SO číslo“ a pod ním „r10 artikl název množství“. Nebo tabulka se sloupci zakázka, artikl, množství.</p>
+            <details class="howto">
+              <summary>Jak importovat? Co program pozná</summary>
+              <p><b>3 způsoby:</b> vložit text do pole (Ctrl+V), tlačítko <b>Nahrát soubor</b> (TXT, CSV, Excel), nebo soubor sem <b>přetáhnout</b>.</p>
+              <p><b>1. Tabulka z Excelu</b> – stačí zkopírovat buňky a vložit. Sloupce v tomto pořadí (záhlaví nepovinné):</p>
+              <pre>ID;Zakázka;Artikl;Množství
+12503;550875;Q4-ZAD-001-008-9010;800
+12503;550876;V4-PRL-043-302-9010;20</pre>
+              <p>S názvem (pak je záhlaví potřeba): <code>ID;Zakázka;Artikl;Název;Množství</code>. Bez ID stačí <code>Zakázka;Artikl;Množství</code>.</p>
+              <p><b>2. Text z ERP</b>:</p>
+              <pre>ID 12503
+SO 550875
+r10 Q4-ZAD-001-008-9010 zadní panel 800
+r20 V4-PRL-043-302-9010 frame 20</pre>
+              <ul>
+                <li><b>ID</b> = jedna adresa / zásilka, <b>SO</b> (zakázka) = prodejní objednávka. Jedno ID může mít víc SO, každé SO má vlastní palety.</li>
+                <li>Bez ID je každá zakázka samostatná zásilka.</li>
+                <li>Stejný artikl v jedné zakázce se sečte. Oddělovač může být <code>;</code>, tabulátor nebo čárka.</li>
+                <li>Artikl, který není v číselníku, se objeví vpravo v „Neznámé artikly“ – přetáhněte ho na paletu nebo na volné místo.</li>
+                <li>Nový import se přidá nahoru, staré zakázky zůstanou (smazat vše: koš 🗑).</li>
+              </ul>
+            </details>
             <div class="problems" id="problems"></div>
           </section>
           <section class="card">

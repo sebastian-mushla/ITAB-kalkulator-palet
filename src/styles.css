@@ -519,3 +519,7 @@ tr.so-head td{background:var(--soft);font-size:13px;padding:6px 10px;color:var(-
 .unk-top b{overflow-wrap:anywhere;min-width:0}
 .unk-top span{position:absolute;right:12px;bottom:6px;white-space:nowrap}
 #catReport .ok{color:var(--green);font-weight:600}#catReport ul{margin:6px 0 0 18px;max-height:260px;overflow:auto}
+.howto{margin-top:10px;font-size:13px;color:var(--ink2)}
+.howto summary{cursor:pointer;color:#7866EE;font-weight:600}
+.howto pre{background:var(--bg,#f4f3fb);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;overflow:auto;margin:6px 0}
+.howto ul{margin:6px 0 0 18px;padding:0}.howto li{margin:3px 0}.howto p{margin:8px 0 4px}
