@@ -760,7 +760,7 @@ $('#koloMerge').addEventListener('click', () => {
   const found = findDuplicateGroups(state.combos);
   const hint = $('#auHint').innerHTML;
   $('#auTitle').textContent = 'Sloučit koli';
-  $('#auHint').textContent = 'Koli na stejném typu palety, která mají společný artikl, jsou jedno koli viděné po částech – spojí se do nejstaršího (1 2 3 4 5 + 3 4 5 6 → 1 2 3 4 5 6). Koli s jediným artiklem, který je ve větším koli, se smaže. Pravidla s podmínkou („když je v zakázce“, stroj) se nemění.';
+  $('#auHint').textContent = 'Koli na stejném typu palety, která mají společný artikl, jsou jedno koli viděné po částech – spojí se do nejstaršího (1 2 3 4 5 + 3 4 5 6 → 1 2 3 4 5 6). Koli s jediným artiklem, který je ve větším koli, se smaže. Pravidla s podmínkou („když je v zakázce“, hlavní položka) se nemění.';
   $('#auRows').innerHTML = found.length ? found.map((m, n) => '<label class="inline ' + (m.kind === 'merge' ? 'au-add' : 'au-drop') + '"><input type="checkbox" data-au="' + n + '" checked>' +
     esc(m.kind === 'merge' ? 'Spojit ' + m.drop.join(', ') + ' → ' + m.keep + ' · ' + m.pal + ' · celkem ' + m.codes + ' artiklů' : 'Smazat ' + m.drop + ' (jen ' + m.code.toUpperCase() + ', ten je v ' + m.into + ')') + '</label>').join('')
     : '<p class="ok">Žádné duplicitní koli ✓</p>';
@@ -791,7 +791,7 @@ $('#khGroup').addEventListener('input', () => {
 $('#khForm').onsubmit = ev => {
   if (!ev.submitter || ev.submitter.value !== 'yes') return;
   const g = khList().get($('#khGroup').value.trim()), main = $('#khMain').value;
-  if (!g || !main) { ev.preventDefault(); $('#khMsg').textContent = 'Vyberte koli z nabídky a stroj.'; return; }
+  if (!g || !main) { ev.preventDefault(); $('#khMsg').textContent = 'Vyberte koli z nabídky a hlavní položku.'; return; }
   const low = s => String(s).toLowerCase(), mine = r => r.mode === 'group' && r.group === g.group && r.pal === g.pal;
   const items = state.combos.filter(mine).map(r => ({ code: r.code, name: r.name, seen: r.per || 1 }));
   const at = state.combos.findIndex(mine), rows = koloHostRows(items, main, g.group, '');
@@ -801,7 +801,7 @@ $('#khForm').onsubmit = ev => {
   const a = state.catalog.find(x => low(x.code) === low(main));
   if (a && (a.pack === 'neurceno' || !a.pal)) { Object.assign(a, { pack: 'paleta', pal: g.pal, per: a.per > 0 ? a.per : 1 }); persist('catalog'); drawCatalog(); }
   persist('combos'); drawCombos();
-  logChanges('–', ['Koli ' + g.group + ' převedeno: ' + rows.length + ' artiklů jede na paletě stroje ' + main]);
+  logChanges('–', ['Koli ' + g.group + ' převedeno: ' + rows.length + ' artiklů jede na paletě hlavní položky ' + main]);
   recalc(); flash('Koli ' + g.group + ': ' + rows.length + ' pravidel „na paletě ' + main + '“.');
 };
 function relearn() { state.manual.delete(state.sel); recalc(); }

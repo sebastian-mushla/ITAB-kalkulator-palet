@@ -176,7 +176,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <button class="btn primary" id="comboAdd">Přidat pravidlo</button>
             <button class="btn" id="koloBtn">Importovat koli</button>
             <button class="btn" id="comboToCat" title="Artikly z kombinací, které nejsou v číselníku, se do něj přidají (název, váha 0, balení neurčeno)">Doplnit artikly do číselníku</button>
-            <button class="btn" id="koloHostBtn" title="Vybrané koli převede na pravidla: ostatní artikly jedou na paletě stroje">Koli → stroj</button>
+            <button class="btn" id="koloHostBtn" title="Vybrané koli převede na pravidla: ostatní artikly jedou na paletě hlavní položky">Koli → hlavní položka</button>
             <button class="btn" id="koloMerge" title="Najde koli se stejnými artikly (nebo podmnožinou jiného koli) na stejném typu palety a sloučí je">Sloučit duplicitní koli</button>
             <label class="btn">Nahrát CSV / Excel<input type="file" id="comboFile" accept=".csv,.txt,.tsv,.xlsx,.xls,.ods" hidden></label>
             <label class="check"><input type="checkbox" id="comboReplace">Nahradit všechna pravidla</label>
@@ -401,8 +401,8 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
       <label>Vlastní váha palety, kg<input type="number" id="koNewTare" min="0" step="any" value="0"></label>
     </div>
     <label class="inline"><input type="checkbox" id="koCat" checked>Doplnit chybějící artikly do číselníku (název, váha 0, balení neurčeno)</label>
-    <label>Hlavní artikl – stroj (nepovinné)<select id="koMain"><option value="">– žádný, společná paleta –</option></select></label>
-    <p class="hint" id="koMainHint">Když vyberete stroj (např. pokladnu V12), ostatní artikly pojedou na jeho paletě – jen když je stroj v zakázce. Bez stroje = společná paleta (koli).</p>
+    <label>Hlavní položka (nepovinné)<select id="koMain"><option value="">– žádný, společná paleta –</option></select></label>
+    <p class="hint" id="koMainHint">Když vyberete hlavní položku (např. pokladnu V12), ostatní artikly pojedou na její paletě – jen když je hlavní položka v zakázce. Bez hlavní položky = společná paleta (koli).</p>
     <label>Název koli (nepovinné)<input type="text" id="koName" placeholder="např. Action – brána Alphagate"></label>
     <p class="problems" id="koMsg"></p>
     <div class="acts"><button class="btn" value="no" formnovalidate>Zrušit</button><button class="btn primary" value="yes" id="koSave" disabled>Uložit koli</button></div>
@@ -410,10 +410,10 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
 </dialog>
 <dialog class="dlg" id="dlgKoloHost">
   <form method="dialog" id="khForm">
-    <h2>Koli → stroj</h2>
-    <p class="hint">Koli, ve kterém je stroj (pokladna) s příslušenstvím: příslušenství pojede na paletě stroje, jen když je stroj v zakázce. Řádky koli se nahradí pravidly „na paletě artiklu“.</p>
+    <h2>Koli → hlavní položka</h2>
+    <p class="hint">Koli, ve kterém je hlavní položka (např. pokladna) s příslušenstvím: příslušenství pojede na paletě hlavní položky, jen když je hlavní položka v zakázce. Řádky koli se nahradí pravidly „na paletě artiklu“.</p>
     <label>Koli<input type="search" id="khGroup" list="khGroups" autocomplete="off" placeholder="Hledat koli (např. KOLI-5) nebo artikl"><datalist id="khGroups"></datalist></label>
-    <label>Stroj (hlavní artikl)<select id="khMain"></select></label>
+    <label>Hlavní položka<select id="khMain"></select></label>
     <p class="problems" id="khMsg"></p>
     <div class="acts"><button class="btn" value="no" formnovalidate>Zrušit</button><button class="btn primary" value="yes">Převést</button></div>
   </form>

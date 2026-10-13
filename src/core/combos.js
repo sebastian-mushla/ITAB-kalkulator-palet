@@ -59,7 +59,7 @@ export function parseKolo(text) {
   return { items: [...items.values()], pals, problems };
 }
 export function nextKoloCode(combos) {
-  // KOLI-n from shared pallets and from machine koli (their note says „Koli KOLI-n – stroj …“)
+  // KOLI-n from shared pallets and from machine koli (their note says „Koli KOLI-n – hlavní položka …“)
   const n = (combos || []).map(r => { const m = String((r.mode === 'group' && r.group) || r.note || '').match(/KOLI-(\d+)/i); return m ? Number(m[1]) : 0; });
   return 'KOLI-' + ((n.length ? Math.max(...n) : 0) + 1);
 }
@@ -143,5 +143,5 @@ export function mergeGroups(combos, actions) {
 export function koloHostRows(items, main, group, name) {
   const m = items.find(x => low(x.code) === low(main)), n = Math.max(1, (m && m.seen) || 1);
   return items.filter(x => low(x.code) !== low(main)).map(x => ({ on: true, code: x.code, withCode: main, min: 0, max: 0, mode: 'host', host: main, pl: 0, pw: 0,
-    per: Math.ceil((x.seen || 1) / n), kg: 0, name: x.name || '', note: 'Koli ' + group + ' – stroj ' + main + (name ? ' – ' + name : '') }));
+    per: Math.ceil((x.seen || 1) / n), kg: 0, name: x.name || '', note: 'Koli ' + group + ' – hlavní položka ' + main + (name ? ' – ' + name : '') }));
 }
