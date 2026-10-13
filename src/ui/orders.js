@@ -301,15 +301,18 @@ function palletBoardHtml(r, isAdmin, board, types) {
     return '<div class="board-pal' + (cls || '') + '" ' + attrs + ' style="width:' + w.toFixed(0) + 'px;height:' + hh.toFixed(0) + 'px;--c:' + color(p.ci) + ';--f:' + Math.min(100, Math.round(p.fill * 100)) + '%">' + inner + '</div>';
   };
   const multi = (r.sos || []).length > 1;
-  const label = p => (multi && p.so ? '<small class="so-tag">Z ' + esc(p.so) + '</small>' : '') + (p.pal ? '<small>' + esc(p.pal) + '</small>' : '') + '<b>' + esc(p.code) + '</b><span>' + fmtN(p.units) + ' ks' + (p.fill < 0.999 ? ' · ' + Math.round(p.fill * 100) + ' %' : '') + '</span>' +
-    (p.extra ? '<em>+ ' + esc(p.extra.map(e => e.code + ' ' + e.units + ' ks').join(', ')) + '</em>' : '');
+  const label = p => (multi && p.so ? '<small class="so-tag">Z ' + esc(p.so) + '</small>' : '') + '<b>' + esc(p.code) + '</b><span>' + fmtN(p.units) + ' ks' + (p.fill < 0.999 ? ' · ' + Math.round(p.fill * 100) + ' %' : '') + '</span>' +
+    // second article written out, the rest only counted (+3) – the full list is in the pallet editor
+    (p.extra ? '<em>+ ' + esc(p.extra[0].code + ' ' + p.extra[0].units + ' ks') + (p.extra.length > 1 ? ' <b class="more">+' + (p.extra.length - 1) + '</b>' : '') + '</em>' : '');
   const num = new Map(r.pallets.map((p, i) => [p, i + 1]));
   const groups = new Map();
-  r.pallets.filter(p => r.planOn || p.board == null).forEach(p => { const k = p.code + '|' + (p.pal || ''); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); });
+  // grouped by pallet type (not by article): same pallets side by side, the same article next to each other
+  r.pallets.filter(p => r.planOn || p.board == null).forEach(p => { const k = p.pal || (p.pl + '×' + p.pw); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); });
+  groups.forEach(list => list.sort((a, b) => String(a.code).localeCompare(String(b.code)) || num.get(a) - num.get(b)));
   let h = '';
   groups.forEach(list => {
     const p0 = list[0];
-    h += '<div class="bgroup"><div class="bgroup-h"><i class="sw" style="background:' + color(p0.ci) + '"></i><b>' + esc(p0.code) + '</b> <span class="muted">' + list.length + ' ' + palWord(list.length) + ' · ' + (p0.pal ? esc(p0.pal) + ' ' + esc(p0.palName || '') + ' · ' : '') + Math.round(p0.pl / 10) + ' × ' + Math.round(p0.pw / 10) + ' cm</span></div><div class="bgroup-p">' +
+    h += '<div class="bgroup"><div class="bgroup-h"><b>' + esc(p0.pal || 'Jiná paleta') + '</b> <span class="muted">' + (p0.palName ? esc(p0.palName) + ' · ' : '') + Math.round(p0.pl / 10) + ' × ' + Math.round(p0.pw / 10) + ' cm · ' + list.length + ' ' + palWord(list.length) + '</span></div><div class="bgroup-p">' +
       list.map(p => block(p, 'data-code="' + esc(p.code) + '" data-so="' + esc(p.so || '') + '"' + (r.planOn ? ' data-bid="' + esc(p.board) + '"' : '') + ' data-pi="' + (num.get(p) - 1) + '" title="Paleta č. ' + num.get(p) + ' – kliknutím upravíte obsah"', '<i class="pnum">' + num.get(p) + '</i>' + label(p))).join('') + '</div></div>';
   });
   // pallets the operator added by hand
