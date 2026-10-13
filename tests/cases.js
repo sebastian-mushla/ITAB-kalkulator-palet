@@ -425,3 +425,10 @@ cases.push(['Služba (doprava, poplatek): započítá se, nejede na paletě, nen
   const r = solve(parseOrders('SO 1\nr10 7777 doprava 1\nr20 V-POL p 10').orders.get('1'), Object.assign({}, ctx, { catalog: cat }));
   assert(!r.unknown.length && r.pallets.length === 1 && r.rows.some(x => x.code === '7777' && x.pack === 'sluzba'), JSON.stringify(r.unknown));
 }]);
+cases.push(['Jedna hlavní položka = jedno koli: sloučení koli stejné položky, přibal se nesčítá', () => {
+  const rows = koloHostRows([{ code: 'V06', seen: 1 }, { code: 'MB', seen: 1 }, { code: 'L3', seen: 1 }], 'V06', 'KOLI-9')
+    .concat(koloHostRows([{ code: 'V06', seen: 1 }, { code: 'MB', seen: 1 }, { code: 'L5', seen: 1 }], 'V06', 'KOLI-10'));
+  const f = findDuplicateGroups(rows), res = mergeGroups(rows, f);
+  assert(f.some(a => a.kind === 'hostmerge' && a.keep === 'KOLI-9'), JSON.stringify(f));
+  assert(res.length === 3 && res.every(r => r.koli === 'KOLI-9') && res.find(r => r.code === 'MB').per === 1, JSON.stringify(res.map(r => r.code + r.koli + r.per)));
+}]);

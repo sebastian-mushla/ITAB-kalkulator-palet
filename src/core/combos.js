@@ -117,6 +117,10 @@ export function findDuplicateGroups(combos) {
     out.push({ kind: 'merge', keep: c[0].group, drop: c.slice(1).map(x => x.group), pal: c[0].pal, codes: codes.size });
     c.slice(1).forEach(x => merged.add(x));
   });
+  // one main item = one koli: koli numbers of the same main item are merged into the oldest
+  const byHost = new Map();
+  (combos || []).forEach(r => { if (r.mode === 'host' && r.strict) { const k = low(r.host); if (!byHost.has(k)) byHost.set(k, { host: r.host, ks: new Set() }); const n = koliOf(r); if (n) byHost.get(k).ks.add(n); } });
+  byHost.forEach(h => { if (h.ks.size > 1) { const ks = [...h.ks].sort((a, b) => grpNum(a) - grpNum(b)); out.push({ kind: 'hostmerge', host: h.host, keep: ks[0], drop: ks.slice(1) }); } });
   // přibal of a main item imported twice: same article + same main item → one rule, max = the larger (never summed)
   const seenHost = new Map();
   (combos || []).forEach((r, i) => {
@@ -139,6 +143,7 @@ export function mergeGroups(combos, actions) {
   const rename = new Map(), remove = new Set(), dropIdx = new Set(), raise = new Map();
   actions.forEach(a => {
     if (a.kind === 'hostdup') { dropIdx.add(a.drop); raise.set(a.keep, Math.max(raise.get(a.keep) || 0, a.per)); return; }
+    if (a.kind === 'hostmerge') { (combos || []).forEach(r => { if (r.mode === 'host' && r.strict && low(r.host) === low(a.host)) { r.koli = a.keep; r.note = 'Koli ' + a.keep + ' – hlavní položka ' + r.host; } }); return; }
     if (a.kind === 'merge') a.drop.forEach(d => rename.set(low(d) + '|' + low(a.pal), a.keep));
     else remove.add(low(a.drop) + '|' + low(a.pal));
   });

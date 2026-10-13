@@ -5,7 +5,7 @@ import { roomFor, freezePlan, moveUnits, setPalletType, removePallet, newId, mer
 import { parseOrders, rowsToOrderText, ordersToText } from './core/parse.js';
 import { solve } from './core/solve.js';
 import { auditOrder } from './core/audit.js';
-import { ruleText, parseKolo, nextKoloCode, expandKolo, koloRow, findDuplicateGroups, mergeGroups, koloHostRows } from './core/combos.js';
+import { ruleText, parseKolo, nextKoloCode, expandKolo, koloRow, findDuplicateGroups, mergeGroups, koloHostRows, koliOf } from './core/combos.js';
 import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle, replaceVehicle, DEPOT } from './core/manual.js';
 import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, rowsToPallets, mergeBy, toCsv } from './io/importTable.js';
 import { renderKpis, renderPriorities, renderList, renderDetail, renderDock, requestText, loadPlanHtml, palOption, setNameLookup } from './ui/orders.js';
@@ -770,7 +770,10 @@ $('#koForm').onsubmit = ev => {
     return;
   }
   // one normal table row per article (mode „na společné paletě“), new rows go first
-  const main = $('#koMain').value, group = nextKoloCode(state.combos);
+  const main = $('#koMain').value, lowm = x => String(x).toLowerCase();
+  // one main item = one koli: a main item that already has a koli is completed, no second koli number
+  const mainRows = main ? state.combos.filter(r => r.mode === 'host' && r.strict && lowm(r.host) === lowm(main)) : [];
+  const group = mainRows.length ? (koliOf(mainRows[0]) || nextKoloCode(state.combos)) : nextKoloCode(state.combos);
   // an article lives in one kind of rule only: main item / přibal, or koli
   const inHost = hostCodes(), lowc = c => String(c).toLowerCase();
   let skipped = [], items = koParsed.items;
@@ -778,7 +781,8 @@ $('#koForm').onsubmit = ev => {
   else dropFromKoli(items.map(it => it.code));
   // with a main item: přibal rides on its pallet (fixed max per pallet); without: one shared pallet
   const proj = $('#koProj').value;
-  const rows = main ? koloHostRows(items, main, group, $('#koName').value.trim()) : items.map(it => koloRow(it, group, code, $('#koName').value.trim(), true, proj));
+  let rows = main ? koloHostRows(items, main, group, $('#koName').value.trim()) : items.map(it => koloRow(it, group, code, $('#koName').value.trim(), true, proj));
+  if (mainRows.length) rows = rows.filter(n => { const old = mainRows.find(r => lowm(r.code) === lowm(n.code)); if (!old) return true; old.per = Math.max(old.per || 0, n.per || 0); return false; });
   // missing articles get a catalog entry: name, weight 0 to fill in, packing decided later (alone it may be a parcel)
   let addedArt = 0;
   if ($('#koCat').checked) koParsed.items.forEach(it => {
@@ -813,7 +817,7 @@ $('#koloMerge').addEventListener('click', () => {
   $('#auTitle').textContent = 'Sloučit koli';
   $('#auHint').textContent = 'Koli na stejném typu palety, která mají společný artikl, jsou jedno koli viděné po částech – spojí se do nejstaršího (1 2 3 4 5 + 3 4 5 6 → 1 2 3 4 5 6). Koli s jediným artiklem, který je ve větším koli, se smaže. Pravidla s podmínkou („když je v zakázce“, hlavní položka) se nemění.';
   $('#auRows').innerHTML = found.length ? found.map((m, n) => '<label class="inline ' + (m.kind === 'merge' ? 'au-add' : 'au-drop') + '"><input type="checkbox" data-au="' + n + '" checked>' +
-    esc(m.kind === 'hostdup' ? 'Přibal ' + m.code + ' na ' + m.host + ' je dvakrát → jedno pravidlo, max ' + m.per + ' ks/paleta' : m.kind === 'merge' ? 'Spojit ' + m.drop.join(', ') + ' → ' + m.keep + ' · ' + m.pal + ' · celkem ' + m.codes + ' artiklů' : 'Smazat ' + m.drop + ' (jen ' + m.code.toUpperCase() + ', ten je v ' + m.into + ')') + '</label>').join('')
+    esc(m.kind === 'hostmerge' ? 'Hlavní položka ' + m.host + ': koli ' + m.drop.join(', ') + ' → sloučit do ' + m.keep + ' (jedna položka = jedno koli)' : m.kind === 'hostdup' ? 'Přibal ' + m.code + ' na ' + m.host + ' je dvakrát → jedno pravidlo, max ' + m.per + ' ks/paleta' : m.kind === 'merge' ? 'Spojit ' + m.drop.join(', ') + ' → ' + m.keep + ' · ' + m.pal + ' · celkem ' + m.codes + ' artiklů' : 'Smazat ' + m.drop + ' (jen ' + m.code.toUpperCase() + ', ten je v ' + m.into + ')') + '</label>').join('')
     : '<p class="ok">Žádné duplicitní koli ✓</p>';
   $('#dlgAudit').querySelector('form').onsubmit = ev => {
     $('#auHint').innerHTML = hint;
@@ -821,7 +825,7 @@ $('#koloMerge').addEventListener('click', () => {
     const chosen = found.filter((m, n) => $('#auRows [data-au="' + n + '"]').checked);
     if (!chosen.length) return;
     state.combos = mergeGroups(state.combos, chosen); persist('combos'); drawCombos();
-    logChanges('–', chosen.map(m => m.kind === 'hostdup' ? 'Přibal ' + m.code + ' na ' + m.host + ': duplicitní pravidlo sloučeno (max ' + m.per + ')' : m.kind === 'merge' ? 'Koli ' + m.drop.join(', ') + ' spojeno do ' + m.keep : 'Koli ' + m.drop + ' smazáno (' + m.code.toUpperCase() + ' je v ' + m.into + ')'));
+    logChanges('–', chosen.map(m => m.kind === 'hostmerge' ? 'Hlavní položka ' + m.host + ': koli ' + m.drop.join(', ') + ' sloučeno do ' + m.keep : m.kind === 'hostdup' ? 'Přibal ' + m.code + ' na ' + m.host + ': duplicitní pravidlo sloučeno (max ' + m.per + ')' : m.kind === 'merge' ? 'Koli ' + m.drop.join(', ') + ' spojeno do ' + m.keep : 'Koli ' + m.drop + ' smazáno (' + m.code.toUpperCase() + ' je v ' + m.into + ')'));
     recalc();
     flash('Sloučeno: ' + chosen.length + ' koli.');
   };
