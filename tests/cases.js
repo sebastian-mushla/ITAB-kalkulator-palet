@@ -6,7 +6,7 @@ import { freezePlan, moveUnits, mergePallets } from '../src/core/plan.js';
 import { solve } from '../src/core/solve.js';
 import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, DEFAULT_PALLETS, SAMPLE } from '../src/core/defaults.js';
 import { migrateCatalog } from '../src/core/palletTypes.js';
-import { parseKolo, koloRow, expandKolo } from '../src/core/combos.js';
+import { parseKolo, koloRow, expandKolo, findDuplicateGroups, mergeGroups } from '../src/core/combos.js';
 import { parseCsvRows, rowsToCatalog, rowsToVehicles, rowsToCombos, mergeBy } from '../src/io/importTable.js';
 
 const ctx = { catalog: DEFAULT_CATALOG, vehicles: DEFAULT_VEHICLES, rules: DEFAULT_RULES, combos: DEFAULT_COMBOS, pallets: DEFAULT_PALLETS };
@@ -362,4 +362,14 @@ cases.push(['Společná paleta: pořadí pravidel – když první nesedí, plat
   assert(g && g.group === 'B' && g.pal === 'PAL-0001', JSON.stringify(g && [g.group, g.pal]));
   const old = expandKolo([{ mode: 'kolo', code: 'KOLI-1', pal: 'PAL-0001', items: [{ code: 'X', seen: 2 }, { code: 'Y', seen: 3 }] }]);
   assert(old.changed && old.combos.length === 2 && old.combos[1].per === 3 && old.combos[0].group === 'KOLI-1', 'migrace');
+}]);
+cases.push(['Koli: sloučení – stejné artikly a podmnožina se sloučí do staršího/většího', () => {
+  const row = (g, c, per, pal) => koloRow({ code: c, seen: per }, g, pal || 'PAL-0001');
+  const combos = [row('KOLI-3', 'A', 5), row('KOLI-2', 'A', 2), row('KOLI-2', 'B', 1), row('KOLI-1', 'A', 1), row('KOLI-1', 'B', 1), row('KOLI-4', 'A', 1, 'PAL-0002')];
+  const f = findDuplicateGroups(combos);
+  assert(f.length === 2, JSON.stringify(f));
+  const res = mergeGroups(combos, f);
+  const groups = [...new Set(res.map(r => r.group))].sort();
+  assert(groups.join() === 'KOLI-1,KOLI-4', groups.join());
+  assert(res.find(r => r.group === 'KOLI-1' && r.code === 'A').per === 5, 'per raised');
 }]);

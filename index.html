@@ -175,6 +175,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
           <div class="toolbar">
             <button class="btn primary" id="comboAdd">Přidat pravidlo</button>
             <button class="btn" id="koloBtn">Importovat koli</button>
+            <button class="btn" id="koloMerge" title="Najde koli se stejnými artikly (nebo podmnožinou jiného koli) na stejném typu palety a sloučí je">Sloučit duplicitní koli</button>
             <label class="btn">Nahrát CSV / Excel<input type="file" id="comboFile" accept=".csv,.txt,.tsv,.xlsx,.xls,.ods" hidden></label>
             <label class="check"><input type="checkbox" id="comboReplace">Nahradit všechna pravidla</label>
             <button class="btn" id="comboExport">Stáhnout CSV</button>
@@ -387,7 +388,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
 <dialog class="dlg" id="dlgAudit">
   <form method="dialog">
     <h2 id="auTitle">Zkontrolovat a uložit</h2>
-    <p class="hint">Porovná uložené kombinace a definice artiklů s paletami této zakázky. Zaškrtnuté změny se provedou, palety zakázky se uloží a změny se zapíšou do historie (záložka Kombinace).</p>
+    <p class="hint" id="auHint">Porovná uložené kombinace a definice artiklů s paletami této zakázky. Zaškrtnuté změny se provedou, palety zakázky se uloží a změny se zapíšou do historie (záložka Kombinace).</p>
     <div id="auRows" class="au-rows"></div>
     <div class="acts"><button class="btn" value="no">Zrušit</button><button class="btn primary" value="yes">Uložit</button></div>
   </form>

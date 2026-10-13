@@ -5,7 +5,7 @@ import { roomFor, freezePlan, moveUnits, setPalletType, removePallet, newId, mer
 import { parseOrders, rowsToOrderText, ordersToText } from './core/parse.js';
 import { solve } from './core/solve.js';
 import { auditOrder } from './core/audit.js';
-import { ruleText, parseKolo, nextKoloCode, expandKolo, koloRow } from './core/combos.js';
+import { ruleText, parseKolo, nextKoloCode, expandKolo, koloRow, findDuplicateGroups, mergeGroups } from './core/combos.js';
 import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle, replaceVehicle, DEPOT } from './core/manual.js';
 import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, rowsToPallets, mergeBy, toCsv } from './io/importTable.js';
 import { renderKpis, renderPriorities, renderList, renderDetail, renderDock, requestText, loadPlanHtml, palOption, setNameLookup } from './ui/orders.js';
@@ -729,6 +729,27 @@ $('#koForm').onsubmit = ev => {
   recalc();
   flash('Koli ' + group + ': přidáno ' + rows.length + ' řádků do kombinací (' + code + ').');
 };
+// ---------- consolidate koli: groups that say the same as another group ----------
+$('#koloMerge').addEventListener('click', () => {
+  const found = findDuplicateGroups(state.combos);
+  const hint = $('#auHint').innerHTML;
+  $('#auTitle').textContent = 'Sloučit duplicitní koli';
+  $('#auHint').textContent = 'Koli, jehož artikly už všechny jsou v jiném koli na stejném typu palety, nic nového nepřináší. Zaškrtnuté se smažou a ověřené počty kusů se přenesou do koli, které zůstane.';
+  $('#auRows').innerHTML = found.length ? found.map((m, n) => '<label class="inline au-drop"><input type="checkbox" data-au="' + n + '" checked>' +
+    esc(m.drop + ' (' + m.n + ' artiklů) → sloučit do ' + m.keep + ' · ' + m.pal + (m.same ? ' · stejné artikly' : ' · je jeho podmnožinou') + (m.raise.length ? ' · ověřeno navýšit: ' + m.raise.map(x => x.code.toUpperCase() + ' ' + x.from + '→' + x.to).join(', ') : '')) + '</label>').join('')
+    : '<p class="ok">Žádné duplicitní koli ✓</p>';
+  $('#dlgAudit').querySelector('form').onsubmit = ev => {
+    $('#auHint').innerHTML = hint;
+    if (!ev.submitter || ev.submitter.value !== 'yes') return;
+    const chosen = found.filter((m, n) => $('#auRows [data-au="' + n + '"]').checked);
+    if (!chosen.length) return;
+    state.combos = mergeGroups(state.combos, chosen); persist('combos'); drawCombos();
+    logChanges('–', chosen.map(m => 'Koli ' + m.drop + ' sloučeno do ' + m.keep + (m.raise.length ? ' (ověřeno navýšeno u ' + m.raise.length + ' artiklů)' : '')));
+    recalc();
+    flash('Sloučeno: ' + chosen.length + ' koli.');
+  };
+  $('#dlgAudit').showModal();
+});
 function relearn() { state.manual.delete(state.sel); recalc(); }
 // one or more unknown articles ride on the pallets of article `host`
 function askCombo(list, host, bid) {
