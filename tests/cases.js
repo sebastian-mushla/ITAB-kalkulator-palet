@@ -381,3 +381,10 @@ cases.push(['Koli: artikl s balením „neurčeno“ – v koli jede, sám ček�
   const inKoli = solve(o, Object.assign({}, ctx, { catalog: cat, combos: [koloRow({ code: 'NEU-1', seen: 3 }, 'KOLI-1', 'PAL-0001')] }));
   assert(!inKoli.unknown.length && inKoli.pallets.some(p => p.group === 'KOLI-1'), 'v koli');
 }]);
+cases.push(['Koli: artikl ve více koli jde do toho, které pokrývá nejvíc artiklů zakázky', () => {
+  const row = (g, c, pal) => koloRow({ code: c, seen: 1 }, g, pal);
+  const combos = [row('KOLI-11', 'X', 'PAL-0002'), row('KOLI-11', 'Z', 'PAL-0002'), row('KOLI-1', 'X', 'PAL-0001'), row('KOLI-1', 'Y', 'PAL-0001'), row('KOLI-1', 'W', 'PAL-0001')];
+  const o = parseOrders('SO 9\nr10 X x 1\nr20 Y y 1\nr30 W w 1').orders.get('9');
+  const r = solve(o, Object.assign({}, ctx, { combos }));
+  assert(r.pallets.length === 1 && r.pallets[0].group === 'KOLI-1', r.pallets.map(p => p.group + ':' + p.code).join(', '));
+}]);

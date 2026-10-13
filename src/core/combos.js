@@ -17,6 +17,15 @@ export function findRule(code, qty, present, combos) {
     && (!(r.max > 0) || qty <= r.max)) || null;
 }
 
+// All active rules matching the article (in table order).
+export function findRules(code, qty, present, combos) {
+  return (combos || []).filter(r => r.on !== false && r.mode !== 'kolo'
+    && low(r.code) === low(code)
+    && (!low(r.withCode) || present.has(low(r.withCode)))
+    && (!(r.min > 0) || qty >= r.min)
+    && (!(r.max > 0) || qty <= r.max));
+}
+
 export function ruleText(r) {
   const cond = [];
   if (low(r.withCode)) cond.push('s ' + r.withCode);

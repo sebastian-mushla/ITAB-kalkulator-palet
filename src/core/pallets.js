@@ -1,5 +1,5 @@
 import { isEuro } from './util.js';
-import { findRule, ruleText } from './combos.js';
+import { findRule, findRules, ruleText } from './combos.js';
 import { resolveArticle, typeOf } from './palletTypes.js';
 
 // Splits order lines into full pallets + one partial pallet per article, or into parcels for pack = 'balik'.
@@ -23,6 +23,24 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
   }
 
   const groups = new Map(); // shared pallets (mode 'group'): group|pal → articles
+  // which shared pallet (koli) each article takes: an article can be in several koli, so the koli covering the most
+  // articles of this order wins (ties: higher in the table); an article whose first rule is not a koli keeps that rule
+  const groupOf = new Map();
+  {
+    const cand = new Map(); // code → [{ rule, key }]
+    lines.forEach(l => {
+      const all = findRules(l.code, l.qty, present, combos);
+      if (!all.length || all[0].mode !== 'group') return;
+      const gs = all.filter(r => r.mode === 'group' && r.group && r.pal);
+      if (gs.length) cand.set(low(l.code), gs.map(r => ({ rule: r, key: low(r.group) + '|' + low(r.pal), pos: combos.indexOf(r) })));
+    });
+    while (cand.size) {
+      const score = new Map();
+      cand.forEach(list => list.forEach(c => { const s = score.get(c.key) || { n: 0, pos: c.pos }; s.n++; s.pos = Math.min(s.pos, c.pos); score.set(c.key, s); }));
+      const [best] = [...score].sort((a, b) => b[1].n - a[1].n || a[1].pos - b[1].pos)[0];
+      [...cand].forEach(([code, list]) => { const c = list.find(x => x.key === best); if (c) { groupOf.set(code, c.rule); cand.delete(code); } });
+    }
+  }
   function addGroup(rule, a, idx, l) {
     const k = low(rule.group) + '|' + low(rule.pal);
     if (!groups.has(k)) groups.set(k, []);
@@ -33,7 +51,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     if (idx < 0) {
       // not in the catalog yet: it can still ride on a host pallet if a Kombinace rule says so
       const r0 = findRule(l.code, l.qty, present, combos);
-      if (r0 && r0.mode === 'group') { addGroup(r0, { code: l.code, name: r0.name || l.name || '', kg: r0.kg || 0 }, -1, l); return; }
+      if (r0 && r0.mode === 'group') { addGroup(groupOf.get(low(l.code)) || r0, { code: l.code, name: r0.name || l.name || '', kg: r0.kg || 0 }, -1, l); return; }
       if (r0 && r0.mode === 'host') {
         const a0 = { code: l.code, name: r0.name || l.name || '', kg: r0.kg || 0, per: 0, pl: 0, pw: 0, unknown: true };
         const ci = catalog.length + unknown.length + riders.length;
@@ -46,7 +64,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     let a = resolveArticle(catalog[idx], types);
     const rule = findRule(a.code, l.qty, present, combos);
     const row = { code: a.code, name: a.name, qty: l.qty, kg: l.qty * (a.kg || 0), ci: idx, rule: rule ? ruleText(rule) : null };
-    if (rule && rule.mode === 'group') { addGroup(rule, a, idx, l); return; }
+    if (rule && rule.mode === 'group') { addGroup(groupOf.get(low(l.code)) || rule, a, idx, l); return; }
     // packing not decided yet (article known from a koli): rides only by a rule, otherwise waits on the right side
     if (a.pack === 'neurceno' && !(rule && rule.mode !== 'group')) {
       unknown.push({ code: l.code, qty: l.qty, name: a.name || l.name || '', known: true, undecided: true });
