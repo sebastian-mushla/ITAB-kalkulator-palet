@@ -46,6 +46,8 @@ export function parseKolo(text) {
   String(text || '').split(/\r?\n/).forEach((raw, i) => {
     const line = raw.trim(); if (!line) return;
     let cells = line.split(/\t|;/).map(c => c.trim());
+    // pasted with spaces only: first word = article, last = quantity, the rest = name
+    if (cells.length < 2) { const w = line.split(/\s+/); cells = w.length >= 2 ? [w[0], w.slice(1, -1).join(' '), w[w.length - 1]] : w; }
     while (cells.length > 2 && cells[cells.length - 1] === '') cells.pop();
     if (cells.length >= 4 && /^\d{1,4}$/.test(cells[0])) cells = cells.slice(1);
     if (cells.length < 2) { problems.push('řádek ' + (i + 1) + ': chybí množství'); return; }
