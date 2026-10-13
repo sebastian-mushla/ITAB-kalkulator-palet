@@ -326,7 +326,7 @@ function palletBoardHtml(r, isAdmin, board, types) {
       : block({ pl: t.L, pw: t.W, fill: 0, ci: 0 }, 'data-bid="' + esc(b.id) + '" title="Prázdná paleta – přetáhněte sem materiál"', '<small>' + esc(b.pal) + '</small><span>prázdná</span>' + x, ' empty');
   }).join('');
   if (manual) h += '<div class="bgroup"><div class="bgroup-h"><b>' + (r.planOn ? 'Prázdné palety' : 'Ručně přidané palety') + '</b> <span class="muted">' + (r.planOn ? 'přetáhněte na ně materiál nebo je odeberte' : 'materiál mimo číselník, jen pro tuto zakázku') + '</span></div><div class="bgroup-p">' + manual + '</div></div>';
-  if (r.planOn) h = '<div class="plan-note">Palety upravené ručně. <button class="linkbtn" id="resetPlan">Vrátit automatický výpočet palet</button></div>' + h;
+  if (r.planOn) h = '<div class="plan-note">Palety upravené ručně – po „✓ Zkontrolovat a uložit“ se úpravy zapíšou do pravidel a zakázka se zase počítá automaticky. <button class="linkbtn" id="resetPlan">Zahodit úpravy</button></div>' + h;
   if (r.parcels.length) {
     const m = new Map();
     r.parcels.forEach(p => { const g = m.get(p.code) || { p, n: 0 }; g.n++; m.set(p.code, g); });

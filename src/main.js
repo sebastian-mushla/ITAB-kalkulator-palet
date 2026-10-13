@@ -664,14 +664,25 @@ onBoth('click', e => {
     state.combos = adds.concat(state.combos.filter((c, i) => !dropSet.has(i)));
     if (rows.some((x, n) => on(n) && x.k !== 'def')) { persist('combos'); drawCombos(); }
     if (rows.some((x, n) => on(n) && x.k === 'def')) { persist('catalog'); drawCatalog(); }
-    // the order's pallets are kept as they are now (also after reload and re-import of the same ID)
-    state.plan.set(id, plan);
+    // with the saved rules, does the automatic calculation give the same pallets? then the hand-made plan is not needed
+    const sig = pals => pals.map(p => [p.pal || (p.pl + 'x' + p.pw)].concat([[p.code, p.units]].concat((p.extra || []).map(e => [e.code, e.units])).map(x => String(x[0]).toLowerCase() + ':' + x[1]).sort()).join('|')).sort().join('#');
+    const c0 = Object.assign({}, ctx(id), { plan: null });
+    const auto = solve(o, c0), wanted = solve(o, Object.assign({}, c0, { plan }));
     const at = new Date().toLocaleString('cs-CZ', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' });
-    const all = load('itab.plans.v1', {}); all[id] = { plan, at }; save('itab.plans.v1', all); state.saved.set(id, at);
-    done.push('Palety zakázky uloženy (' + plan.length + ')');
+    const all = load('itab.plans.v1', {});
+    if (!state.plan.has(id) || (sig(auto.pallets) === sig(wanted.pallets) && auto.unknown.length <= wanted.unknown.length) || auto.unknown.length < wanted.unknown.length) {
+      // everything is described by the tables: back to the automatic calculation, nothing hand-made remains
+      state.plan.delete(id); delete all[id]; save('itab.plans.v1', all); state.saved.set(id, at);
+      done.push('Zakázka se počítá automaticky podle tabulek (' + auto.pallets.length + ' palet)');
+    } else {
+      // some hand moves cannot be written as rules: the pallets are kept as they are now
+      state.plan.set(id, plan); all[id] = { plan, at }; save('itab.plans.v1', all); state.saved.set(id, at);
+      done.push('Palety uloženy ručně (' + plan.length + ') – automatický výpočet dává ' + auto.pallets.length + ' palet');
+    }
+    state.manual.delete(id);
     logChanges(id, done);
     recalc();
-    flash('Uloženo: ' + (done.length - 1 ? (done.length - 1) + ' změn, ' : '') + 'palety zakázky ' + id + '.');
+    flash(done[done.length - 1] + '.');
   };
   $('#dlgAudit').showModal();
 });
