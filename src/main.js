@@ -665,12 +665,16 @@ onBoth('click', e => {
     if (rows.some((x, n) => on(n) && x.k !== 'def')) { persist('combos'); drawCombos(); }
     if (rows.some((x, n) => on(n) && x.k === 'def')) { persist('catalog'); drawCatalog(); }
     // with the saved rules, does the automatic calculation give the same pallets? then the hand-made plan is not needed
-    const sig = pals => pals.map(p => [p.pal || (p.pl + 'x' + p.pw)].concat([[p.code, p.units]].concat((p.extra || []).map(e => [e.code, e.units])).map(x => String(x[0]).toLowerCase() + ':' + x[1]).sort()).join('|')).sort().join('#');
+    // compare the automatic result with the hand-made pallets directly (no second full calculation)
+    const sigOf = list => list.map(x => x.pal + '|' + x.items.map(c => String(c[0]).toLowerCase() + ':' + c[1]).sort().join('|')).sort().join('#');
     const c0 = Object.assign({}, ctx(id), { plan: null });
-    const auto = solve(o, c0), wanted = solve(o, Object.assign({}, c0, { plan }));
+    const auto = solve(o, c0);
+    const autoSig = sigOf(auto.pallets.map(p => ({ pal: p.pal || (p.pl + 'x' + p.pw), items: [[p.code, p.units]].concat((p.extra || []).map(e => [e.code, e.units])) })));
+    const planSig = sigOf(plan.filter(b => b.contents.some(c => c.units > 0)).map(b => ({ pal: b.pal || (b.custom ? b.custom.L + 'x' + b.custom.W : ''), items: b.contents.filter(c => c.units > 0).map(c => [c.code, c.units]) })));
+    const planLeft = (r.unknown || []).length;
     const at = new Date().toLocaleString('cs-CZ', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' });
     const all = load('itab.plans.v1', {});
-    if (!state.plan.has(id) || (sig(auto.pallets) === sig(wanted.pallets) && auto.unknown.length <= wanted.unknown.length) || auto.unknown.length < wanted.unknown.length) {
+    if (!state.plan.has(id) || (autoSig === planSig && auto.unknown.length <= planLeft) || auto.unknown.length < planLeft) {
       // everything is described by the tables: back to the automatic calculation, nothing hand-made remains
       state.plan.delete(id); delete all[id]; save('itab.plans.v1', all); state.saved.set(id, at);
       done.push('Zakázka se počítá automaticky podle tabulek (' + auto.pallets.length + ' palet)');
