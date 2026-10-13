@@ -34,11 +34,19 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
       const gs = all.filter(r => r.mode === 'group' && r.group && r.pal);
       if (gs.length) cand.set(low(l.code), gs.map(r => ({ rule: r, key: low(r.group) + '|' + low(r.pal), pos: combos.indexOf(r) })));
     });
+    const min = Math.max(1, opts.koloMin || 1);
     while (cand.size) {
       const score = new Map();
       cand.forEach(list => list.forEach(c => { const s = score.get(c.key) || { n: 0, pos: c.pos }; s.n++; s.pos = Math.min(s.pos, c.pos); score.set(c.key, s); }));
-      const [best] = [...score].sort((a, b) => b[1].n - a[1].n || a[1].pos - b[1].pos)[0];
-      [...cand].forEach(([code, list]) => { const c = list.find(x => x.key === best); if (c) { groupOf.set(code, c.rule); cand.delete(code); } });
+      if (!score.size) { cand.forEach((list, code) => groupOf.set(code, { lone: true, group: list.lastGroup || '' })); break; }
+      const [best, sc] = [...score].sort((a, b) => b[1].n - a[1].n || a[1].pos - b[1].pos)[0];
+      const takers = [...cand].filter(([, list]) => list.some(x => x.key === best));
+      if (sc.n >= min) { takers.forEach(([code, list]) => { groupOf.set(code, list.find(x => x.key === best).rule); cand.delete(code); }); continue; }
+      // too few articles of this koli in the order: try the article's other koli; with none left it waits on the right side
+      takers.forEach(([code, list]) => {
+        const k = list.findIndex(x => x.key === best); list.lastGroup = list[k].rule.group; list.splice(k, 1);
+        if (!list.length) { groupOf.set(code, { lone: true, group: list.lastGroup }); cand.delete(code); }
+      });
     }
   }
   function addGroup(rule, a, idx, l) {
@@ -51,6 +59,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     if (idx < 0) {
       // not in the catalog yet: it can still ride on a host pallet if a Kombinace rule says so
       const r0 = findRule(l.code, l.qty, present, combos);
+      if (r0 && r0.mode === 'group' && groupOf.get(low(l.code)) && groupOf.get(low(l.code)).lone) { unknown.push({ code: l.code, qty: l.qty, name: l.name || '', hint: 'z koli ' + groupOf.get(low(l.code)).group.toUpperCase() }); errors.push('Artikl „' + l.code + '“ (z koli ' + groupOf.get(low(l.code)).group.toUpperCase() + '): v zakázce je málo artiklů tohoto koli – zařaďte ho ručně.'); return; }
       if (r0 && r0.mode === 'group') { addGroup(groupOf.get(low(l.code)) || r0, { code: l.code, name: r0.name || l.name || '', kg: r0.kg || 0 }, -1, l); return; }
       if (r0 && r0.mode === 'host') {
         const a0 = { code: l.code, name: r0.name || l.name || '', kg: r0.kg || 0, per: 0, pl: 0, pw: 0, unknown: true };
@@ -64,7 +73,11 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     let a = resolveArticle(catalog[idx], types);
     const rule = findRule(a.code, l.qty, present, combos);
     const row = { code: a.code, name: a.name, qty: l.qty, kg: l.qty * (a.kg || 0), ci: idx, rule: rule ? ruleText(rule) : null };
-    if (rule && rule.mode === 'group') { addGroup(groupOf.get(low(l.code)) || rule, a, idx, l); return; }
+    if (rule && rule.mode === 'group') {
+      const g = groupOf.get(low(l.code));
+      if (g && g.lone) { unknown.push({ code: l.code, qty: l.qty, name: a.name || l.name || '', known: true, hint: 'z koli ' + g.group.toUpperCase() }); errors.push('Artikl „' + l.code + '“ (z koli ' + g.group.toUpperCase() + '): v zakázce je málo artiklů tohoto koli – zařaďte ho ručně.'); return; }
+      addGroup(g || rule, a, idx, l); return;
+    }
     // packing not decided yet (article known from a koli): rides only by a rule, otherwise waits on the right side
     if (a.pack === 'neurceno' && !(rule && rule.mode !== 'group')) {
       unknown.push({ code: l.code, qty: l.qty, name: a.name || l.name || '', known: true, undecided: true });

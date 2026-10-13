@@ -64,8 +64,8 @@ export function renderVehicles(vehicles) {
   }).join('') || '<tr><td colspan="9" class="empty">Žádné vozidlo. Přidejte aspoň jedno.</td></tr>';
 }
 
-export function renderCombos(combos, catalog, pallets) {
-  pallets = pallets || [];
+export function renderCombos(combos, catalog, pallets, projects) {
+  pallets = pallets || []; projects = projects || [];
   // article codes for the inputs: one datalist outside the table, rebuilt only when the catalog changes
   const key = catalog.length + '|' + (catalog[0] && catalog[0].code) + '|' + (catalog[catalog.length - 1] && catalog[catalog.length - 1].code);
   let dl = document.getElementById('codeList');
@@ -82,7 +82,8 @@ export function renderCombos(combos, catalog, pallets) {
       (r.mode === 'pallet' || group
         // only the chosen pallet is rendered; the full list is filled in when the select gets focus (many rows × many pallet types)
         ? '<td><select data-i="' + i + '" data-f="pal" data-lazy="' + (group ? 'g' : 'p') + '" aria-label="Typ palety">' + (r.pal ? '<option value="' + esc(r.pal) + '" selected>' + esc(r.pal) + ' · ' + esc((pallets.find(p => p.code === r.pal) || {}).name || '') + '</option>' : (group ? '<option value="">– typ palety –</option>' : '<option value="">rozměr vpravo</option>')) + '</select>' +
-          (group ? '<input type="text" data-i="' + i + '" data-f="group" value="' + esc(r.group || '') + '" placeholder="společná paleta, např. KOLI-1" aria-label="Společná paleta" class="grp-in">' : '') + '</td>'
+          (group ? '<input type="text" data-i="' + i + '" data-f="group" value="' + esc(r.group || '') + '" placeholder="společná paleta, např. KOLI-1" aria-label="Společná paleta" class="grp-in">' +
+            '<select data-i="' + i + '" data-f="project" aria-label="Projekt" class="grp-in"><option value="">všechny projekty</option>' + projects.map(n => '<option' + (n === r.project ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + (r.project && !projects.includes(r.project) ? '<option selected>' + esc(r.project) + '</option>' : '') + '</select>' : '') + '</td>'
         : txt('host', 'artikl', !host)) +
       num('pl', host || group ? '' : 'z číselníku', host || group || !!r.pal) + num('pw', host || group ? '' : 'z číselníku', host || group || !!r.pal) + num('per', host ? 'bez limitu' : group ? 'ověřeno ks' : 'z číselníku') +
       '<td><input type="number" min="0" step="any" data-i="' + i + '" data-f="kg" value="' + (r.kg > 0 ? r.kg : '') + '" placeholder="z číselníku"></td>' +

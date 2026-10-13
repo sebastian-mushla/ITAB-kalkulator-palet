@@ -48,6 +48,7 @@ const state = {
   rules: Object.assign(clone(DEFAULT_RULES), shared.rules || {}),
   csv: load(KEYS.csv, SAMPLE),
   orders: new Map(), results: new Map(), forced: new Map(), manual: new Map(), board: new Map(), plan: new Map(Object.entries(load('itab.plans.v1', {})).map(([k, v]) => [k, v.plan])),
+  projSel: new Map(Object.entries(load('itab.projsel.v1', {}))),
   saved: new Map(Object.entries(load('itab.plans.v1', {})).map(([k, v]) => [k, v.at])),
   ordered: new Set(load('itab.ordered.v1', [])), listUi: Object.assign({ sort: { key: null, dir: 'asc' }, filters: {} }, load('itab.listui.v1', {}), { open: null }), oneOff: new Map(), done: new Set(load('itab.done.v1', [])), isAdmin, sel: null, prioHidden: false,
   catView: { q: '', page: 0 }
@@ -86,7 +87,7 @@ function persist(name) {
 // ---------- calculation ----------
 function ctx(id) {
   // one-off moves (not remembered) apply only to that order and win over saved rules
-  return { catalog: state.catalog, vehicles: state.vehicles, pallets: state.pallets, rules: state.rules, combos: (state.oneOff.get(id) || []).concat(state.combos), forced: state.forced.has(id) ? state.forced.get(id) : null, added: state.board.get(id) || [], plan: state.plan.get(id) || null };
+  return { catalog: state.catalog, vehicles: state.vehicles, pallets: state.pallets, rules: state.rules, combos: (state.oneOff.get(id) || []).concat(state.combos), forced: state.forced.has(id) ? state.forced.get(id) : null, added: state.board.get(id) || [], plan: state.plan.get(id) || null, project: state.projSel.has(id) ? state.projSel.get(id) : undefined };
 }
 // Full recalculation (catalog, vehicles, rules … changed): the open order first, the rest in small
 // chunks in the background so the page never freezes.
@@ -172,7 +173,7 @@ let timer = null;
 function later() { clearTimeout(timer); timer = setTimeout(recalc, 250); }
 
 // ---------- navigation ----------
-const VIEWS = ['orders', 'dock', 'catalog', 'pallets', 'combos', 'vehicles', 'rules', 'users', 'help'];
+const VIEWS = ['orders', 'dock', 'catalog', 'pallets', 'combos', 'projects', 'vehicles', 'rules', 'users', 'help'];
 // help page shows the current rule values
 function renderHelp() {
   const r = state.rules;
@@ -712,6 +713,9 @@ $('#koloBtn').addEventListener('click', () => {
   $('#koForm').reset(); $('#koPreview').innerHTML = ''; $('#koMsg').textContent = ''; $('#koNew').hidden = true; $('#koNewCode').textContent = '';
   $('#koSelWrap').hidden = true; $('#koPalWrap').hidden = false; koParsed = { items: [], pals: [] };
   $('#koPalList').innerHTML = state.pallets.map(t => '<option value="' + esc(palOption(t)) + '"></option>').join('');
+  // project of the open order is offered first
+  const cur = (view(state.sel) || {}).project || '';
+  $('#koProj').innerHTML = '<option value="">všechny projekty</option>' + projNames().map(n => '<option' + (n === cur ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
   $('#koSave').disabled = true;
   $('#dlgKolo').showModal(); $('#koText').focus();
 });
@@ -745,7 +749,8 @@ $('#koForm').onsubmit = ev => {
   if (!main) { skipped = items.filter(it => inHost.has(lowc(it.code))).map(it => it.code); items = items.filter(it => !inHost.has(lowc(it.code))); }
   else dropFromKoli(items.map(it => it.code));
   // with a main item: přibal rides on its pallet (fixed max per pallet); without: one shared pallet
-  const rows = main ? koloHostRows(items, main, group, $('#koName').value.trim()) : items.map(it => koloRow(it, group, code, $('#koName').value.trim()));
+  const proj = $('#koProj').value;
+  const rows = main ? koloHostRows(items, main, group, $('#koName').value.trim()) : items.map(it => koloRow(it, group, code, $('#koName').value.trim(), true, proj));
   // missing articles get a catalog entry: name, weight 0 to fill in, packing decided later (alone it may be a parcel)
   let addedArt = 0;
   if ($('#koCat').checked) koParsed.items.forEach(it => {
@@ -794,7 +799,43 @@ $('#koloMerge').addEventListener('click', () => {
   };
   $('#dlgAudit').showModal();
 });
+// ---------- projects (kept inside the shared rules) ----------
+function projNames() { return (state.rules.projects || []).map(p => p.name).filter(Boolean); }
+function drawProjects() {
+  const list = state.rules.projects || [];
+  const koli = name => new Set(state.combos.filter(r => r.mode === 'group' && r.project === name).map(r => r.group)).size;
+  $('#projBody').innerHTML = list.map((p, i) => '<tr><td><input type="text" data-p="' + i + '" data-pf="name" value="' + esc(p.name || '') + '" placeholder="např. Action"></td>' +
+    '<td><textarea data-p="' + i + '" data-pf="keys" placeholder="V-06-1019-0-0000-V5/9003">' + esc((p.keys || []).join(', ')) + '</textarea></td><td class="num">' + koli(p.name) + '</td>' +
+    '<td><button class="btn small" data-pdel="' + i + '">Smazat</button></td></tr>').join('') || '<tr><td colspan="4" class="empty">Zatím žádný projekt.</td></tr>';
+}
+$('#projAdd').addEventListener('click', () => { state.rules.projects = (state.rules.projects || []).concat([{ name: '', keys: [] }]); drawProjects(); const ins = document.querySelectorAll('#projBody input'); if (ins.length) ins[ins.length - 1].focus(); });
+$('#projBody').addEventListener('change', e => {
+  const i = e.target.getAttribute('data-p'); if (i == null) return;
+  const p = state.rules.projects[Number(i)], f = e.target.getAttribute('data-pf');
+  if (f === 'name') {
+    const old = p.name, nu = e.target.value.trim();
+    // koli of the project follow the new name
+    if (old && nu && old !== nu) { state.combos.forEach(r => { if (r.project === old) r.project = nu; }); persist('combos'); drawCombos(); }
+    p.name = nu;
+  } else p.keys = e.target.value.split(/[\n,;\t]+/).map(x => x.trim()).filter(Boolean);
+  persist('rules'); drawProjects(); recalc();
+});
+$('#projBody').addEventListener('click', async e => {
+  const i = e.target.getAttribute('data-pdel'); if (i == null) return;
+  const p = state.rules.projects[Number(i)];
+  if (!await ask('Smazat projekt?', 'Projekt „' + (p.name || '') + '“ se smaže. Jeho koli zůstanou a budou platit pro všechny projekty.', 'Smazat')) return;
+  state.combos.forEach(r => { if (r.project && r.project === p.name) r.project = ''; });
+  state.rules.projects.splice(Number(i), 1); persist('rules'); persist('combos'); drawProjects(); drawCombos(); recalc();
+});
+$('#tab-projects').addEventListener('click', drawProjects);
+// project chosen by hand in the order detail (otherwise recognised by key articles)
+onBoth('change', e => {
+  if (e.target.id !== 'projSel') return;
+  state.projSel.set(state.sel, e.target.value); save('itab.projsel.v1', Object.fromEntries(state.projSel));
+  state.manual.delete(state.sel); keepScroll(() => recalcOne());
+});
 function relearn() { state.manual.delete(state.sel); recalc(); }
+
 // one or more unknown articles ride on the pallets of article `host`
 // přibal dropped again on its main item: suggest a max per pallet that fits everything of this order
 function suggestPer(u, host) {
@@ -1330,7 +1371,7 @@ $('#vehFile').addEventListener('change', async e => {
 });
 
 // ---------- combos ----------
-const drawCombos = () => { renderCombos(state.combos, state.catalog, state.pallets); filterTable($('#comboBody'), $('#comboSearch').value); };
+const drawCombos = () => { renderCombos(state.combos, state.catalog, state.pallets, projNames()); filterTable($('#comboBody'), $('#comboSearch').value); };
 $('#comboSearch').addEventListener('input', e => filterTable($('#comboBody'), e.target.value));
 // lazy pallet list in the Kombinace table: filled the first time the select is used
 $('#comboBody').addEventListener('focusin', e => {
@@ -1407,7 +1448,7 @@ $('#passBtn').addEventListener('click', async () => {
   alert(err ? 'Heslo se nezměnilo: ' + err : 'Heslo změněno.');
 });
 if (!isAdmin) {
-  ['catalog', 'pallets', 'combos', 'vehicles', 'rules', 'users'].forEach(v => { $('#tab-' + v).hidden = true; });
+  ['catalog', 'pallets', 'combos', 'projects', 'vehicles', 'rules', 'users'].forEach(v => { $('#tab-' + v).hidden = true; });
 }
 async function drawUsers() {
   const body = $('#userBody');

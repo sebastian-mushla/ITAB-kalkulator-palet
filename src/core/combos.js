@@ -75,8 +75,8 @@ export function expandKolo(combos) {
   });
   return { combos: out, changed };
 }
-export function koloRow(it, group, pal, name, on) {
-  return { on: on !== false, code: it.code, withCode: '', min: 0, max: 0, mode: 'group', host: '', pal, group, pl: 0, pw: 0, per: it.seen || 0, kg: 0, name: it.name || '', note: 'Koli ' + group + (name ? ' – ' + name : '') };
+export function koloRow(it, group, pal, name, on, project) {
+  return { project: project || '', on: on !== false, code: it.code, withCode: '', min: 0, max: 0, mode: 'group', host: '', pal, group, pl: 0, pw: 0, per: it.seen || 0, kg: 0, name: it.name || '', note: 'Koli ' + group + (name ? ' – ' + name : '') };
 }
 
 // Consolidation of koli (unconditional 'group' rows):
@@ -90,7 +90,7 @@ function koliGroups(combos) {
   (combos || []).forEach(r => {
     if (r.mode !== 'group' || !r.group || low(r.withCode) || r.min > 0 || r.max > 0) return;
     const k = low(r.group) + '|' + low(r.pal);
-    if (!g.has(k)) g.set(k, { group: r.group, pal: r.pal, key: k, codes: new Set() });
+    if (!g.has(k)) g.set(k, { group: r.group, pal: r.pal, project: low(r.project), key: k, codes: new Set() });
     g.get(k).codes.add(low(r.code));
   });
   return [...g.values()];
@@ -99,7 +99,7 @@ export function findDuplicateGroups(combos) {
   const list = koliGroups(combos), out = [];
   const parent = new Map(list.map(x => [x, x])), root = x => (parent.get(x) === x ? x : root(parent.get(x)));
   list.forEach((a, i) => list.slice(i + 1).forEach(b => {
-    if (low(a.pal) === low(b.pal) && [...a.codes].some(c => b.codes.has(c))) parent.set(root(b), root(a));
+    if (low(a.pal) === low(b.pal) && a.project === b.project && [...a.codes].some(c => b.codes.has(c))) parent.set(root(b), root(a));
   }));
   const comps = new Map();
   list.forEach(x => { const r = root(x); if (!comps.has(r)) comps.set(r, []); comps.get(r).push(x); });
@@ -122,9 +122,9 @@ export function findDuplicateGroups(combos) {
   });
   // single-article koli whose article is in a bigger koli (after merging)
   const big = list.filter(x => !merged.has(x) && x.codes.size > 1);
-  const bigCodes = new Map(); big.forEach(x => x.codes.forEach(c => { if (!bigCodes.has(c)) bigCodes.set(c, x); }));
+  const bigCodes = new Map(); big.forEach(x => x.codes.forEach(c => { const k = x.project + '|' + c; if (!bigCodes.has(k)) bigCodes.set(k, x); }));
   list.filter(x => !merged.has(x) && x.codes.size === 1).forEach(x => {
-    const c = [...x.codes][0], into = bigCodes.get(c);
+    const c = [...x.codes][0], into = bigCodes.get(x.project + '|' + c);
     if (into && into !== x) out.push({ kind: 'solo', drop: x.group, pal: x.pal, code: c, into: into.group });
   });
   return out;
@@ -156,4 +156,20 @@ export function koloHostRows(items, main, group, name) {
   const m = items.find(x => low(x.code) === low(main)), n = Math.max(1, (m && m.seen) || 1);
   return items.filter(x => low(x.code) !== low(main)).map(x => ({ on: true, strict: true, code: x.code, withCode: main, min: 0, max: 0, mode: 'host', host: main, pl: 0, pw: 0,
     per: Math.ceil((x.seen || 1) / n), kg: 0, name: x.name || '', note: 'Koli ' + group + ' – hlavní položka ' + main + (name ? ' – ' + name : '') }));
+}
+
+// ---------- projects: an order is recognised by its key articles; koli can belong to one project ----------
+// projects = [{ name, keys: ['V-06-…', …] }]
+export function projectOf(order, projects) {
+  const codes = new Set([...order.lines.values()].map(l => low(l.code)));
+  let best = null, n = 0;
+  (projects || []).forEach(p => {
+    const hit = (p.keys || []).filter(k => codes.has(low(k))).length;
+    if (hit > n) { n = hit; best = p.name; }
+  });
+  return best ? { name: best, hits: n } : null;
+}
+// koli of another project do not apply; koli without a project apply everywhere
+export function combosFor(combos, project) {
+  return (combos || []).filter(r => r.mode !== 'group' || !low(r.project) || (project && low(r.project) === low(project)));
 }

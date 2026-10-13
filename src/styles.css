@@ -550,3 +550,7 @@ tr.so-head td{background:var(--soft);font-size:13px;padding:6px 10px;color:var(-
 html{background:var(--bg)}
 .steps{padding-left:22px;line-height:1.55}.steps>li{margin:6px 0}.steps ul{margin:4px 0 0 18px;padding:0}
 .board-pal em .more{font-style:normal;background:rgba(255,255,255,.3);border-radius:6px;padding:0 4px;margin-left:2px}
+.proj-chip{display:inline-flex;align-items:center;gap:6px;margin-left:12px;padding:4px 10px;border-radius:999px;background:var(--primary-t,#eeeafe);color:#5b4bd1;font-size:13px;font-weight:600}
+.proj-chip select{border:0;background:transparent;font:inherit;color:inherit;padding:0}.sec-head{display:flex;align-items:center;flex-wrap:wrap}
+.unk-hint{font-size:11.5px;color:#7866EE;font-weight:600;margin-top:2px}
+#projBody textarea{width:100%;min-height:54px;box-sizing:border-box;font:12px ui-monospace,monospace}#projBody input{width:100%}

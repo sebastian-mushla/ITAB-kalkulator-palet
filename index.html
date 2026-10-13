@@ -37,6 +37,7 @@ document.documentElement.setAttribute('data-theme',t);})();
       <button class="tab" role="tab" id="tab-catalog" aria-selected="false" data-view="catalog"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>Číselník artiklů</button>
       <button class="tab" role="tab" id="tab-pallets" aria-selected="false" data-view="pallets"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="6" rx="1"/><path d="M5 13v4M12 13v4M19 13v4M3 17h18"/></svg>Palety</button>
       <button class="tab" role="tab" id="tab-combos" aria-selected="false" data-view="combos"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="13" width="18" height="8" rx="1.5"/><rect x="6" y="5" width="7" height="8" rx="1.5"/><path d="M16 5v6M13 8h6"/></svg>Kombinace</button>
+      <button class="tab" role="tab" id="tab-projects" aria-selected="false" data-view="projects"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l2-3h5l2 3h9v12H3z"/></svg>Projekty</button>
       <button class="tab" role="tab" id="tab-vehicles" aria-selected="false" data-view="vehicles"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h12v10H2z"/><path d="M14 9h4l4 4v3h-8z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>Vozidla</button>
       <button class="tab" role="tab" id="tab-users" aria-selected="false" data-view="users"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/></svg>Uživatelé</button>
       <button class="tab" role="tab" id="tab-rules" aria-selected="false" data-view="rules"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Pravidla</button>
@@ -256,6 +257,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <p><b>Dva druhy koli:</b></p>
             <ul><li><b>Hlavní položka + přibal</b> (např. pokladna V12 a k ní PLX, DRO, DAM): hlavní položka jede 1 ks na své paletě, přibal na ní má <b>pevné maximum na paletu</b>. Co se nevejde, čeká vpravo – přetažením na paletu hlavní položky se maximum zvýší. Kolik pokladen v zakázce, tolik palet, přibal se rozdělí na každou.</li>
             <li><b>Koli – společná paleta</b> (drobný materiál): artikly jedou spolu, počty jsou jen ověřené a sloučením koli se seznam postupně doplňuje.</li></ul>
+            <p><b>Projekty a koli:</b> projekt zakázky se pozná podle klíčových artiklů (záložka Projekty), v detailu zakázky ho lze změnit. Koli s projektem platí jen v zakázkách tohoto projektu, koli „všechny projekty“ platí všude. Společná paleta koli vznikne, jen když je v zakázce aspoň <b data-help="koloMin"></b> jejích artiklů – jinak jdou vpravo s poznámkou „z koli …“ a zařadíte je ručně. Sloučení koli spojuje jen koli stejného projektu.</p>
             <p>Jeden artikl je vždy jen v jednom druhu: kdo je hlavní položka nebo přibal, nepatří do koli. „Sloučit koli“ spojí koli se společným artiklem a u přibalu sloučí duplicitní pravidla (max se nesčítá, bere se vyšší).</p>
             <p><b>Když je v zakázce</b> – podmínka pravidla: pravidlo platí, jen když je ve stejné zakázce (SO) i uvedený artikl. <b>„libovolně“</b> (prázdné pole) = bez podmínky, pravidlo platí vždy, když je v zakázce artikl z prvního sloupce.</p>
             <p>Pravidla se zkoušejí <b>shora dolů</b>, pro artikl platí první, které sedí. Příklad:</p>
@@ -343,6 +345,13 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
         </div>
       </section>
 
+      <section id="view-projects" hidden>
+        <div class="pagehead"><div><h1>Projekty</h1><p>Projekt zakázky se pozná podle klíčových artiklů (např. pokladny). Koli s projektem platí jen v zakázkách tohoto projektu.</p></div></div>
+        <div class="card cat">
+          <div class="toolbar"><button class="btn primary" id="projAdd">+ Přidat projekt</button></div>
+          <div class="tscroll"><table><thead><tr><th>Projekt</th><th>Klíčové artikly (oddělte čárkou nebo novým řádkem)</th><th class="num">Koli</th><th></th></tr></thead><tbody id="projBody"></tbody></table></div>
+        </div>
+      </section>
       <section id="view-rules" hidden>
         <div class="pagehead"><div><h1>Pravidla přepravy</h1><p>Limity sběrné služby pro palety a balíky, hranice nadrozměru.</p></div></div>
         <div class="card rules">
@@ -404,6 +413,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
       <label>Vlastní váha palety, kg<input type="number" id="koNewTare" min="0" step="any" value="0"></label>
     </div>
     <label class="inline"><input type="checkbox" id="koCat" checked>Doplnit chybějící artikly do číselníku (název, váha 0, balení neurčeno)</label>
+    <label>Projekt<select id="koProj"></select></label>
     <label>Hlavní položka (nepovinné)<select id="koMain"><option value="">– žádný, společná paleta –</option></select></label>
     <p class="hint" id="koMainHint">Když vyberete hlavní položku (např. pokladnu V12), ostatní artikly pojedou na její paletě – jen když je hlavní položka v zakázce. Bez hlavní položky = společná paleta (koli).</p>
     <label>Název koli (nepovinné)<input type="text" id="koName" placeholder="např. Action – brána Alphagate"></label>

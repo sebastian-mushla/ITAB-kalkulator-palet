@@ -288,7 +288,7 @@ function unknownTray(r, isAdmin) {
   return unk.length ? '<aside class="tray" aria-label="Neznámé artikly"><h3>Neznámé artikly</h3><p class="hint">' +
     (isAdmin ? 'Přetáhněte na paletu (artikl pojede s ní) nebo na volné místo (nový artikl do číselníku).' : 'Tyto artikly nejsou v číselníku. Požádejte administrátora o doplnění.') + '</p>' +
     (unk.length > 3 ? '<input type="search" class="unk-search" placeholder="Hledat artikl nebo název…" aria-label="Hledat neznámý artikl">' : '') +
-    unk.map(u => '<div class="unk' + (isAdmin ? '' : ' ro') + '" data-code="' + esc(u.code) + '" data-so="' + esc(u.so || '') + '" data-qty="' + u.qty + '" data-name="' + esc(u.name || '') + '"' + (isAdmin ? ' title="Přetáhněte na paletu nebo na volné místo"' : '') + '><div class="unk-top"><b>' + esc(u.code) + '</b><span>' + fmtN(u.qty) + ' ks</span></div>' + ((r.sos || []).length > 1 && u.so ? '<div class="unk-so">zakázka ' + esc(u.so) + '</div>' : '') + '<div class="unk-name' + (u.name ? '' : ' none') + '" title="' + esc(u.name || '') + '">' + esc(u.name || 'bez názvu v zakázce') + '</div>' + '</div>').join('') + '</aside>' : '';
+    unk.map(u => '<div class="unk' + (isAdmin ? '' : ' ro') + '" data-code="' + esc(u.code) + '" data-so="' + esc(u.so || '') + '" data-qty="' + u.qty + '" data-name="' + esc(u.name || '') + '"' + (isAdmin ? ' title="Přetáhněte na paletu nebo na volné místo"' : '') + '><div class="unk-top"><b>' + esc(u.code) + '</b><span>' + fmtN(u.qty) + ' ks</span></div>' + ((r.sos || []).length > 1 && u.so ? '<div class="unk-so">zakázka ' + esc(u.so) + '</div>' : '') + '<div class="unk-name' + (u.name ? '' : ' none') + '" title="' + esc(u.name || '') + '">' + esc(u.name || 'bez názvu v zakázce') + '</div>' + (u.hint ? '<div class="unk-hint">' + esc(u.hint) + '</div>' : '') + '</div>').join('') + '</aside>' : '';
 }
 
 // All pallets of the order as blocks (size to scale), grouped by article; drop target for learning.
@@ -343,7 +343,9 @@ function palletBoardHtml(r, isAdmin, board, types) {
 export function renderDetail(r, { rules, isAdmin, board, pallets, saved }) {
   const el = $('#detail');
   if (!r) { el.innerHTML = '<div class="empty">Vložte zakázky do importu a klikněte na „Spočítat“.</div>'; return; }
-  let h = '<div class="sec-head"><h2>' + idTitle(r) + '</h2></div>' + decisionHtml(r, rules, false);
+  const projs = (rules.projects || []).map(p => p.name).filter(Boolean);
+  const chip = projs.length ? '<label class="proj-chip" title="Projekt zakázky – určuje, která koli platí">Projekt: <select id="projSel"' + (isAdmin ? '' : ' disabled') + '><option value="">bez projektu</option>' + projs.map(n => '<option' + (n === r.project ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '</select></label>' : '';
+  let h = '<div class="sec-head"><h2>' + idTitle(r) + '</h2>' + chip + '</div>' + decisionHtml(r, rules, false);
   if (r.pallets.length || r.parcels.length) {
     h += '<div class="stats">';
     if (r.pallets.length) h += '<div><b>' + r.pallets.length + '</b><span>' + palWord(r.pallets.length) + '</span></div>';

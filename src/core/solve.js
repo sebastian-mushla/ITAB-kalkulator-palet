@@ -4,6 +4,7 @@ import { typeOf } from './palletTypes.js';
 import { planPallets, unplaced } from './plan.js';
 import { isEuro } from './util.js';
 import { packAll, prepareVehicles } from './packing.js';
+import { projectOf, combosFor } from './combos.js';
 
 export function recoText(vehicles) {
   const m = new Map();
@@ -89,13 +90,16 @@ function addBoardPallets(mp, added, types, ci0) {
 
 // Pure: order + catalog + vehicles + rules -> result. `forced` = vehicle index chosen by the user.
 // `added` = pallets the operator put on the calculator board for this order: [{ id, pal, contents: [{ code, name, units, per, kg }] }]
-export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], forced = null, added = [], plan = null }) {
+export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], forced = null, added = [], plan = null, project }) {
   const lines = [...o.lines.values()];
+  // project of the order: chosen by hand, otherwise recognised by its key articles; koli of other projects do not apply
+  const proj = project !== undefined ? project : ((projectOf(o, rules.projects) || {}).name || '');
+  combos = combosFor(combos, proj);
   // each zakázka is calculated on its own pallets (pallets do not mix zakázky); everything is tagged with its zakázka
   const sos = o.sos && o.sos.length ? o.sos : [o.id];
   const mp = { pallets: [], parcels: [], errors: [], rows: [], unknown: [] };
   sos.forEach(so => {
-    const part = makePallets(lines.filter(l => (l.so || o.id) === so), catalog, combos, pallets, { mix: rules.mix !== false });
+    const part = makePallets(lines.filter(l => (l.so || o.id) === so), catalog, combos, pallets, { mix: rules.mix !== false, koloMin: rules.koloMin || 2 });
     const tag = x => Object.assign(x, { so });
     mp.pallets.push(...part.pallets.map(tag)); mp.parcels.push(...part.parcels.map(tag));
     mp.rows.push(...part.rows.map(tag)); mp.unknown.push(...part.unknown.map(tag));
@@ -104,7 +108,7 @@ export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], 
   if (plan) applyPlan(mp, plan, lines, catalog, pallets);
   else addBoardPallets(mp, added, pallets, catalog.length);
   const r = {
-    id: o.id, sos, planOn: !!plan, plan, pallets: mp.pallets, parcels: mp.parcels, errors: mp.errors, rows: mp.rows, unknown: mp.unknown,
+    id: o.id, sos, project: proj, planOn: !!plan, plan, pallets: mp.pallets, parcels: mp.parcels, errors: mp.errors, rows: mp.rows, unknown: mp.unknown,
     kg: 0, units: 0, groupage: null, parcelInfo: null, vehicles: [], oversize: [], mode: 'empty', reco: '', forced
   };
   // goods + own weight of the pallets

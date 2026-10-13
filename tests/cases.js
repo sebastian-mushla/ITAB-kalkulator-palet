@@ -357,7 +357,7 @@ cases.push(['Společná paleta: pořadí pravidel – když první nesedí, plat
   const r1 = { on: true, code: 'DRO-0988', withCode: 'V06', mode: 'group', pal: 'PAL-0002', group: 'A', per: 1 };
   const r2 = { on: true, code: 'DRO-0988', withCode: '', mode: 'group', pal: 'PAL-0001', group: 'B', per: 1 };
   const o = parseOrders('SO 9\nr10 DRO-0988 kit 1\nr20 V-POL police 10').orders.get('9');
-  const r = solve(o, Object.assign({}, ctx, { combos: [r1, r2] }));
+  const r = solve(o, Object.assign({}, ctx, { combos: [r1, r2], rules: Object.assign({}, DEFAULT_RULES, { koloMin: 1 }) }));
   const g = r.pallets.find(p => p.code === 'DRO-0988');
   assert(g && g.group === 'B' && g.pal === 'PAL-0001', JSON.stringify(g && [g.group, g.pal]));
   const old = expandKolo([{ mode: 'kolo', code: 'KOLI-1', pal: 'PAL-0001', items: [{ code: 'X', seen: 2 }, { code: 'Y', seen: 3 }] }]);
@@ -387,7 +387,7 @@ cases.push(['Koli: artikl s balením „neurčeno“ – v koli jede, sám ček�
   const o = parseOrders('SO 9\nr10 NEU-1 x 3\nr20 V-POL police 10').orders.get('9');
   const alone = solve(o, Object.assign({}, ctx, { catalog: cat }));
   assert(alone.unknown.some(u => u.code === 'NEU-1' && u.undecided), 'čeká vpravo');
-  const inKoli = solve(o, Object.assign({}, ctx, { catalog: cat, combos: [koloRow({ code: 'NEU-1', seen: 3 }, 'KOLI-1', 'PAL-0001')] }));
+  const inKoli = solve(o, Object.assign({}, ctx, { catalog: cat, combos: [koloRow({ code: 'NEU-1', seen: 3 }, 'KOLI-1', 'PAL-0001')], rules: Object.assign({}, DEFAULT_RULES, { koloMin: 1 }) }));
   assert(!inKoli.unknown.length && inKoli.pallets.some(p => p.group === 'KOLI-1'), 'v koli');
 }]);
 cases.push(['Koli: artikl ve více koli jde do toho, které pokrývá nejvíc artiklů zakázky', () => {
@@ -407,4 +407,14 @@ cases.push(['Hlavní položka: přibal má pevné max na paletu, zbytek čeká v
   const f = findDuplicateGroups(dup).filter(a => a.kind === 'hostdup');
   const res = mergeGroups(dup, f);
   assert(res.length === 1 && res[0].per === 2, JSON.stringify(res.map(x => x.per)));
+}]);
+cases.push(['Koli: jen od N artiklů v zakázce a jen ve svém projektu', () => {
+  const rows = ['A', 'B', 'C'].map(c => koloRow({ code: c, seen: 1 }, 'KOLI-1', 'PAL-0001', '', true, 'Action'));
+  const rules = Object.assign({}, DEFAULT_RULES, { koloMin: 2, projects: [{ name: 'Action', keys: ['V06'] }] });
+  const one = solve(parseOrders('SO 1\nr10 V06 k 1\nr20 A a 1').orders.get('1'), Object.assign({}, ctx, { combos: rows, rules }));
+  assert(one.project === 'Action' && one.unknown.some(u => u.code === 'A' && /KOLI-1/.test(u.hint)), 'jeden artikl → vpravo ' + JSON.stringify(one.unknown));
+  const two = solve(parseOrders('SO 1\nr10 V06 k 1\nr20 A a 1\nr30 B b 1').orders.get('1'), Object.assign({}, ctx, { combos: rows, rules }));
+  assert(two.pallets.some(p => p.group === 'KOLI-1'), 'dva artikly → koli');
+  const other = solve(parseOrders('SO 1\nr10 A a 1\nr20 B b 1').orders.get('1'), Object.assign({}, ctx, { combos: rows, rules }));
+  assert(!other.pallets.some(p => p.group === 'KOLI-1') && other.project === '', 'jiný projekt → koli neplatí');
 }]);
