@@ -548,3 +548,4 @@ tr.so-head td{background:var(--soft);font-size:13px;padding:6px 10px;color:var(-
 .tbl-search{display:flex;max-width:420px;margin:8px 0}
 /* performance: the lavender glow is painted once (body background no longer repaints on scroll) */
 html{background:var(--bg)}
+.steps{padding-left:22px;line-height:1.55}.steps>li{margin:6px 0}.steps ul{margin:4px 0 0 18px;padding:0}
