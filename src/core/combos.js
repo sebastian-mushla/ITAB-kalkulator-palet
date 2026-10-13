@@ -123,8 +123,10 @@ export function findDuplicateGroups(combos) {
   byHost.forEach(h => { if (h.ks.size > 1) { const ks = [...h.ks].sort((a, b) => grpNum(a) - grpNum(b)); out.push({ kind: 'hostmerge', host: h.host, keep: ks[0], drop: ks.slice(1) }); } });
   // přibal of a main item imported twice: same article + same main item → one rule, max = the larger (never summed)
   const seenHost = new Map();
+  const strictKeys = new Set((combos || []).filter(r => r.mode === 'host' && r.strict).map(r => low(r.code) + '|' + low(r.host)));
   (combos || []).forEach((r, i) => {
-    if (r.mode !== 'host' || !r.strict) return;
+    // an older plain rule for the same přibal + main item counts as a duplicate too
+    if (r.mode !== 'host' || !(r.strict || strictKeys.has(low(r.code) + '|' + low(r.host)))) return;
     const k = low(r.code) + '|' + low(r.withCode) + '|' + low(r.host);
     if (!seenHost.has(k)) { seenHost.set(k, i); return; }
     const j = seenHost.get(k);
@@ -142,7 +144,7 @@ export function findDuplicateGroups(combos) {
 export function mergeGroups(combos, actions) {
   const rename = new Map(), remove = new Set(), dropIdx = new Set(), raise = new Map();
   actions.forEach(a => {
-    if (a.kind === 'hostdup') { dropIdx.add(a.drop); raise.set(a.keep, Math.max(raise.get(a.keep) || 0, a.per)); return; }
+    if (a.kind === 'hostdup') { dropIdx.add(a.drop); raise.set(a.keep, Math.max(raise.get(a.keep) || 0, a.per)); const k = combos[a.keep], d = combos[a.drop]; if (k) { k.strict = true; k.max = 0; if (!k.koli && d) { k.koli = d.koli; k.note = d.note; } } return; }
     if (a.kind === 'hostmerge') { (combos || []).forEach(r => { if (r.mode === 'host' && r.strict && low(r.host) === low(a.host)) { r.koli = a.keep; r.note = 'Koli ' + a.keep + ' – hlavní položka ' + r.host; } }); return; }
     if (a.kind === 'merge') a.drop.forEach(d => rename.set(low(d) + '|' + low(a.pal), a.keep));
     else remove.add(low(a.drop) + '|' + low(a.pal));

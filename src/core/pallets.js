@@ -88,10 +88,13 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
   });
 
   // riders go onto the host article's pallets; what does not fit follows the normal logic
-  riders.forEach(({ a, idx, qty, rule, row }) => {
+  riders.forEach(({ a, idx, qty, rule: rule0, row }) => {
+    let rule = rule0;
     let left = qty;
     // přibal of several main items (money box with V5, V11, V12 …): every matching main item gets its share
-    const rules = rule.strict ? findRules(a.code, qty, present, combos).filter(r => r.mode === 'host' && r.strict) : [rule];
+    const strictAll = findRules(a.code, qty, present, combos).filter(r => r.mode === 'host' && r.strict);
+    if (strictAll.length && !rule.strict) rule = Object.assign({}, rule, { strict: true, per: rule.per || strictAll[0].per });
+    const rules = rule.strict ? [rule].concat(strictAll.filter(r => r.host.toLowerCase() !== rule.host.toLowerCase())) : [rule];
     const slots = [];
     rules.forEach(r => pallets.filter(p => p.code.toLowerCase() === low(r.host)).forEach(p => { if (!slots.some(x => x.p === p)) slots.push({ p, cap: r.per > 0 ? r.per : Infinity }); }));
     const has = p => (p.extra || []).filter(e => e.code === a.code).reduce((s, e) => s + e.units, 0);

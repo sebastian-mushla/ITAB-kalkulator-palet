@@ -175,7 +175,7 @@ function relayout(bin, v) {
     items.slice().sort((a, b) => b.kg / area(b) - a.kg / area(a))
   ];
   const rng = mulberry32(777);
-  for (let t = 0; t < 120; t++) lists.push(items.map(i => ({ i, k: (i.kg + 1) * (0.5 + rng()) })).sort((a, b) => b.k - a.k).map(x => x.i));
+  for (let t = 0; t < 40; t++) lists.push(items.map(i => ({ i, k: (i.kg + 1) * (0.5 + rng()) })).sort((a, b) => b.k - a.k).map(x => x.i));
   let best = { pen: imbalancePct(bin, v.Wmm, v.Lmm, v.kg), bin };
   lists.forEach(list => {
     const bins = fillBins(list, v, [v]);
@@ -254,7 +254,19 @@ function fillBins(list, primary, bySize) {
 // oneVehicle: an order goes in a single vehicle whenever one can take it all (company rule), even if several smaller ones are cheaper
 // seq = zakázky of the ID in loading order: when one vehicle is not enough they are loaded one after another,
 // and the first pallet that does not fit opens the next vehicle
+// the same pallets on the same fleet with the same rules always give the same result: remember the last ones
+// (check & save, background recalcs and redraws ask for the same order many times)
+const packCache = new Map();
 export function packAll(pallets, vehicles, forced, oneVehicle, seq, rules) {
+  const key = JSON.stringify([pallets, vehicles, forced, oneVehicle, seq, rules && [rules.lrTol, rules.cgMin, rules.cgMax, rules.heavyShare, rules.minVeh, rules.vehExtra]]);
+  const hit = packCache.get(key);
+  if (hit) return JSON.parse(hit);
+  const res = packAllRaw(pallets, vehicles, forced, oneVehicle, seq, rules);
+  packCache.set(key, JSON.stringify(res));
+  if (packCache.size > 300) packCache.delete(packCache.keys().next().value);
+  return res;
+}
+function packAllRaw(pallets, vehicles, forced, oneVehicle, seq, rules) {
   setNorms(rules);
   let pool = prepareVehicles(vehicles);
   if (forced != null) pool = pool.filter(v => v.vi === forced);
@@ -273,7 +285,7 @@ export function packAll(pallets, vehicles, forced, oneVehicle, seq, rules) {
     by(i => Math.min(i.pl, i.pw) * 1e8 + area(i)),
     by(i => i.kg)
   ];
-  const rng = mulberry32(12345), tries = Math.max(10, Math.min(300, Math.floor(8000 / items.length)));
+  const rng = mulberry32(12345), tries = Math.max(10, Math.min(80, Math.floor(2000 / items.length)));
   for (let t = 0; t < tries; t++) {
     const keyed = items.map(i => ({ i, k: area(i) * (0.6 + 0.8 * rng()) }));
     keyed.sort((a, b) => b.k - a.k);
