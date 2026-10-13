@@ -113,17 +113,22 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
   // riders go onto the host article's pallets; what does not fit follows the normal logic
   riders.forEach(({ a, idx, qty, rule, row }) => {
     let left = qty;
-    const cap = rule.per > 0 ? rule.per : Infinity;
-    pallets.filter(p => p.code.toLowerCase() === low(rule.host)).forEach(p => {
-      if (left <= 0) return;
-      const used = (p.extra || []).filter(e => e.code === a.code).reduce((s, e) => s + e.units, 0);
-      const n = Math.min(left, cap - used);
-      if (n <= 0) return;
-      p.extra = (p.extra || []).concat([{ code: a.code, units: n, ci: idx }]);
-      p.kg += n * (a.kg || 0);
-      left -= n;
-    });
-    row.onHost = qty - left; row.host = rule.host;
+    // přibal of several main items (money box with V5, V11, V12 …): every matching main item gets its share
+    const rules = rule.strict ? findRules(a.code, qty, present, combos).filter(r => r.mode === 'host' && r.strict) : [rule];
+    const slots = [];
+    rules.forEach(r => pallets.filter(p => p.code.toLowerCase() === low(r.host)).forEach(p => { if (!slots.some(x => x.p === p)) slots.push({ p, cap: r.per > 0 ? r.per : Infinity }); }));
+    const has = p => (p.extra || []).filter(e => e.code === a.code).reduce((s, e) => s + e.units, 0);
+    const load = p => (p.extra || []).reduce((s, e) => s + e.units, 0);
+    // one piece at a time onto the main-item pallet with the least přibal so far (spread, not all on the first one)
+    while (left > 0) {
+      const free = slots.filter(x => has(x.p) < x.cap);
+      if (!free.length) break;
+      const x = rule.strict ? free.sort((m, n) => has(m.p) - has(n.p) || load(m.p) - load(n.p))[0] : free[0];
+      const e = (x.p.extra || []).find(e => e.code === a.code && !e.mixed);
+      if (e) e.units++; else x.p.extra = (x.p.extra || []).concat([{ code: a.code, units: 1, ci: idx }]);
+      x.p.kg += a.kg || 0; left--;
+    }
+    row.onHost = qty - left; row.host = rules.map(r => r.host).join(', ');
     // přibal of a main item (rule.strict): the max per pallet is fixed – what does not fit waits on the right side
     if (left > 0 && (a.unknown || rule.strict)) {
       unknown.push({ code: a.code, qty: left, name: a.name || '', known: !a.unknown, so: undefined });

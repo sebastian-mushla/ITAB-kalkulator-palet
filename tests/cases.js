@@ -426,3 +426,9 @@ cases.push(['Koli bez partnerů: s vlastním balením jede podle něj, bez něj 
   const rb = solve(parseOrders('SO 1\nr10 B b 3').orders.get('1'), Object.assign({}, ctx, { catalog: cat, combos: rows }));
   assert(rb.unknown.some(u => u.code === 'B' && /bez partnerů/.test(u.hint)), 'B vpravo');
 }]);
+cases.push(['Přibal více hlavních položek: každá dostane svůj díl, rozprostřeno po paletách', () => {
+  const rows = koloHostRows([{ code: 'V06', seen: 1 }, { code: 'MB', seen: 1 }], 'V06', 'K1').concat(koloHostRows([{ code: 'V04', seen: 1 }, { code: 'MB', seen: 1 }], 'V04', 'K2'));
+  const r = solve(parseOrders('SO 1\nr10 V06 k 2\nr20 V04 d 2\nr30 MB m 4').orders.get('1'), Object.assign({}, ctx, { combos: rows }));
+  const per = r.pallets.filter(p => p.code === 'V06' || p.code === 'V04').map(p => (p.extra || []).filter(e => e.code === 'MB').reduce((s, e) => s + e.units, 0));
+  assert(per.length === 4 && per.every(n => n === 1) && !r.unknown.length, JSON.stringify(per) + JSON.stringify(r.unknown));
+}]);
