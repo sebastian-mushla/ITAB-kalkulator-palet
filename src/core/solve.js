@@ -90,7 +90,7 @@ function addBoardPallets(mp, added, types, ci0) {
 
 // Pure: order + catalog + vehicles + rules -> result. `forced` = vehicle index chosen by the user.
 // `added` = pallets the operator put on the calculator board for this order: [{ id, pal, contents: [{ code, name, units, per, kg }] }]
-export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], forced = null, added = [], plan = null, project }) {
+export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], forced = null, added = [], plan = null, project, forceGroups }) {
   const lines = [...o.lines.values()];
   // project of the order: chosen by hand, otherwise recognised by its key articles; koli of other projects do not apply
   const proj = project !== undefined ? project : ((projectOf(o, rules.projects) || {}).name || '');
@@ -99,7 +99,7 @@ export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], 
   const sos = o.sos && o.sos.length ? o.sos : [o.id];
   const mp = { pallets: [], parcels: [], errors: [], rows: [], unknown: [] };
   sos.forEach(so => {
-    const part = makePallets(lines.filter(l => (l.so || o.id) === so), catalog, combos, pallets, { mix: rules.mix !== false, koloMin: rules.koloMin || 2 });
+    const part = makePallets(lines.filter(l => (l.so || o.id) === so), catalog, combos, pallets, { mix: rules.mix !== false, koloMin: rules.koloMin || 2, forceGroups });
     const tag = x => Object.assign(x, { so });
     mp.pallets.push(...part.pallets.map(tag)); mp.parcels.push(...part.parcels.map(tag));
     mp.rows.push(...part.rows.map(tag)); mp.unknown.push(...part.unknown.map(tag));

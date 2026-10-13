@@ -49,6 +49,7 @@ const state = {
   rules: Object.assign(clone(DEFAULT_RULES), shared.rules || {}),
   csv: load(KEYS.csv, SAMPLE),
   orders: new Map(), results: new Map(), forced: new Map(), manual: new Map(), board: new Map(), plan: new Map(Object.entries(load('itab.plans.v1', {})).map(([k, v]) => [k, v.plan])),
+  koliForce: new Map(),
   projSel: new Map(Object.entries(load('itab.projsel.v1', {}))),
   saved: new Map(Object.entries(load('itab.plans.v1', {})).map(([k, v]) => [k, v.at])),
   ordered: new Set(load('itab.ordered.v1', [])), listUi: Object.assign({ sort: { key: null, dir: 'asc' }, filters: {} }, load('itab.listui.v1', {}), { open: null }), oneOff: new Map(), done: new Set(load('itab.done.v1', [])), isAdmin, sel: null, prioHidden: false,
@@ -88,7 +89,7 @@ function persist(name) {
 // ---------- calculation ----------
 function ctx(id) {
   // one-off moves (not remembered) apply only to that order and win over saved rules
-  return { catalog: state.catalog, vehicles: state.vehicles, pallets: state.pallets, rules: state.rules, combos: (state.oneOff.get(id) || []).concat(state.combos), forced: state.forced.has(id) ? state.forced.get(id) : null, added: state.board.get(id) || [], plan: state.plan.get(id) || null, project: state.projSel.has(id) ? state.projSel.get(id) : undefined };
+  return { catalog: state.catalog, vehicles: state.vehicles, pallets: state.pallets, rules: state.rules, combos: (state.oneOff.get(id) || []).concat(state.combos), forced: state.forced.has(id) ? state.forced.get(id) : null, added: state.board.get(id) || [], plan: state.plan.get(id) || null, forceGroups: state.koliForce.get(id), project: state.projSel.has(id) ? state.projSel.get(id) : undefined };
 }
 // Full recalculation (catalog, vehicles, rules … changed): the open order first, the rest in small
 // chunks in the background so the page never freezes.
@@ -446,7 +447,7 @@ onBoth('pointerdown', e => {
     pt.setPointerCapture(e.pointerId);
     return;
   }
-  const u = e.target.closest('.unk');
+  const u = !e.target.closest('.unk-hint') && e.target.closest('.unk');
   if (u && isAdmin && e.button === 0) {
     const rc = u.getBoundingClientRect();
     const pick = el => ({ code: el.dataset.code, qty: Number(el.dataset.qty), name: el.dataset.name || '', so: el.dataset.so || undefined });
@@ -909,6 +910,22 @@ $('#peKoli').addEventListener('click', async () => {
   flash('Uloženo jako koli ' + (b.group || group) + '.');
 });
 
+// hint „z koli KOLI-8“ on an unknown article: show the koli and offer to use it in this order anyway
+onBoth('click', async e => {
+  const h = e.target.closest('.unk-hint'); if (!h) return;
+  e.stopPropagation();
+  const g = h.dataset.koli, low = s => String(s || '').toLowerCase();
+  const rows = state.combos.filter(r => r.mode === 'group' && low(r.group) === low(g));
+  if (!rows.length) return;
+  const o = state.orders.get(state.sel), inOrder = new Set([...o.lines.values()].map(l => low(l.code)));
+  const t = typeOf(state.pallets, rows[0].pal);
+  const list = rows.map(r => r.code + (inOrder.has(low(r.code)) ? ' ✓' : '')).join(', ');
+  const ok = await ask('Koli ' + rows[0].group + ' – ' + rows[0].pal + (t ? ' ' + t.name : ''),
+    'Artikly koli (✓ = jsou v této zakázce): ' + list + '. V zakázce je jich málo (pravidlo „aspoň ' + (state.rules.koloMin || 2) + '“), proto paleta nevznikla. Vytvořit paletu ' + rows[0].group + ' přesto – jen v této zakázce?', 'Vytvořit paletu');
+  if (!ok) return;
+  const set = state.koliForce.get(state.sel) || new Set(); set.add(low(rows[0].group)); state.koliForce.set(state.sel, set);
+  state.manual.delete(state.sel); keepScroll(() => recalcOne());
+});
 function relearn() { state.manual.delete(state.sel); recalc(); }
 
 // one or more unknown articles ride on the pallets of article `host`

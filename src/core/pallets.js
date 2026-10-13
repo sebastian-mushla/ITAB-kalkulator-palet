@@ -41,7 +41,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
       if (!score.size) { cand.forEach((list, code) => groupOf.set(code, { lone: true, group: list.lastGroup || '' })); break; }
       const [best, sc] = [...score].sort((a, b) => b[1].n - a[1].n || a[1].pos - b[1].pos)[0];
       const takers = [...cand].filter(([, list]) => list.some(x => x.key === best));
-      if (sc.n >= min) { takers.forEach(([code, list]) => { groupOf.set(code, list.find(x => x.key === best).rule); cand.delete(code); }); continue; }
+      if (sc.n >= min || (opts.forceGroups && opts.forceGroups.has(best.split('|')[0]))) { takers.forEach(([code, list]) => { groupOf.set(code, list.find(x => x.key === best).rule); cand.delete(code); }); continue; }
       // too few articles of this koli in the order: try the article's other koli; with none left it waits on the right side
       takers.forEach(([code, list]) => {
         const k = list.findIndex(x => x.key === best); list.lastGroup = list[k].rule.group; list.splice(k, 1);

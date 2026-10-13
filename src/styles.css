@@ -555,3 +555,4 @@ html{background:var(--bg)}
 .unk-hint{font-size:11.5px;color:#7866EE;font-weight:600;margin-top:2px}
 #projBody textarea{width:100%;min-height:54px;box-sizing:border-box;font:12px ui-monospace,monospace}#projBody input{width:100%}
 .proj-tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:#eeeafe;color:#5b4bd1;font-size:11px;font-weight:600}
+.unk-hint.linkbtn{display:block;padding:0;border:0;background:none;cursor:pointer;text-align:left}.unk-hint.linkbtn:hover{text-decoration:underline}
