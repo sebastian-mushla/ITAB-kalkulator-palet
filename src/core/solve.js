@@ -29,7 +29,9 @@ function applyPlan(mp, plan, lines, catalog, types) {
   const ci = code => { const k = code.toLowerCase(); if (idx.has(k)) return idx.get(k); if (!extraCi.has(k)) extraCi.set(k, catalog.length + 50 + extraCi.size); return extraCi.get(k); };
   mp.pallets = planPallets(plan, types, ci);
   const parcelCodes = new Set(mp.parcels.map(p => p.code.toLowerCase()));
-  const left = unplaced(lines, plan).filter(u => !parcelCodes.has(u.code.toLowerCase()));
+  // services (freight, fees) are never on a pallet, so they are not "unplaced"
+  const service = new Set(catalog.filter(a => a.pack === 'sluzba').map(a => String(a.code).toLowerCase()));
+  const left = unplaced(lines, plan).filter(u => !parcelCodes.has(u.code.toLowerCase()) && !service.has(u.code.toLowerCase()));
   mp.unknown = left.map(u => Object.assign(u, { known: idx.has(u.code.toLowerCase()) }));
   mp.errors = mp.errors.filter(e => !/není v číselníku|se nevešlo/.test(e));
   left.forEach(u => mp.errors.push('Artikl „' + u.code + '“: ' + u.qty + ' ks není na žádné paletě' + (u.known ? '' : ' (není v číselníku)') + '.'));
@@ -108,11 +110,23 @@ export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], 
   if (plan) applyPlan(mp, plan, lines, catalog, pallets);
   else addBoardPallets(mp, added, pallets, catalog.length);
   // koli number on every koli pallet, also on hand-edited ones
+  // main item with several imported koli (two V11): 1st pallet = 1st koli, 2nd = 2nd …
+  const lowc = s => String(s).toLowerCase(), seenHost = new Map();
   mp.pallets.forEach(p => {
-    if (p.tag) return;
     if (p.group) { p.tag = p.group; return; }
-    const ks = [...new Set(combos.filter(r => r.mode === 'host' && r.strict && String(r.host).toLowerCase() === String(p.code).toLowerCase()).map(koliOf).filter(Boolean))];
-    if (ks.length) p.tag = ks.length > 1 ? 'KOLI ' + ks.map(k => k.replace('KOLI-', '')).join('·') : ks[0];
+    const ks = [...new Set(combos.filter(r => r.mode === 'host' && r.strict && lowc(r.host) === lowc(p.code)).map(koliOf).filter(Boolean))].sort((a, b) => Number(a.replace(/\D/g, '')) - Number(b.replace(/\D/g, '')));
+    if (!ks.length) return;
+    const n = seenHost.get(lowc(p.code)) || 0; seenHost.set(lowc(p.code), n + 1);
+    p.tag = ks[n % ks.length];
+  });
+  // what waits on the right says which koli it belongs to
+  mp.unknown.forEach(u => {
+    if (u.hint) return;
+    const own = combos.filter(r => lowc(r.code) === lowc(u.code));
+    const host = [...new Set(own.filter(r => r.mode === 'host' && r.strict).map(koliOf).filter(Boolean))].map(k => k.replace('KOLI-', ''));
+    const grp = [...new Set(own.filter(r => r.mode === 'group').map(r => r.group))];
+    if (host.length) u.hint = 'přibal pro koli ' + host.join(', ');
+    else if (grp.length) u.hint = 'patří do ' + grp.join(', ');
   });
   const r = {
     id: o.id, sos, project: proj, planOn: !!plan, plan, pallets: mp.pallets, parcels: mp.parcels, errors: mp.errors, rows: mp.rows, unknown: mp.unknown,
