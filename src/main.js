@@ -1215,7 +1215,16 @@ $('#palFile').addEventListener('change', async e => {
 });
 
 // ---------- vehicles ----------
-const drawVehicles = () => renderVehicles(state.vehicles);
+// search in a settings table: rows whose text or field values do not contain the query are hidden
+function filterTable(body, q) {
+  q = (q || '').trim().toLowerCase();
+  [...body.rows].forEach(tr => {
+    const txt = (tr.textContent + ' ' + [...tr.querySelectorAll('input,select')].map(x => x.tagName === 'SELECT' ? (x.selectedOptions[0] || {}).text || '' : x.value).join(' ')).toLowerCase();
+    tr.hidden = !!q && txt.indexOf(q) < 0;
+  });
+}
+const drawVehicles = () => { renderVehicles(state.vehicles); filterTable($('#vehBody'), $('#vehSearch').value); };
+$('#vehSearch').addEventListener('input', e => filterTable($('#vehBody'), e.target.value));
 bindTable($('#vehBody'), () => state.vehicles, 'vehicles', drawVehicles);
 $('#vehAdd').addEventListener('click', () => {
   state.vehicles.push({ name: 'Nové vozidlo', type: 'jine', L: 4, W: 2, kg: 1000, eup: 0, lift: false, cost: 0.5 });
@@ -1242,7 +1251,8 @@ $('#vehFile').addEventListener('change', async e => {
 });
 
 // ---------- combos ----------
-const drawCombos = () => renderCombos(state.combos, state.catalog, state.pallets);
+const drawCombos = () => { renderCombos(state.combos, state.catalog, state.pallets); filterTable($('#comboBody'), $('#comboSearch').value); };
+$('#comboSearch').addEventListener('input', e => filterTable($('#comboBody'), e.target.value));
 bindTable($('#comboBody'), () => state.combos, 'combos', drawCombos);
 $('#comboBody').addEventListener('change', e => { if (e.target.getAttribute('data-f') === 'mode' || e.target.getAttribute('data-f') === 'on') drawCombos(); });
 $('#comboBody').addEventListener('click', e => {
