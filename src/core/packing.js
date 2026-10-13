@@ -74,6 +74,69 @@ export function evalLoad(items, L, W, maxKg) {
 // 1) if the heavier half is at the doors, mirror the plan so it is at the cab (x = 0);
 // 2) pallets with the same footprint swap slots: heaviest to the front, and across the width
 //    the heavier one goes to the side that is lighter so far (left/right balance).
+// free spot for a pallet in a loaded body (closest to the cab), or null
+function spotFor(v, it) {
+  const hit = (x, y, w, h, b) => x < b.x + b.w - EPS && b.x < x + w - EPS && y < b.y + b.h - EPS && b.y < y + h - EPS;
+  let best = null;
+  const sizes = [[it.w, it.h]].concat(it.rot !== false ? [[it.h, it.w]] : []);
+  sizes.forEach(([w, h]) => {
+    const xs = [0].concat(v.items.map(o => o.x + o.w)), ys = [0, v.W - h].concat(v.items.map(o => o.y + o.h), v.items.map(o => o.y - h));
+    xs.forEach(x => ys.forEach(y => {
+      if (x < -EPS || y < -EPS || x + w > v.L + EPS || y + h > v.W + EPS) return;
+      if (v.items.some(o => hit(x, y, w, h, o))) return;
+      if (!best || x < best.x - EPS || (Math.abs(x - best.x) <= EPS && y < best.y)) best = { x, y, w, h };
+    }));
+  });
+  return best;
+}
+// fill the free space of the bigger vehicles from the smallest one, then give that one the cheapest body that still fits
+function shrink(vs, pool) {
+  if (vs.length < 2) return;
+  const d = vs.slice().sort((a, b) => a.L * a.W - b.L * b.W)[0];
+  const others = vs.filter(t => t !== d);
+  d.items.slice().sort((a, b) => b.w * b.h - a.w * a.h).forEach(it => {
+    for (const t of others) {
+      if (t.maxKg > 0 && t.kg + it.kg > t.maxKg + 1e-9) continue;
+      if (t.eup > 0 && t.items.length + 1 > t.eup) continue;
+      const sp = spotFor(t, it);
+      if (sp) { t.items.push(Object.assign({}, it, sp, { turned: sp.w !== it.w ? !it.turned : it.turned })); t.kg += it.kg; d.items = d.items.filter(x => x !== it); d.kg -= it.kg; return; }
+    }
+  });
+  if (!d.items.length) { vs.splice(vs.indexOf(d), 1); return; }
+  const cur = pool.find(v => v.vi === d.vi), list = d.items.map(i => Object.assign({}, i, { x: 0, y: 0 }));
+  const cheaper = pool.filter(v => (v.cost || 0) < ((cur && cur.cost) || 0) && d.kg <= v.kg && !(v.eup > 0 && list.length > v.eup)).sort((a, b) => (a.cost || 0) - (b.cost || 0));
+  for (const v of cheaper) {
+    if (!list.every(it => fitsVehicle(it, v))) continue;
+    const bins = fillBins(list.slice().sort((a, b) => b.pl * b.pw - a.pl * a.pw), v, [v]);
+    if (bins.length === 1 && bins[0].items.length === list.length) {
+      Object.assign(d, { vi: v.vi, type: v.type, name: v.name, L: v.Lmm, W: v.Wmm, maxKg: v.kg, eup: v.eup, items: balanceLoad(bins[0].items, v.Wmm, v.Lmm, v.kg) });
+      return;
+    }
+  }
+}
+// move all pallets of a smaller vehicle into the others when they fit (space, payload, pallet count); repeat
+function absorb(vs) {
+  for (let changed = true; changed;) {
+    changed = false;
+    const donors = vs.slice().sort((a, b) => a.L * a.W - b.L * b.W);
+    for (const d of donors) {
+      if (vs.length < 2) return;
+      const targets = vs.filter(t => t !== d).map(t => ({ t, items: t.items.map(i => Object.assign({}, i)), kg: t.kg }));
+      const ok = d.items.slice().sort((a, b) => b.w * b.h - a.w * a.h).every(it => {
+        for (const g of targets) {
+          if (g.t.maxKg > 0 && g.kg + it.kg > g.t.maxKg + 1e-9) continue;
+          if (g.t.eup > 0 && g.items.length + 1 > g.t.eup) continue;
+          const sp = spotFor({ items: g.items, L: g.t.L, W: g.t.W }, it);
+          if (sp) { g.items.push(Object.assign({}, it, sp, { turned: sp.w !== it.w ? !it.turned : it.turned })); g.kg += it.kg; return true; }
+        }
+        return false;
+      });
+      if (!ok) continue;
+      targets.forEach(g => { g.t.items = g.items; g.t.kg = g.kg; });
+      vs.splice(vs.indexOf(d), 1); changed = true; break;
+    }
+  }
+}
 // fill holes near the cab: every pallet (from the doors) tries the free spot closest to the cab in ANY row
 function pullForward(items, W) {
   const hit = (a, x, y, b) => a !== b && x < b.x + b.w - EPS && b.x < x + a.w - EPS && y < b.y + b.h - EPS && b.y < y + a.h - EPS;
@@ -366,7 +429,11 @@ function packAllRaw(pallets, vehicles, forced, oneVehicle, seq, rules) {
   const out = (best.seq ? best.typed : best.typed.sort((a, b) => b.v.Lmm * b.v.Wmm - a.v.Lmm * a.v.Wmm || b.b.usedL - a.b.usedL))
     .map(({ v, b }) => {
       const n = (counter.get(v.vi) || 0) + 1; counter.set(v.vi, n);
-      return { vi: v.vi, type: v.type, name: v.name, n, title: v.name + ' ' + n, L: v.Lmm, W: v.Wmm, maxKg: v.kg, items: balanceLoad(b.items, v.Wmm, v.Lmm, v.kg), kg: b.kg };
+      return { vi: v.vi, type: v.type, name: v.name, n, title: v.name + ' ' + n, L: v.Lmm, W: v.Wmm, maxKg: v.kg, eup: v.eup, items: balanceLoad(b.items, v.Wmm, v.Lmm, v.kg), kg: b.kg };
     });
+  // after the final (tighter) layout there may be room left: empty a smaller vehicle into the free space of the others
+  if (forced == null) { absorb(out); shrink(out, pool); }
+  const cnt = new Map();
+  out.forEach(v => { const n = (cnt.get(v.vi) || 0) + 1; cnt.set(v.vi, n); v.n = n; v.title = v.name + ' ' + n; delete v.eup; });
   return { vehicles: out, oversize };
 }
