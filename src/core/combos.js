@@ -160,7 +160,7 @@ export function mergeGroups(combos, actions) {
 // koli of a machine: the other articles ride on the machine's pallet (when the machine is in the order)
 export function koloHostRows(items, main, group, name) {
   const m = items.find(x => low(x.code) === low(main)), n = Math.max(1, (m && m.seen) || 1);
-  return items.filter(x => low(x.code) !== low(main)).map(x => ({ on: true, strict: true, code: x.code, withCode: main, min: 0, max: 0, mode: 'host', host: main, pl: 0, pw: 0,
+  return items.filter(x => low(x.code) !== low(main)).map(x => ({ on: true, strict: true, koli: group, code: x.code, withCode: main, min: 0, max: 0, mode: 'host', host: main, pl: 0, pw: 0,
     per: Math.ceil((x.seen || 1) / n), kg: 0, name: x.name || '', note: 'Koli ' + group + ' – hlavní položka ' + main + (name ? ' – ' + name : '') }));
 }
 
@@ -179,3 +179,6 @@ export function projectOf(order, projects) {
 export function combosFor(combos, project) {
   return (combos || []).filter(r => r.mode !== 'group' || !low(r.project) || (project && low(r.project) === low(project)));
 }
+
+// koli number of a rule (main item + přibal rows keep it in `koli`, older ones only in the note)
+export function koliOf(r) { const m = String(r.koli || r.group || r.note || '').match(/KOLI-\d+/i); return m ? m[0].toUpperCase() : ''; }

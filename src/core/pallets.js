@@ -1,5 +1,5 @@
 import { isEuro } from './util.js';
-import { findRule, findRules, ruleText } from './combos.js';
+import { findRule, findRules, ruleText, koliOf } from './combos.js';
 import { resolveArticle, typeOf } from './palletTypes.js';
 
 // Splits order lines into full pallets + one partial pallet per article, or into parcels for pack = 'balik'.
@@ -108,13 +108,20 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     row.onHost = qty - left; row.host = rules.map(r => r.host).join(', ');
     // přibal of a main item (rule.strict): the max per pallet is fixed – what does not fit waits on the right side
     if (left > 0 && (a.unknown || rule.strict)) {
-      unknown.push({ code: a.code, qty: left, name: a.name || '', known: !a.unknown, so: undefined });
+      const ks = [...new Set(rules.map(koliOf).filter(Boolean))].map(k => k.replace('KOLI-', '')).join(', ');
+      unknown.push({ code: a.code, qty: left, name: a.name || '', known: !a.unknown, hint: rule.strict ? 'nevešlo se na koli ' + (ks || '?') + ' (max ' + rule.per + ' ks na ' + (rules.length > 1 ? 'hlavní položku' : rule.host) + ')' : undefined });
       errors.push('Artikl „' + a.code + '“: ' + left + ' ks se nevešlo na palety ' + rule.host + (rule.strict ? ' (max ' + rule.per + ' ks na paletu) – přetáhněte ho na paletu, pravidlo se zvýší.' : ' a není v číselníku.'));
       Object.assign(row, { pack: 'paleta', full: 0, rem: 0, per: 0, fillRem: 0, count: 0 });
     } else if (left > 0) {
       if (!(a.per > 0) || !(a.pl > 0) || !(a.pw > 0)) { errors.push('U artiklu „' + a.code + '“ chybí rozměry nebo počet kusů.'); return; }
       build(a, idx, left, row);
     } else Object.assign(row, { pack: 'paleta', full: 0, rem: 0, per: a.per, fillRem: 0, count: 0 });
+  });
+  // main-item pallets carry the numbers of their koli (as the shared koli pallets do), so it is clear which koli they are
+  pallets.forEach(p => {
+    if (p.group) { p.tag = p.group; return; }
+    const ks = [...new Set((combos || []).filter(r => r.mode === 'host' && r.strict && low(r.host) === low(p.code)).map(koliOf).filter(Boolean))];
+    if (ks.length) p.tag = ks.length > 1 ? 'KOLI ' + ks.map(k => k.replace('KOLI-', '')).join('·') : ks[0];
   });
   return { pallets: opts.mix === false ? pallets : mixLeftovers(pallets), parcels, errors, rows, unknown };
 }

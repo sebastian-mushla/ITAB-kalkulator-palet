@@ -557,4 +557,4 @@ html{background:var(--bg)}
 .proj-tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:#eeeafe;color:#5b4bd1;font-size:11px;font-weight:600}
 .unk-hint.linkbtn{display:block;padding:0;border:0;background:none;cursor:pointer;text-align:left}.unk-hint.linkbtn:hover{text-decoration:underline}
 .board-pal[data-over]{outline:3px solid #f59e0b;outline-offset:1px}.board-pal[data-over]::after{content:"!";position:absolute;top:2px;right:6px;font-weight:800;color:#fff;background:#f59e0b;border-radius:50%;width:16px;height:16px;font-size:12px;line-height:16px;text-align:center}
-.board-pal[data-group]::before{content:attr(data-group);position:absolute;top:-9px;left:6px;font-size:10px;font-weight:700;color:#5b4bd1;background:#fff;border:1px solid #d9d3fb;border-radius:6px;padding:0 4px}
+.board-pal[data-tag]::before{content:attr(data-tag);position:absolute;top:-9px;left:6px;font-size:10px;font-weight:700;color:#5b4bd1;background:#fff;border:1px solid #d9d3fb;border-radius:6px;padding:0 4px}

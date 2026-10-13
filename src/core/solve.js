@@ -4,7 +4,7 @@ import { typeOf } from './palletTypes.js';
 import { planPallets, unplaced } from './plan.js';
 import { isEuro } from './util.js';
 import { packAll, prepareVehicles } from './packing.js';
-import { projectOf, combosFor } from './combos.js';
+import { projectOf, combosFor, koliOf } from './combos.js';
 
 export function recoText(vehicles) {
   const m = new Map();
@@ -107,6 +107,13 @@ export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], 
   });
   if (plan) applyPlan(mp, plan, lines, catalog, pallets);
   else addBoardPallets(mp, added, pallets, catalog.length);
+  // koli number on every koli pallet, also on hand-edited ones
+  mp.pallets.forEach(p => {
+    if (p.tag) return;
+    if (p.group) { p.tag = p.group; return; }
+    const ks = [...new Set(combos.filter(r => r.mode === 'host' && r.strict && String(r.host).toLowerCase() === String(p.code).toLowerCase()).map(koliOf).filter(Boolean))];
+    if (ks.length) p.tag = ks.length > 1 ? 'KOLI ' + ks.map(k => k.replace('KOLI-', '')).join('·') : ks[0];
+  });
   const r = {
     id: o.id, sos, project: proj, planOn: !!plan, plan, pallets: mp.pallets, parcels: mp.parcels, errors: mp.errors, rows: mp.rows, unknown: mp.unknown,
     kg: 0, units: 0, groupage: null, parcelInfo: null, vehicles: [], oversize: [], mode: 'empty', reco: '', forced
