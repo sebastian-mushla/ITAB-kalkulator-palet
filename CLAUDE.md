@@ -113,6 +113,9 @@ r10 V-POL police 156
 - Обычная строка таблицы Kombinace: `mode:'group'`, `pal` (тип), `group` (имя, напр. KOLI-1), `per` = **проверенное** кол-во (не лимит). Все артикулы заказа, у которых первое подходящее правило ведёт в ту же группу, едут на ОДНОЙ паллете (`p.group`); больше `per` → всё равно на паллете + предупреждение (`row.over`). Порядок строк как у остальных правил: не подошло 1-е → берётся 2-е.
 - «Importovat koli» (`#dlgKolo`, `parseKolo`, `koloRow`): вставка строк koli из ERP → строки `group` в начало таблицы. PAL-строки = паллета (1 → подставляется, несколько → выбор, нет → поиск, неизвестный код → создаётся тип). Старые записи `mode:'kolo'` при загрузке превращаются в строки (`expandKolo`). CSV: колонки `typ_palety`, `spolecna_paleta`.
 - «Zkontrolovat a uložit» предлагает поднять `per` группы до фактического количества.
+- Артикул в нескольких koli → `makePallets` выбирает koli, покрывающее больше артикулов заказа (`groupOf`).
+- «Sloučit koli» (`findDuplicateGroups`/`mergeGroups`): koli на одном типе паллеты с общим артикулом сливаются в старшее; одиночное koli, чей артикул есть в большем, удаляется. Строки с условием не трогаются.
+- Koli машины: в импорте «Hlavní artikl – stroj» или кнопка «Koli → stroj» → `koloHostRows`: аксессуары `mode:'host'`, `withCode = host = stroj`, `per = ceil(seen/seen_stroje)`; машине в справочнике ставится паллета koli.
 - При импорте koli галочка «Doplnit chybějící artikly»: новые артикулы в справочник с `pack:'neurceno'` (название, вес 0, без паллеты/штук). В koli они едут; без правила → справа (`unknown.undecided`); при определении (окно Nový artikl / Materiál) запись обновляется, а не дублируется. «Zkontrolovat číselník» показывает «balení neurčeno».
 
 ## Zkontrolovat a uložit (`src/core/audit.js`)
