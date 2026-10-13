@@ -747,6 +747,16 @@ $('#koForm').onsubmit = ev => {
     state.pallets.push({ code, name: $('#koNewName').value.trim() || code, L: Math.max(L, W), W: Math.min(L, W), H: 0, tare: toNum($('#koNewTare').value) || 0, maxKg: 0, rot: true });
     persist('pallets'); drawPallets();
   }
+  // one article alone = its own pallet: that is a catalog definition, not a koli
+  if (koParsed.items.length === 1 && !$('#koMain').value) {
+    const it = koParsed.items[0], low = x => String(x).toLowerCase();
+    const ex = state.catalog.find(a => low(a.code) === low(it.code)), def = { code: it.code, name: (ex && ex.name) || it.name || '', pack: 'paleta', pal: code, per: Math.max(1, it.seen || 1), kg: (ex && ex.kg) || 0, rot: true };
+    if (ex) { delete ex.pl; delete ex.pw; Object.assign(ex, def); } else state.catalog.push(def);
+    persist('catalog'); drawCatalog();
+    logChanges('–', ['Artikl ' + it.code + ' jede sám na paletě ' + code + ' (' + def.per + ' ks)']);
+    recalc(); flash('Jeden artikl = vlastní paleta: ' + it.code + ' uložen do číselníku na ' + code + ' (' + def.per + ' ks na paletě).');
+    return;
+  }
   // one normal table row per article (mode „na společné paletě“), new rows go first
   const main = $('#koMain').value, group = nextKoloCode(state.combos);
   // an article lives in one kind of rule only: main item / přibal, or koli

@@ -47,7 +47,11 @@ export function parseKolo(text) {
     const line = raw.trim(); if (!line) return;
     let cells = line.split(/\t|;/).map(c => c.trim());
     // pasted with spaces only: first word = article, last = quantity, the rest = name
-    if (cells.length < 2) { const w = line.split(/\s+/); cells = w.length >= 2 ? [w[0], w.slice(1, -1).join(' '), w[w.length - 1]] : w; }
+    // a number at the end counts as quantity only in the ERP form „1,00“ – „IMPULSE ISLAND 1096“ is a name, quantity 1
+    if (cells.length < 2) {
+      const w = line.split(/\s+/), last = w[w.length - 1];
+      cells = w.length >= 2 && /^\d+[.,]\d+$/.test(last) ? [w[0], w.slice(1, -1).join(' '), last] : [w[0], w.slice(1).join(' '), '1'];
+    }
     while (cells.length > 2 && cells[cells.length - 1] === '') cells.pop();
     if (cells.length >= 4 && /^\d{1,4}$/.test(cells[0])) cells = cells.slice(1);
     if (cells.length < 2) { problems.push('řádek ' + (i + 1) + ': chybí množství'); return; }
