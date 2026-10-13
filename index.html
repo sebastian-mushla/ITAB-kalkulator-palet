@@ -247,7 +247,13 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <p>Na záložce Kombinace jsou výjimky. Pravidla se zkoušejí shora dolů a použije se první, které sedí (artikl, „když je v zakázce“ a rozsah množství).</p>
             <ul><li><b>Na paletě artiklu</b> – kusy jedou na paletách jiného artiklu (např. V06). Rozměr palety se nemění, přičte se jen váha. Co se nevejde (max ks na paletu), jede normálně.</li>
             <li><b>Na jiné paletě</b> – artikl dostane v této situaci jiný rozměr palety a počet kusů.</li>
-            <li><b>Jako balík</b> – artikl jede balíky.</li></ul></section>
+            <li><b>Na společné paletě</b> – všechny artikly se stejným názvem společné palety (např. KOLI-1) jedou spolu na jedné paletě zvoleného typu. Počet kusů je jen <b>ověřený</b> (tolik se tam už vešlo), ne maximum: když je kusů víc, pojedou také, jen s oranžovým upozorněním. Tlačítko „Importovat koli“ vytvoří tyto řádky z balení zkopírovaného z ERP.</li>
+            <li><b>Jako balík</b> – artikl jede balíky.</li></ul>
+            <p><b>Když je v zakázce</b> – podmínka pravidla: pravidlo platí, jen když je ve stejné zakázce (SO) i uvedený artikl. <b>„libovolně“</b> (prázdné pole) = bez podmínky, pravidlo platí vždy, když je v zakázce artikl z prvního sloupce.</p>
+            <p>Pravidla se zkoušejí <b>shora dolů</b>, pro artikl platí první, které sedí. Příklad:</p>
+            <ul><li>1. řádek: DRO-0988, když je v zakázce <b>V06</b> → na společné paletě A</li>
+            <li>2. řádek: DRO-0988, <b>libovolně</b> → na společné paletě B</li></ul>
+            <p>Zakázka s V06 pojede podle řádku 1, zakázka bez V06 podle řádku 2.</p></section>
           <section class="card"><h2>3. Sběrná služba nebo vlastní vozidlo</h2>
             <p>Palety jdou sběrnou službou (PPL, DPD, UPS, Česká pošta), jen když jsou všechny europalety 120 × 80 cm a je jich nejvýše <b data-help="gMax"></b>. Jinak se objedná vozidlo.</p>
             <p>Balík smí vážit nejvýše <b data-help="pKg"></b> kg a mít nejdelší stranu nejvýše <b data-help="pL"></b> m. Těžší nebo delší balík označíme „Zkontrolovat“.</p>
