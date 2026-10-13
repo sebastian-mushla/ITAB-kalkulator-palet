@@ -21,7 +21,9 @@ export function freezePlan(r, catalog) {
     const main = Object.assign({ code: p.code, units: p.units, so: p.so }, unitInfo(p.code, catalog, r.rows));
     if (p.board) { main.per = p.units / (p.fill || 1); }
     const extra = (p.extra || []).map(e => Object.assign({ code: e.code, units: e.units, ride: !e.mixed, so: e.so || p.so }, unitInfo(e.code, catalog, r.rows)));
-    const pl = { id: newId(), pal: p.pal || null, contents: [main].concat(extra) };
+    // shared pallet (koli): the pieces are "verified", not a capacity – each article counts as an equal share of a full pallet
+    if (p.group) [main].concat(extra).forEach((c, k, all) => { c.per = c.units * all.length; });
+    const pl = { id: newId(), pal: p.pal || null, group: p.group, contents: [main].concat(extra) };
     if (!p.pal) pl.custom = { code: 'JINÁ', name: 'Paleta ' + Math.round(p.pl / 10) + ' × ' + Math.round(p.pw / 10), L: p.pl, W: p.pw, H: p.palH || 0, tare: p.tare || 0, maxKg: p.maxKg || 0, rot: p.rot !== false };
     return pl;
   });
