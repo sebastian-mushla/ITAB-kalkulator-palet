@@ -736,6 +736,20 @@ $('#koForm').onsubmit = ev => {
   recalc();
   flash('Koli ' + group + ': přidáno ' + rows.length + ' řádků do kombinací (' + code + ')' + (addedArt ? ', ' + addedArt + ' artiklů do číselníku' : '') + '.');
 };
+// ---------- articles used in combinations but missing in the catalog → catalog (packing decided later) ----------
+$('#comboToCat').addEventListener('click', async () => {
+  const have = new Set(state.catalog.map(a => String(a.code).trim().toLowerCase())), add = new Map();
+  state.combos.forEach(r => {
+    const k = String(r.code || '').trim().toLowerCase();
+    if (k && !have.has(k) && !add.has(k)) add.set(k, { code: String(r.code).trim(), name: r.name || '', pack: 'neurceno', per: 0, kg: r.kg > 0 ? r.kg : 0, rot: true });
+  });
+  if (!add.size) { flash('Všechny artikly z kombinací už v číselníku jsou.'); return; }
+  if (!await ask('Doplnit artikly do číselníku?', add.size + ' artiklů z kombinací v číselníku chybí. Přidají se s názvem, váhou 0 a balením „neurčeno“ (určíte ho při prvním zařazení).', 'Přidat ' + add.size)) return;
+  state.catalog.push(...add.values()); persist('catalog'); drawCatalog();
+  logChanges('–', ['Do číselníku přidáno ' + add.size + ' artiklů z kombinací (balení neurčeno)']);
+  recalc();
+  flash('Přidáno do číselníku: ' + add.size + ' artiklů.');
+});
 // ---------- consolidate koli: groups that say the same as another group ----------
 $('#koloMerge').addEventListener('click', () => {
   const found = findDuplicateGroups(state.combos);
