@@ -55,15 +55,18 @@ export function setNorms(r) { norms = Object.assign({}, NORM_DEFAULTS, r || {});
 // how a loaded body scores against the norms (lower = better)
 export function evalLoad(items, L, W, maxKg) {
   const kg = items.reduce((s, i) => s + i.kg, 0);
-  if (!items.length || !kg) return { score: 0, gapPct: 0, leftPct: 50, cgPct: 0, latBad: 0, cgBad: 0, heavy: false };
+  if (!items.length) return { score: 0, gapPct: 0, leftPct: 50, cgPct: 0, latBad: 0, cgBad: 0, heavy: false };
   const usedL = Math.max(...items.map(i => i.x + i.w));
   const area = items.reduce((s, i) => s + i.w * i.h, 0);
   const gapPct = Math.max(0, 1 - area / (usedL * W)) * 100;
-  const st = loadStats(items, W) || { cg: 0, leftPct: 50 }, cgPct = st.cg / L * 100;
-  const heavy = maxKg > 0 && kg / maxKg * 100 >= norms.heavyShare;
+  // weights not filled in (0 kg): balance cannot be judged, but gaps and closeness to the cab still can
+  const st = (kg && loadStats(items, W)) || { cg: 0, leftPct: 50 }, cgPct = st.cg / L * 100;
+  const heavy = kg > 0 && maxKg > 0 && kg / maxKg * 100 >= norms.heavyShare;
   const latBad = Math.max(0, Math.abs(st.leftPct - 50) - (norms.lrTol - 50));
   const cgBad = heavy ? Math.max(0, norms.cgMin - cgPct, cgPct - norms.cgMax) : 0;
-  return { score: 1000 * (latBad + cgBad) + gapPct + usedL / L, gapPct, leftPct: st.leftPct, cgPct, latBad, cgBad, heavy };
+  // tie-break: the load sits as close to the cab as possible (free space stays together at the doors)
+  const front = items.reduce((s, i) => s + i.w * i.h * (i.x + i.w / 2), 0) / (area * L);
+  return { score: 1000 * (latBad + cgBad) + gapPct + usedL / L + front, gapPct, leftPct: st.leftPct, cgPct, latBad, cgBad, heavy };
 }
 
 // ---------- weight distribution ----------
@@ -71,6 +74,24 @@ export function evalLoad(items, L, W, maxKg) {
 // 1) if the heavier half is at the doors, mirror the plan so it is at the cab (x = 0);
 // 2) pallets with the same footprint swap slots: heaviest to the front, and across the width
 //    the heavier one goes to the side that is lighter so far (left/right balance).
+// fill holes near the cab: every pallet (from the doors) tries the free spot closest to the cab in ANY row
+function pullForward(items, W) {
+  const hit = (a, x, y, b) => a !== b && x < b.x + b.w - EPS && b.x < x + a.w - EPS && y < b.y + b.h - EPS && b.y < y + a.h - EPS;
+  for (let pass = 0; pass < 3; pass++) {
+    let moved = false;
+    items.slice().sort((a, b) => b.x - a.x).forEach(it => {
+      const xs = [0].concat(items.map(o => o.x + o.w)).filter(x => x < it.x - EPS);
+      const ys = [0, W - it.h].concat(items.map(o => o.y + o.h), items.map(o => o.y - it.h)).filter(y => y >= -EPS && y + it.h <= W + EPS);
+      let best = null;
+      xs.forEach(x => ys.forEach(y => {
+        if (items.some(o => hit(it, x, y, o))) return;
+        if (!best || x < best.x - EPS || (Math.abs(x - best.x) <= EPS && y < best.y)) best = { x, y };
+      }));
+      if (best) { it.x = best.x; it.y = Math.max(0, best.y); moved = true; }
+    });
+    if (!moved) break;
+  }
+}
 function compactToCab(items) {
   const hit = (a, x, b) => a !== b && x < b.x + b.w - EPS && b.x < x + a.w - EPS && a.y < b.y + b.h - EPS && b.y < a.y + a.h - EPS;
   for (let pass = 0; pass < 4; pass++) {
@@ -95,6 +116,8 @@ export function balanceLoad(items, W, L, maxKg) {
     if (!L || evalLoad(mirrored, L, W, maxKg).cgBad <= evalLoad(out, L, W, maxKg).cgBad) out = mirrored;
   }
   // mirroring rows of different lengths leaves a gap at the headboard: push every pallet towards the cab while it is free
+  compactToCab(out);
+  pullForward(out, W);
   compactToCab(out);
   const groups = new Map();
   out.forEach(i => { const k = i.w + '×' + i.h; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i); });
@@ -181,7 +204,7 @@ function relayout(bin, v) {
     const bins = fillBins(list, v, [v]);
     if (bins.length !== 1 || bins[0].items.length !== items.length) return;
     const pen = imbalancePct(bins[0], v.Wmm, v.Lmm, v.kg);
-    if (pen < best.pen - 0.5) best = { pen, bin: bins[0] };
+    if (pen < best.pen - 0.01) best = { pen, bin: bins[0] };
   });
   return best.bin === bin ? null : best.bin;
 }
