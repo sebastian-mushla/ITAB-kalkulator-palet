@@ -71,6 +71,18 @@ export function evalLoad(items, L, W, maxKg) {
 // 1) if the heavier half is at the doors, mirror the plan so it is at the cab (x = 0);
 // 2) pallets with the same footprint swap slots: heaviest to the front, and across the width
 //    the heavier one goes to the side that is lighter so far (left/right balance).
+function compactToCab(items) {
+  const hit = (a, x, b) => a !== b && x < b.x + b.w - EPS && b.x < x + a.w - EPS && a.y < b.y + b.h - EPS && b.y < a.y + a.h - EPS;
+  for (let pass = 0; pass < 4; pass++) {
+    let moved = false;
+    items.slice().sort((a, b) => a.x - b.x).forEach(it => {
+      const cands = [0].concat(items.map(o => o.x + o.w)).filter(x => x < it.x - EPS).sort((a, b) => a - b);
+      const nx = cands.find(x => !items.some(o => hit(it, x, o)));
+      if (nx != null) { it.x = nx; moved = true; }
+    });
+    if (!moved) break;
+  }
+}
 export function balanceLoad(items, W, L, maxKg) {
   if (!items.length) return items;
   let out = items.map(i => Object.assign({}, i));
@@ -82,6 +94,8 @@ export function balanceLoad(items, W, L, maxKg) {
     const mirrored = out.map(i => Object.assign({}, i, { x: usedL - i.x - i.w }));
     if (!L || evalLoad(mirrored, L, W, maxKg).cgBad <= evalLoad(out, L, W, maxKg).cgBad) out = mirrored;
   }
+  // mirroring rows of different lengths leaves a gap at the headboard: push every pallet towards the cab while it is free
+  compactToCab(out);
   const groups = new Map();
   out.forEach(i => { const k = i.w + '×' + i.h; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i); });
   let left = 0, right = 0;
