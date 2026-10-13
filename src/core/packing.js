@@ -123,8 +123,10 @@ export function balanceLoad(items, W, L, maxKg) {
 }
 
 // small tie-break cost: how far left/right is from 50/50 after balancing (never outweighs a vehicle's price)
+// tie-break only: a better balanced layout wins between options of the same price, never over a cheaper set of vehicles
+// (score can reach 1e5 when a norm is broken, e.g. light loads with weights not filled in → at most 0.01 here)
 function imbalance(b, W, L, maxKg) {
-  return evalLoad(balanceLoad(b.items, W, L, maxKg), L || b.L, W, maxKg || 0).score / 1e5;
+  return Math.min(1e5, evalLoad(balanceLoad(b.items, W, L, maxKg), L || b.L, W, maxKg || 0).score) / 1e7;
 }
 
 // 3) a pallet with free room across the body slides to the lighter side (mirror position, far edge or the wall)
