@@ -9,7 +9,7 @@ const low = s => String(s == null ? '' : s).trim().toLowerCase();
 
 // First active rule matching the article, the "together with" article and the quantity range.
 export function findRule(code, qty, present, combos) {
-  return (combos || []).find(r => r.on !== false
+  return (combos || []).find(r => r.on !== false && r.mode !== 'kolo'
     && low(r.code) === low(code)
     && (!low(r.withCode) || present.has(low(r.withCode)))
     && (!(r.min > 0) || qty >= r.min)
@@ -17,6 +17,7 @@ export function findRule(code, qty, present, combos) {
 }
 
 export function ruleText(r) {
+  if (r.mode === 'kolo') return 'koli ' + r.code + (r.name ? ' ' + r.name : '') + ' → spolu na paletě ' + r.pal + ' (' + (r.items || []).length + ' artiklů)';
   const cond = [];
   if (low(r.withCode)) cond.push('s ' + r.withCode);
   if (r.min > 0) cond.push('od ' + r.min + ' ks');
@@ -26,4 +27,28 @@ export function ruleText(r) {
   else if (r.mode === 'pallet') act = 'na paletě ' + r.pl + '×' + r.pw + ' mm, ' + r.per + ' ks';
   else act = 'jako balík' + (r.per > 0 ? ' po ' + r.per + ' ks' : '');
   return r.code + (cond.length ? ' ' + cond.join(', ') : '') + ' → ' + act;
+}
+
+// Pasted koli from the ERP: "artikl<TAB>název<TAB>1,00" (optional position number first).
+// PAL-xxxx lines are the pallet, not goods. Same article twice is summed.
+export function parseKolo(text) {
+  const items = new Map(), pals = [], problems = [];
+  String(text || '').split(/\r?\n/).forEach((raw, i) => {
+    const line = raw.trim(); if (!line) return;
+    let cells = line.split(/\t|;/).map(c => c.trim());
+    while (cells.length > 2 && cells[cells.length - 1] === '') cells.pop();
+    if (cells.length >= 4 && /^\d{1,4}$/.test(cells[0])) cells = cells.slice(1);
+    if (cells.length < 2) { problems.push('řádek ' + (i + 1) + ': chybí množství'); return; }
+    const qty = Number(String(cells[cells.length - 1]).replace(/\s/g, '').replace(',', '.'));
+    const code = cells[0], name = cells.slice(1, -1).join(' ').replace(/\s+/g, ' ').trim();
+    if (!code || !isFinite(qty) || qty <= 0) { problems.push('řádek ' + (i + 1) + ': nerozpoznáno'); return; }
+    if (/^PAL-\d+$/i.test(code)) { if (!pals.some(p => low(p.code) === low(code))) pals.push({ code: code.toUpperCase(), name }); return; }
+    const k = low(code), g = items.get(k) || { code, name, seen: 0 };
+    g.seen += Math.round(qty); items.set(k, g);
+  });
+  return { items: [...items.values()], pals, problems };
+}
+export function nextKoloCode(combos) {
+  const n = (combos || []).filter(r => r.mode === 'kolo').map(r => Number(String(r.code).replace(/\D/g, '')) || 0);
+  return 'KOLI-' + ((n.length ? Math.max(...n) : 0) + 1);
 }

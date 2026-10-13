@@ -6,6 +6,7 @@ import { freezePlan, moveUnits, mergePallets } from '../src/core/plan.js';
 import { solve } from '../src/core/solve.js';
 import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, DEFAULT_PALLETS, SAMPLE } from '../src/core/defaults.js';
 import { migrateCatalog } from '../src/core/palletTypes.js';
+import { parseKolo } from '../src/core/combos.js';
 import { parseCsvRows, rowsToCatalog, rowsToVehicles, rowsToCombos, mergeBy } from '../src/io/importTable.js';
 
 const ctx = { catalog: DEFAULT_CATALOG, vehicles: DEFAULT_VEHICLES, rules: DEFAULT_RULES, combos: DEFAULT_COMBOS, pallets: DEFAULT_PALLETS };
@@ -331,3 +332,24 @@ export function runAll() {
     try { fn(); return { name, ok: true }; } catch (e) { return { name, ok: false, msg: e.message }; }
   });
 }
+
+const KOLI_TEXT = ['DRO-0988\tFASTENERS KIT ACTION 0988\t1,00', '13002-50\tGrindskylt Alphagate\t2,00', 'DRO-0987\tFASTENERS KIT ACTION 0987\t3,00', 'DRO-0987\tFASTENERS KIT ACTION 0987\t3,00', '730\tPAL-0013\tEURO paleta 1200x800\t1,00'].join('\n');
+cases.push(['Koli: import z ERP – duplicity sečtené, PAL řádek = paleta', () => {
+  const k = parseKolo(KOLI_TEXT);
+  assert(k.items.length === 3, 'items ' + k.items.length);
+  assert(k.items.find(i => i.code === 'DRO-0987').seen === 6, 'DRO-0987 = 6');
+  assert(k.pals.length === 1 && k.pals[0].code === 'PAL-0013', 'pal');
+}]);
+cases.push(['Koli: artikly zakázky jedou spolu na jedné paletě, víc než ověřeno = upozornění', () => {
+  const k = parseKolo(KOLI_TEXT);
+  const kolo = { on: true, mode: 'kolo', code: 'KOLI-1', pal: 'PAL-0001', items: k.items };
+  const o = parseOrders('SO 9\nr10 DRO-0988 kit 1\nr20 DRO-0987 kit 8\nr30 V-POL police 156').orders.get('9');
+  const r = solve(o, Object.assign({}, ctx, { combos: [kolo] }));
+  const kp = r.pallets.filter(p => p.kolo === 'KOLI-1');
+  assert(kp.length === 1, 'jedna koli paleta: ' + kp.length);
+  const codes = [kp[0].code].concat((kp[0].extra || []).map(e => e.code));
+  assert(codes.length === 2 && codes.includes('DRO-0988') && codes.includes('DRO-0987'), codes.join(','));
+  assert(r.unknown.length === 0, 'nic neznámého');
+  assert(r.errors.some(e => /DRO-0987.*ověřeno jen 6/.test(e)), 'upozornění: ' + r.errors.join('; '));
+  assert(r.pallets.length === 2, 'koli + V-POL: ' + r.pallets.length);
+}]);

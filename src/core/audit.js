@@ -69,7 +69,20 @@ export function auditOrder(order, plan, combos, catalog) {
     if (types.length === 1 && low(types[0]) !== low(a.pal)) defs.push({ code: a.code, pal: types[0], was: a.pal || '' });
   });
 
+  // koli: more pieces than verified went on the pallet and the operator kept it → raise the verified quantity
+  const placed = new Map();
+  plan.forEach(b => (b.contents || []).forEach(c => { if (c.units > 0) placed.set(low(c.code), (placed.get(low(c.code)) || 0) + c.units); }));
+  const seen = [];
+  combos.forEach((k, i) => {
+    if (k.mode !== 'kolo' || k.on === false) return;
+    (k.items || []).forEach(it => {
+      const n = placed.get(low(it.code)) || 0;
+      if (n > (it.seen || 0)) seen.push({ i, code: it.code, from: it.seen || 0, to: n });
+    });
+  });
+
   return {
+    seen,
     drop: [...verdict].filter(([, v]) => v === 'drop').map(([i]) => i),
     update: [...update].map(([i, ch]) => ({ i, ch })),
     add: [...add.values()],

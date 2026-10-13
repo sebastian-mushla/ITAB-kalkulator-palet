@@ -174,6 +174,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
         <div class="card cat">
           <div class="toolbar">
             <button class="btn primary" id="comboAdd">Přidat pravidlo</button>
+            <button class="btn" id="koloBtn">Importovat koli</button>
             <label class="btn">Nahrát CSV / Excel<input type="file" id="comboFile" accept=".csv,.txt,.tsv,.xlsx,.xls,.ods" hidden></label>
             <label class="check"><input type="checkbox" id="comboReplace">Nahradit všechna pravidla</label>
             <button class="btn" id="comboExport">Stáhnout CSV</button>
@@ -354,6 +355,25 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
     <div id="dmRows" class="lr-rows"></div>
     <label class="inline"><input type="checkbox" id="dmSave" checked><span id="dmSaveText">Uložit do číselníku</span></label>
     <div class="acts"><button class="btn" value="no" formnovalidate>Zrušit</button><button class="btn primary" value="yes">Položit na paletu</button></div>
+  </form>
+</dialog>
+<dialog class="dlg" id="dlgKolo">
+  <form method="dialog" id="koForm">
+    <h2>Importovat koli</h2>
+    <p class="hint">Vložte řádky koli z ERP (artikl, název, množství). Artikly pak pojedou spolu na jedné paletě. Množství se bere jako <b>ověřené</b>, ne jako maximum – když jich bude v zakázce víc, pojedou také, jen s upozorněním.</p>
+    <textarea id="koText" rows="7" spellcheck="false" placeholder="DRO-0988&#9;FASTENERS KIT ACTION 0988&#9;1,00"></textarea>
+    <div id="koPreview" class="ko-preview"></div>
+    <label id="koPalWrap">Typ palety<input type="search" id="koPal" list="koPalList" autocomplete="off" placeholder="Hledat: kód, název nebo rozměr"><datalist id="koPalList"></datalist></label>
+    <label id="koSelWrap" hidden>Typ palety (v koli je víc palet – vyberte)<select id="koSel"></select></label>
+    <div id="koNew" class="ko-new" hidden>
+      <p class="warn-text">Paleta <b id="koNewCode"></b> není v seznamu palet – založí se:</p>
+      <label>Název palety<input type="text" id="koNewName"></label>
+      <div class="two"><label>Délka, mm<input type="number" id="koNewL" min="1"></label><label>Šířka, mm<input type="number" id="koNewW" min="1"></label></div>
+      <label>Vlastní váha palety, kg<input type="number" id="koNewTare" min="0" step="any" value="0"></label>
+    </div>
+    <label>Název koli (nepovinné)<input type="text" id="koName" placeholder="např. Action – brána Alphagate"></label>
+    <p class="problems" id="koMsg"></p>
+    <div class="acts"><button class="btn" value="no" formnovalidate>Zrušit</button><button class="btn primary" value="yes" id="koSave" disabled>Uložit koli</button></div>
   </form>
 </dialog>
 <dialog class="dlg" id="dlgAudit">

@@ -538,3 +538,7 @@ tr.so-head td{background:var(--soft);font-size:13px;padding:6px 10px;color:var(-
 .au-rows{display:grid;gap:6px;margin:10px 0;max-height:50vh;overflow:auto}.au-rows label{align-items:flex-start;line-height:1.35}
 .au-drop{color:var(--red)}.au-add{color:var(--green)}.au-rows .ok{color:var(--green);font-weight:600}
 .saved-at{font-size:12.5px;align-self:center}.log{margin:6px 0 0 16px;padding:0;font-size:13px}.log>li{margin:8px 0}
+.ko-preview{max-height:220px;overflow:auto;font-size:13px;margin:8px 0}.ko-preview td,.ko-preview th{padding:3px 8px}
+#koText{width:100%;box-sizing:border-box;font:12px ui-monospace,monospace}.ko-new{padding:8px 12px;border-radius:10px;background:rgba(245,158,11,.12);margin:8px 0}
+.kolo-row td{background:color-mix(in srgb,#7866EE 6%,transparent)}.kolo-items{margin:4px 0 0 16px;padding:0;font-size:12.5px}
+.rule-note.over{color:#b45309;font-weight:600}

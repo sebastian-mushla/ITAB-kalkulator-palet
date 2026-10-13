@@ -10,6 +10,29 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
   const index = new Map(catalog.map((a, i) => [String(a.code).trim().toLowerCase(), i]));
   const present = new Set(lines.map(l => l.code.toLowerCase()));
   const riders = [];
+  // koli: articles that really travelled together on one pallet go on one pallet of that type again;
+  // the imported quantity is only "verified", more pieces still go on it but are flagged
+  const inKolo = new Set();
+  (combos || []).filter(k => k.on !== false && k.mode === 'kolo').forEach((k, ki) => {
+    const t = typeOf(types, k.pal); if (!t) return;
+    const items = new Map((k.items || []).map(it => [low(it.code), it]));
+    const mine = lines.filter(l => items.has(low(l.code)) && !inKolo.has(low(l.code)) && l.qty > 0);
+    if (!mine.length) return;
+    const parts = mine.map(l => {
+      inKolo.add(low(l.code));
+      const i = index.has(low(l.code)) ? index.get(low(l.code)) : -1, a = i >= 0 ? catalog[i] : null;
+      return { l, a, ci: i >= 0 ? i : catalog.length + 200 + ki, kg: a ? a.kg || 0 : 0, seen: items.get(low(l.code)).seen || 0 };
+    }).sort((x, y) => y.l.qty - x.l.qty);
+    const [m, ...rest] = parts, tare = t.tare || 0;
+    pallets.push({ code: m.l.code, units: m.l.qty, fill: 1, kg: tare + parts.reduce((s, p) => s + p.l.qty * p.kg, 0), tare, pl: t.L, pw: t.W, rot: t.rot !== false, euro: isEuro({ pl: t.L, pw: t.W }), ci: m.ci,
+      pal: t.code, palName: t.name, palH: t.H || 0, maxKg: t.maxKg || 0, kolo: k.code, extra: rest.length ? rest.map(p => ({ code: p.l.code, units: p.l.qty, ci: p.ci, mixed: true })) : undefined });
+    parts.forEach((p, n) => {
+      const over = p.seen > 0 && p.l.qty > p.seen;
+      if (over) errors.push('Koli ' + k.code + ': ' + p.l.code + ' má ' + p.l.qty + ' ks, ověřeno jen ' + p.seen + ' ks – zkontrolujte, zda se vše vejde.');
+      rows.push({ code: p.l.code, name: (p.a && p.a.name) || p.l.name || '', qty: p.l.qty, kg: p.l.qty * p.kg, ci: p.ci, rule: ruleText(k) + (over ? ' – víc než ověřeno (' + p.seen + ' ks)' : ''), over,
+        pack: 'paleta', full: n === 0 ? 1 : 0, rem: 0, per: 1, fillRem: 0, count: n === 0 ? 1 : 0, kolo: k.code, pal: t.code, palName: t.name, pl: t.L, pw: t.W });
+    });
+  });
 
   function build(a, idx, qty, row) {
     const full = Math.floor(qty / a.per), rem = qty % a.per;
@@ -23,6 +46,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
   }
 
   lines.forEach(l => {
+    if (inKolo.has(low(l.code))) return;
     const idx = index.has(l.code.toLowerCase()) ? index.get(l.code.toLowerCase()) : -1;
     if (idx < 0) {
       // not in the catalog yet: it can still ride on a host pallet if a Kombinace rule says so

@@ -70,6 +70,13 @@ export function renderCombos(combos, catalog, pallets) {
   $('#comboBody').innerHTML = combos.map((r, i) => {
     const txt = (f, ph, dis) => '<td><input type="text" list="codeList" data-i="' + i + '" data-f="' + f + '" value="' + esc(r[f] || '') + '" placeholder="' + ph + '"' + (dis ? ' disabled' : '') + '></td>';
     const num = (f, ph, dis) => '<td><input type="number" min="0" step="1" data-i="' + i + '" data-f="' + f + '" value="' + (r[f] > 0 ? r[f] : '') + '" placeholder="' + ph + '"' + (dis ? ' disabled' : '') + '></td>';
+    if (r.mode === 'kolo') {
+      const items = r.items || [];
+      return '<tr class="kolo-row' + (r.on === false ? ' off' : '') + '"><td><input type="checkbox" data-i="' + i + '" data-f="on"' + (r.on !== false ? ' checked' : '') + ' aria-label="Aktivní"></td>' +
+        '<td colspan="11"><b>' + esc(r.code) + '</b>' + (r.name ? ' · ' + esc(r.name) : '') + ' · spolu na paletě <b>' + esc(r.pal) + '</b> · ' + items.length + ' artiklů' +
+        '<details><summary>Artikly a ověřené množství</summary><ul class="kolo-items">' + items.map(it => '<li><b>' + esc(it.code) + '</b> ' + esc(it.name || '') + ' – ověřeno ' + it.seen + ' ks</li>').join('') + '</ul></details></td>' +
+        '<td class="nowrap"><button class="btn small" data-up="' + i + '" aria-label="Výš"' + (i === 0 ? ' disabled' : '') + '>↑</button> <button class="btn small" data-down="' + i + '" aria-label="Níž"' + (i === combos.length - 1 ? ' disabled' : '') + '>↓</button> <button class="btn small" data-del="' + i + '">Smazat</button></td></tr>';
+    }
     const host = r.mode === 'host';
     return '<tr' + (r.on === false ? ' class="off"' : '') + '>' +
       '<td><input type="checkbox" data-i="' + i + '" data-f="on"' + (r.on !== false ? ' checked' : '') + ' aria-label="Aktivní"></td>' +

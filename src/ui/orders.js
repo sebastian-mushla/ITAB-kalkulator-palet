@@ -173,16 +173,17 @@ function compositionHtml(r) {
   const known = r.rows.map(x => {
     const parts = [];
     if (x.planDist != null) parts.push(x.planDist);
+    else if (x.kolo) parts.push('na smíšené paletě ' + x.kolo);
     else if (x.onHost) parts.push(x.onHost + ' ks na paletách ' + x.host);
     if (x.planDist == null && x.board) parts.push(x.qty + ' ks na ručně přidané paletě');
-    if (x.planDist != null || !x.count) { /* everything rides on host pallets */ }
+    if (x.planDist != null || !x.count || x.kolo) { /* everything rides on host pallets / one koli pallet */ }
     else if (x.pack === 'balik') parts.push(x.count + ' ' + balWord(x.count) + ' po ' + x.per + ' ks' + (x.rem ? ' (poslední ' + x.rem + ' ks)' : ''));
     else if (x.per === 1) parts.push(x.full + ' ' + palWord(x.full));
     else {
       if (x.full > 0) parts.push(x.full + ' ' + plural(x.full, ['plná', 'plné', 'plných']) + ' po ' + x.per + ' ks');
       if (x.rem > 0) parts.push('1 neúplná: ' + x.rem + ' ks, ' + Math.round(x.fillRem * 100) + ' %');
     }
-    return '<tr><td><i class="sw" style="background:' + color(x.ci) + '"></i>' + esc(x.code) + '<br><span class="hint">' + esc(x.name || '') + '</span></td><td class="num">' + fmtN(x.qty) + ' ks</td><td>' + palCell(x) + '</td><td>' + esc(parts.join(', ')) + (x.rule ? '<br><span class="rule-note">Pravidlo: ' + esc(x.rule) + '</span>' : '') + '</td><td class="num">' + fmtKg(x.kg) + '</td></tr>';
+    return '<tr><td><i class="sw" style="background:' + color(x.ci) + '"></i>' + esc(x.code) + '<br><span class="hint">' + esc(x.name || '') + '</span></td><td class="num">' + fmtN(x.qty) + ' ks</td><td>' + palCell(x) + '</td><td>' + esc(parts.join(', ')) + (x.rule ? '<br><span class="rule-note' + (x.over ? ' over' : '') + '">Pravidlo: ' + esc(x.rule) + '</span>' : '') + '</td><td class="num">' + fmtKg(x.kg) + '</td></tr>';
   }).join('');
   const unk = r.unknown || [];
   const unknownRows = unk.map(u => '<tr class="unk-row"><td><i class="sw" style="background:var(--gray)"></i>' + esc(u.code) + '<br><span class="hint">' + esc(u.name || '') + '</span></td><td class="num">' + fmtN(u.qty) + ' ks</td><td><span class="pt-chip none">nezařazeno</span></td><td>není v číselníku – zařaďte na ploše níže</td><td class="num">–</td></tr>').join('');
