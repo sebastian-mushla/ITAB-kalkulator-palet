@@ -418,3 +418,11 @@ cases.push(['Koli: jen od N artiklů v zakázce a jen ve svém projektu', () => 
   const other = solve(parseOrders('SO 1\nr10 A a 1\nr20 B b 1').orders.get('1'), Object.assign({}, ctx, { combos: rows, rules }));
   assert(!other.pallets.some(p => p.group === 'KOLI-1') && other.project === '', 'jiný projekt → koli neplatí');
 }]);
+cases.push(['Koli bez partnerů: s vlastním balením jede podle něj, bez něj čeká vpravo', () => {
+  const rows = ['A', 'B'].map(c => koloRow({ code: c, seen: 1 }, 'KOLI-1', 'PAL-0001'));
+  const cat = DEFAULT_CATALOG.concat([{ code: 'A', name: 'a', pack: 'paleta', pal: 'PAL-0001', per: 10, kg: 1, rot: true }, { code: 'B', name: 'b', pack: 'neurceno', per: 0, kg: 0 }]);
+  const ra = solve(parseOrders('SO 1\nr10 A a 3').orders.get('1'), Object.assign({}, ctx, { catalog: cat, combos: rows }));
+  assert(!ra.unknown.length && ra.pallets.length === 1 && !ra.pallets[0].group, 'A sám na své paletě');
+  const rb = solve(parseOrders('SO 1\nr10 B b 3').orders.get('1'), Object.assign({}, ctx, { catalog: cat, combos: rows }));
+  assert(rb.unknown.some(u => u.code === 'B' && /bez partnerů/.test(u.hint)), 'B vpravo');
+}]);

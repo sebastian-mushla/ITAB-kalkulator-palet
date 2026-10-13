@@ -921,7 +921,7 @@ onBoth('click', async e => {
   const t = typeOf(state.pallets, rows[0].pal);
   const list = rows.map(r => r.code + (inOrder.has(low(r.code)) ? ' ✓' : '')).join(', ');
   const ok = await ask('Koli ' + rows[0].group + ' – ' + rows[0].pal + (t ? ' ' + t.name : ''),
-    'Artikly koli (✓ = jsou v této zakázce): ' + list + '. V zakázce je jich málo (pravidlo „aspoň ' + (state.rules.koloMin || 2) + '“), proto paleta nevznikla. Vytvořit paletu ' + rows[0].group + ' přesto – jen v této zakázce?', 'Vytvořit paletu');
+    'Artikly koli (✓ = jsou v této zakázce): ' + list + '. Ostatní tu nejsou, takže tento artikl pojede sám. Doporučeno: Zrušit a přetáhnout ho na volné místo – určíte jeho vlastní balení (příště už se zařadí sám). Nebo výjimečně: vytvořit paletu ' + rows[0].group + ' jen v této zakázce.', 'Paleta ' + rows[0].group + ' jen teď');
   if (!ok) return;
   const set = state.koliForce.get(state.sel) || new Set(); set.add(low(rows[0].group)); state.koliForce.set(state.sel, set);
   state.manual.delete(state.sel); keepScroll(() => recalcOne());
