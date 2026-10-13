@@ -690,7 +690,7 @@ let koParsed = { items: [], pals: [] };
 function koPalCode() {
   if (!$('#koSelWrap').hidden) return $('#koSel').value;
   const v = $('#koPal').value.trim(), t = typeOf(state.pallets, v.split(' · ')[0].trim()) || state.pallets.find(p => palOption(p).toLowerCase() === v.toLowerCase());
-  return t ? t.code : (/^PAL-\d+$/i.test(v) ? v.toUpperCase() : '');
+  return t ? t.code : (/^PAL-[0-9][0-9A-Z-]*$/i.test(v) ? v.toUpperCase() : '');
 }
 function koUpdate() {
   koParsed = parseKolo($('#koText').value);
@@ -702,7 +702,7 @@ function koUpdate() {
 function koPalCheck() {
   const code = koPalCode(), exists = !!typeOf(state.pallets, code);
   const fromKolo = koParsed.pals.find(p => p.code.toLowerCase() === code.toLowerCase());
-  const isNew = !!code && !exists && /^PAL-\d+$/i.test(code);
+  const isNew = !!code && !exists && /^PAL-[0-9][0-9A-Z-]*$/i.test(code);
   $('#koNew').hidden = !isNew;
   if (isNew && $('#koNewCode').textContent !== code) {
     $('#koNewCode').textContent = code;

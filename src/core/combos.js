@@ -52,7 +52,7 @@ export function parseKolo(text) {
     const qty = Number(String(cells[cells.length - 1]).replace(/\s/g, '').replace(',', '.'));
     const code = cells[0], name = cells.slice(1, -1).join(' ').replace(/\s+/g, ' ').trim();
     if (!code || !isFinite(qty) || qty <= 0) { problems.push('řádek ' + (i + 1) + ': nerozpoznáno'); return; }
-    if (/^PAL-\d+$/i.test(code)) { if (!pals.some(p => low(p.code) === low(code))) pals.push({ code: code.toUpperCase(), name }); return; }
+    if (/^PAL-[0-9][0-9A-Z-]*$/i.test(code)) { if (!pals.some(p => low(p.code) === low(code))) pals.push({ code: code.toUpperCase(), name }); return; }
     const k = low(code), g = items.get(k) || { code, name, seen: 0 };
     g.seen += Math.round(qty); items.set(k, g);
   });

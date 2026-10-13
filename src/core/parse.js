@@ -17,7 +17,7 @@ export function parseOrders(text) {
     if (!orders.has(id)) orders.set(id, { id, sos: [], lines: new Map() });
     const o = orders.get(id);
     // ERP lists the pallets themselves as items (PAL-0013 EURO paleta 2×): not goods, kept as a note
-    if (/^PAL-\d+$/i.test(code)) { (o.pals = o.pals || []).push({ so, code: code.toUpperCase(), qty, name: name || '' }); if (!o.sos.includes(so)) o.sos.push(so); return; }
+    if (/^PAL-[0-9][0-9A-Z-]*$/i.test(code)) { (o.pals = o.pals || []).push({ so, code: code.toUpperCase(), qty, name: name || '' }); if (!o.sos.includes(so)) o.sos.push(so); return; }
     const k = so.toLowerCase() + '|' + code.toLowerCase();
     if (!o.sos.includes(so)) o.sos.push(so);
     if (o.lines.has(k)) { const l = o.lines.get(k); l.qty += qty; if (!l.name && name) l.name = name; }
