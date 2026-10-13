@@ -56,6 +56,8 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
       addGroup(rule, a, idx, l); return;
     }
     // packing not decided yet (article known from a koli): rides only by a rule, otherwise waits on the right side
+    // a service (freight, handling fee): counted in the order, nothing to load
+    if (a.pack === 'sluzba') { rows.push(Object.assign(row, { pack: 'sluzba', kg: 0, full: 0, rem: 0, per: 0, fillRem: 0, count: 0 })); return; }
     if (a.pack === 'neurceno' && !(rule && rule.mode !== 'group')) {
       unknown.push({ code: l.code, qty: l.qty, name: a.name || l.name || '', known: true, undecided: true });
       errors.push('Artikl „' + l.code + '“: balení není určeno – zařaďte ho na ploše níže.'); return;

@@ -1186,8 +1186,9 @@ function askArticle(u, next, left) {
   dlg.querySelector('form').onsubmit = ev => {
     if (!ev.submitter || ev.submitter.value !== 'yes') return;
     const mode = $('#daPack').value, per = Math.max(1, Math.round(toNum($('#daPer').value))), kg = toNum($('#daKg').value) || 0, rot = $('#daRot').checked;
-    const a = { code: u.code, name: $('#daName').value.trim(), pack: mode === 'balik' ? 'balik' : 'paleta', per, kg, rot };
-    if (mode === 'balik') Object.assign(a, { pl: toNum($('#daL').value), pw: toNum($('#daW').value) });
+    const a = { code: u.code, name: $('#daName').value.trim(), pack: mode === 'balik' ? 'balik' : mode === 'sluzba' ? 'sluzba' : 'paleta', per, kg, rot };
+    if (mode === 'sluzba') Object.assign(a, { per: 0, kg: 0 });
+    else if (mode === 'balik') Object.assign(a, { pl: toNum($('#daL').value), pw: toNum($('#daW').value) });
     else if (mode === 'list') {
       const v = $('#daPal').value.trim(), t = typeOf(state.pallets, v.split(' · ')[0].trim()) || state.pallets.find(p => palOption(p).toLowerCase() === v.toLowerCase());
       if (!t) { ev.preventDefault(); flash('Vyberte typ palety z nabídky (začněte psát kód, název nebo rozměr).'); $('#daPal').focus(); return; }
@@ -1224,6 +1225,9 @@ function daSections() {
   const m = $('#daPack').value;
   document.querySelectorAll('#dlgArticle [data-sec]').forEach(el => { const on = el.dataset.sec === m; el.hidden = !on; el.querySelectorAll('input,select').forEach(i => { i.disabled = !on; }); });
   $('#daPerLabel').textContent = m === 'balik' ? 'Kusů v balíku' : 'Kusů na paletě';
+  // a service is not transported: no packing, pieces or weight
+  $('#daQtyRow').hidden = m === 'sluzba'; $('#daQtyRow').querySelectorAll('input').forEach(i => { i.disabled = m === 'sluzba'; });
+  $('#daRot').closest('label').hidden = m === 'sluzba';
 }
 $('#daPack').addEventListener('change', daSections);
 onBoth('pointercancel', e => endDrag(e, true));
@@ -1345,6 +1349,7 @@ function catalogProblems() {
   state.catalog.forEach(a => {
     const k = String(a.code).trim().toLowerCase(), p = [];
     if (seen.has(k)) p.push('je v číselníku víckrát'); seen.set(k, 1);
+    if (a.pack === 'sluzba') { if (p.length) out.push('<li><b>' + esc(a.code) + '</b>: ' + p.join(', ') + '</li>'); return; }
     if (a.pack === 'neurceno') p.push('balení neurčeno');
     else if (a.pack === 'balik') { if (!(a.pl > 0 && a.pw > 0)) p.push('balík bez rozměru'); }
     else if (!a.pal) p.push('chybí typ palety');

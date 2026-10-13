@@ -420,3 +420,8 @@ cases.push(['Koli bez skrytých pravidel: artikl jede na paletě svého koli i s
   const other = solve(parseOrders('SO 1\nr10 A a 1').orders.get('1'), Object.assign({}, ctx, { combos: rows, rules }));
   assert(!other.pallets.some(p => p.group === 'KOLI-1'), 'jiný projekt');
 }]);
+cases.push(['Služba (doprava, poplatek): započítá se, nejede na paletě, není vpravo', () => {
+  const cat = DEFAULT_CATALOG.concat([{ code: '7777', name: 'DOPRAVA', pack: 'sluzba', per: 0, kg: 0 }]);
+  const r = solve(parseOrders('SO 1\nr10 7777 doprava 1\nr20 V-POL p 10').orders.get('1'), Object.assign({}, ctx, { catalog: cat }));
+  assert(!r.unknown.length && r.pallets.length === 1 && r.rows.some(x => x.code === '7777' && x.pack === 'sluzba'), JSON.stringify(r.unknown));
+}]);

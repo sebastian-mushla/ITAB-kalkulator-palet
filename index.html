@@ -467,7 +467,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
     <h2 id="daTitle">Nový artikl</h2>
     <p>Doplňte údaje, artikl se uloží do číselníku pro všechny.</p>
     <label>Název<input type="text" id="daName"></label>
-    <label>Balení<select id="daPack"><option value="list">paleta ze seznamu</option><option value="new">nová paleta</option><option value="balik">balík</option></select></label>
+    <label>Balení<select id="daPack"><option value="list">paleta ze seznamu</option><option value="new">nová paleta</option><option value="balik">balík</option><option value="sluzba">služba (doprava, poplatek – nic se neveze)</option></select></label>
     <div data-sec="list"><label>Typ palety<input type="search" id="daPal" list="daPalList" placeholder="Hledat: kód, název nebo rozměr (např. 1200, EURO, PAL-0013)" autocomplete="off" required><datalist id="daPalList"></datalist></label></div>
     <div data-sec="new">
       <div class="two"><label>Kód palety<input type="text" id="daPCode" placeholder="např. PAL-0010" required></label><label>Název palety<input type="text" id="daPName" placeholder="např. Paleta 120 × 100"></label></div>
@@ -475,7 +475,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
       <label>Vlastní váha palety, kg<input type="number" id="daPTare" min="0" step="any" value="0"></label>
     </div>
     <div data-sec="balik" class="two"><label>Délka balíku, mm<input type="number" id="daL" min="1" value="400" required></label><label>Šířka balíku, mm<input type="number" id="daW" min="1" value="300" required></label></div>
-    <div class="two"><label><span id="daPerLabel">Kusů na paletě</span><input type="number" id="daPer" min="1" step="1" value="1" required></label><label>Váha kusu, kg<input type="number" id="daKg" min="0" step="any" value="0" required></label></div>
+    <div class="two" id="daQtyRow"><label><span id="daPerLabel">Kusů na paletě</span><input type="number" id="daPer" min="1" step="1" value="1" required></label><label>Váha kusu, kg<input type="number" id="daKg" min="0" step="any" value="0" required></label></div>
     <label class="inline"><input type="checkbox" id="daRot" checked>Lze otáčet</label>
     <div class="acts"><button class="btn" value="no" formnovalidate>Zrušit</button><button class="btn primary" value="yes">Uložit artikl</button></div>
   </form>
