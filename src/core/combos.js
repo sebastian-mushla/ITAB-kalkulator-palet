@@ -59,7 +59,8 @@ export function parseKolo(text) {
   return { items: [...items.values()], pals, problems };
 }
 export function nextKoloCode(combos) {
-  const n = (combos || []).filter(r => r.mode === 'group' && /^KOLI-\d+$/i.test(r.group || '')).map(r => Number(String(r.group).replace(/\D/g, '')) || 0);
+  // KOLI-n from shared pallets and from machine koli (their note says „Koli KOLI-n – stroj …“)
+  const n = (combos || []).map(r => { const m = String((r.mode === 'group' && r.group) || r.note || '').match(/KOLI-(\d+)/i); return m ? Number(m[1]) : 0; });
   return 'KOLI-' + ((n.length ? Math.max(...n) : 0) + 1);
 }
 
@@ -78,40 +79,69 @@ export function koloRow(it, group, pal, name, on) {
   return { on: on !== false, code: it.code, withCode: '', min: 0, max: 0, mode: 'group', host: '', pal, group, pl: 0, pw: 0, per: it.seen || 0, kg: 0, name: it.name || '', note: 'Koli ' + group + (name ? ' – ' + name : '') };
 }
 
-// Shared pallets that say the same thing: a group whose articles are all in another group on the same
-// pallet type (same set or a subset) adds nothing. Only unconditional rows are compared.
-// Returns [{ keep, drop, pal, same, raise: [{ code, from, to }] }]
-export function findDuplicateGroups(combos) {
+// Consolidation of koli (unconditional 'group' rows):
+//  - koli on the same pallet type that share at least one article are one koli seen in parts → merged into the oldest
+//    (1 2 3 4 5 + 3 4 5 6 → 1 2 3 4 5 6), verified pcs = the larger;
+//  - a koli with a single article that is also in a bigger koli adds nothing → removed.
+// Returns actions: { kind: 'merge', keep, drop: [..], pal, codes } | { kind: 'solo', drop, pal, code, into }
+const grpNum = g => Number(String(g).replace(/\D/g, '')) || 0;
+function koliGroups(combos) {
   const g = new Map();
-  (combos || []).forEach((r, i) => {
+  (combos || []).forEach(r => {
     if (r.mode !== 'group' || !r.group || low(r.withCode) || r.min > 0 || r.max > 0) return;
     const k = low(r.group) + '|' + low(r.pal);
-    if (!g.has(k)) g.set(k, { group: r.group, pal: r.pal, rows: [], codes: new Map(), first: i });
-    const x = g.get(k); x.rows.push(i); x.codes.set(low(r.code), r.per || 0);
+    if (!g.has(k)) g.set(k, { group: r.group, pal: r.pal, key: k, codes: new Set() });
+    g.get(k).codes.add(low(r.code));
   });
-  const list = [...g.values()], out = [], gone = new Set();
-  const num = x => Number(String(x.group).replace(/\D/g, '')) || 0;
-  list.forEach(b => {
-    if (gone.has(b)) return;
-    // the group that covers b: same pallet, contains all of b's articles; prefer the biggest, then the oldest
-    const host = list.filter(a => a !== b && !gone.has(a) && low(a.pal) === low(b.pal) && a.codes.size >= b.codes.size && [...b.codes.keys()].every(c => a.codes.has(c)))
-      .sort((x, y) => y.codes.size - x.codes.size || num(x) - num(y))[0];
-    if (!host) return;
-    const same = host.codes.size === b.codes.size;
-    if (same && num(host) > num(b)) return; // identical sets: the older one stays (handled when we reach the newer)
-    gone.add(b);
-    const raise = [...b.codes].filter(([c, per]) => per > (host.codes.get(c) || 0)).map(([c, per]) => ({ code: c, from: host.codes.get(c) || 0, to: per }));
-    out.push({ keep: host.group, drop: b.group, pal: b.pal, same, n: b.codes.size, raise });
+  return [...g.values()];
+}
+export function findDuplicateGroups(combos) {
+  const list = koliGroups(combos), out = [];
+  const parent = new Map(list.map(x => [x, x])), root = x => (parent.get(x) === x ? x : root(parent.get(x)));
+  list.forEach((a, i) => list.slice(i + 1).forEach(b => {
+    if (low(a.pal) === low(b.pal) && [...a.codes].some(c => b.codes.has(c))) parent.set(root(b), root(a));
+  }));
+  const comps = new Map();
+  list.forEach(x => { const r = root(x); if (!comps.has(r)) comps.set(r, []); comps.get(r).push(x); });
+  const merged = new Set();
+  comps.forEach(c => {
+    if (c.length < 2) return;
+    c.sort((a, b) => grpNum(a.group) - grpNum(b.group));
+    const codes = new Set(); c.forEach(x => x.codes.forEach(k => codes.add(k)));
+    out.push({ kind: 'merge', keep: c[0].group, drop: c.slice(1).map(x => x.group), pal: c[0].pal, codes: codes.size });
+    c.slice(1).forEach(x => merged.add(x));
+  });
+  // single-article koli whose article is in a bigger koli (after merging)
+  const big = list.filter(x => !merged.has(x) && x.codes.size > 1);
+  const bigCodes = new Map(); big.forEach(x => x.codes.forEach(c => { if (!bigCodes.has(c)) bigCodes.set(c, x); }));
+  list.filter(x => !merged.has(x) && x.codes.size === 1).forEach(x => {
+    const c = [...x.codes][0], into = bigCodes.get(c);
+    if (into && into !== x) out.push({ kind: 'solo', drop: x.group, pal: x.pal, code: c, into: into.group });
   });
   return out;
 }
-// apply chosen merges: drop the redundant group's rows, raise verified pcs in the group that stays
-export function mergeGroups(combos, merges) {
-  const dropKeys = new Set(merges.map(m => low(m.drop) + '|' + low(m.pal)));
-  const res = combos.filter(r => !(r.mode === 'group' && dropKeys.has(low(r.group) + '|' + low(r.pal)) && !low(r.withCode) && !(r.min > 0) && !(r.max > 0)));
-  merges.forEach(m => m.raise.forEach(x => {
-    const r = res.find(c => c.mode === 'group' && low(c.group) === low(m.keep) && low(c.pal) === low(m.pal) && low(c.code) === x.code);
-    if (r) r.per = Math.max(r.per || 0, x.to);
-  }));
-  return res;
+export function mergeGroups(combos, actions) {
+  const rename = new Map(), remove = new Set();
+  actions.forEach(a => {
+    if (a.kind === 'merge') a.drop.forEach(d => rename.set(low(d) + '|' + low(a.pal), a.keep));
+    else remove.add(low(a.drop) + '|' + low(a.pal));
+  });
+  const plain = r => r.mode === 'group' && !low(r.withCode) && !(r.min > 0) && !(r.max > 0);
+  const out = [];
+  (combos || []).forEach(r => {
+    const k = low(r.group) + '|' + low(r.pal);
+    if (plain(r) && remove.has(k)) return;
+    const nr = plain(r) && rename.has(k) ? Object.assign({}, r, { group: rename.get(k), note: 'Koli ' + rename.get(k) + ' (sloučeno)' }) : r;
+    // the same article twice in one koli → one row, verified pcs = the larger
+    const dup = plain(nr) && out.find(x => plain(x) && low(x.group) === low(nr.group) && low(x.pal) === low(nr.pal) && low(x.code) === low(nr.code));
+    if (dup) { dup.per = Math.max(dup.per || 0, nr.per || 0); return; }
+    out.push(nr);
+  });
+  return out;
+}
+// koli of a machine: the other articles ride on the machine's pallet (when the machine is in the order)
+export function koloHostRows(items, main, group, name) {
+  const m = items.find(x => low(x.code) === low(main)), n = Math.max(1, (m && m.seen) || 1);
+  return items.filter(x => low(x.code) !== low(main)).map(x => ({ on: true, code: x.code, withCode: main, min: 0, max: 0, mode: 'host', host: main, pl: 0, pw: 0,
+    per: Math.ceil((x.seen || 1) / n), kg: 0, name: x.name || '', note: 'Koli ' + group + ' – stroj ' + main + (name ? ' – ' + name : '') }));
 }

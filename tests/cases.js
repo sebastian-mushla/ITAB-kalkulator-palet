@@ -6,7 +6,7 @@ import { freezePlan, moveUnits, mergePallets } from '../src/core/plan.js';
 import { solve } from '../src/core/solve.js';
 import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, DEFAULT_PALLETS, SAMPLE } from '../src/core/defaults.js';
 import { migrateCatalog } from '../src/core/palletTypes.js';
-import { parseKolo, koloRow, expandKolo, findDuplicateGroups, mergeGroups } from '../src/core/combos.js';
+import { parseKolo, koloRow, expandKolo, findDuplicateGroups, mergeGroups, koloHostRows } from '../src/core/combos.js';
 import { parseCsvRows, rowsToCatalog, rowsToVehicles, rowsToCombos, mergeBy } from '../src/io/importTable.js';
 
 const ctx = { catalog: DEFAULT_CATALOG, vehicles: DEFAULT_VEHICLES, rules: DEFAULT_RULES, combos: DEFAULT_COMBOS, pallets: DEFAULT_PALLETS };
@@ -363,15 +363,24 @@ cases.push(['Společná paleta: pořadí pravidel – když první nesedí, plat
   const old = expandKolo([{ mode: 'kolo', code: 'KOLI-1', pal: 'PAL-0001', items: [{ code: 'X', seen: 2 }, { code: 'Y', seen: 3 }] }]);
   assert(old.changed && old.combos.length === 2 && old.combos[1].per === 3 && old.combos[0].group === 'KOLI-1', 'migrace');
 }]);
-cases.push(['Koli: sloučení – stejné artikly a podmnožina se sloučí do staršího/většího', () => {
+cases.push(['Koli: sloučení – koli se společným artiklem se spojí, osamělé koli zmizí', () => {
   const row = (g, c, per, pal) => koloRow({ code: c, seen: per }, g, pal || 'PAL-0001');
-  const combos = [row('KOLI-3', 'A', 5), row('KOLI-2', 'A', 2), row('KOLI-2', 'B', 1), row('KOLI-1', 'A', 1), row('KOLI-1', 'B', 1), row('KOLI-4', 'A', 1, 'PAL-0002')];
+  const combos = [row('KOLI-1', '1', 1), row('KOLI-1', '2', 1), row('KOLI-1', '3', 1), row('KOLI-2', '3', 4), row('KOLI-2', '6', 1), row('KOLI-3', '3', 1, 'PAL-0002'), row('KOLI-4', '9', 1, 'PAL-0002'), row('KOLI-4', '8', 1, 'PAL-0002')];
   const f = findDuplicateGroups(combos);
-  assert(f.length === 2, JSON.stringify(f));
+  assert(f.some(a => a.kind === 'merge' && a.keep === 'KOLI-1' && a.drop.join() === 'KOLI-2'), JSON.stringify(f));
+  assert(f.some(a => a.kind === 'solo' && a.drop === 'KOLI-3'), 'solo');
   const res = mergeGroups(combos, f);
-  const groups = [...new Set(res.map(r => r.group))].sort();
-  assert(groups.join() === 'KOLI-1,KOLI-4', groups.join());
-  assert(res.find(r => r.group === 'KOLI-1' && r.code === 'A').per === 5, 'per raised');
+  const k1 = res.filter(r => r.group === 'KOLI-1').map(r => r.code + ':' + r.per).sort().join();
+  assert(k1 === '1:1,2:1,3:4,6:1', k1);
+  assert(!res.some(r => r.group === 'KOLI-3' || r.group === 'KOLI-2') && res.some(r => r.group === 'KOLI-4'), 'zbytek');
+}]);
+cases.push(['Koli stroje: příslušenství jede na paletě stroje, jen když je stroj v zakázce', () => {
+  const rows = koloHostRows([{ code: 'V06', seen: 1 }, { code: 'PLX', seen: 1 }, { code: 'DAM', seen: 3 }], 'V06', 'KOLI-9');
+  assert(rows.length === 2 && rows.every(r => r.mode === 'host' && r.host === 'V06' && r.withCode === 'V06'), 'rows');
+  const o = parseOrders('SO 9\nr10 V06 kabina 2\nr20 PLX p 2\nr30 DAM d 6').orders.get('9');
+  const r = solve(o, Object.assign({}, ctx, { combos: rows }));
+  const v = r.pallets.filter(p => p.code === 'V06');
+  assert(v.length === 2 && v.every(p => (p.extra || []).length === 2) && !r.unknown.length, JSON.stringify(v.map(p => p.extra)));
 }]);
 cases.push(['Koli: artikl s balením „neurčeno“ – v koli jede, sám čeká vpravo', () => {
   const cat = DEFAULT_CATALOG.concat([{ code: 'NEU-1', name: 'x', pack: 'neurceno', per: 0, kg: 0, rot: true }]);
