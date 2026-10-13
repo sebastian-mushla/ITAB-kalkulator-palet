@@ -23,32 +23,9 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
   }
 
   const groups = new Map(); // shared pallets (mode 'group'): group|pal → articles
-  // which shared pallet (koli) each article takes: an article can be in several koli, so the koli covering the most
-  // articles of this order wins (ties: higher in the table); an article whose first rule is not a koli keeps that rule
-  const groupOf = new Map();
-  {
-    const cand = new Map(); // code → [{ rule, key }]
-    lines.forEach(l => {
-      const all = findRules(l.code, l.qty, present, combos);
-      if (!all.length || all[0].mode !== 'group') return;
-      const gs = all.filter(r => r.mode === 'group' && r.group && r.pal);
-      if (gs.length) cand.set(low(l.code), gs.map(r => ({ rule: r, key: low(r.group) + '|' + low(r.pal), pos: combos.indexOf(r) })));
-    });
-    const min = Math.max(1, opts.koloMin || 1);
-    while (cand.size) {
-      const score = new Map();
-      cand.forEach(list => list.forEach(c => { const s = score.get(c.key) || { n: 0, pos: c.pos }; s.n++; s.pos = Math.min(s.pos, c.pos); score.set(c.key, s); }));
-      if (!score.size) { cand.forEach((list, code) => groupOf.set(code, { lone: true, group: list.lastGroup || '' })); break; }
-      const [best, sc] = [...score].sort((a, b) => b[1].n - a[1].n || a[1].pos - b[1].pos)[0];
-      const takers = [...cand].filter(([, list]) => list.some(x => x.key === best));
-      if (sc.n >= min || (opts.forceGroups && opts.forceGroups.has(best.split('|')[0]))) { takers.forEach(([code, list]) => { groupOf.set(code, list.find(x => x.key === best).rule); cand.delete(code); }); continue; }
-      // too few articles of this koli in the order: try the article's other koli; with none left it waits on the right side
-      takers.forEach(([code, list]) => {
-        const k = list.findIndex(x => x.key === best); list.lastGroup = list[k].rule.group; list.splice(k, 1);
-        if (!list.length) { groupOf.set(code, { lone: true, group: list.lastGroup }); cand.delete(code); }
-      });
-    }
-  }
+  // shared pallet (koli): the first matching row of the table decides, nothing hidden; „Max ks“ (cap) is a hard limit
+  const overCap = (rule, qty) => rule.cap > 0 && qty > rule.cap;
+  const capHint = rule => 'nevešlo se do ' + rule.group + (rule.project ? ' · ' + rule.project : '') + ' · ' + rule.pal + ' (max ' + rule.cap + ' ks)';
   function addGroup(rule, a, idx, l) {
     const k = low(rule.group) + '|' + low(rule.pal);
     if (!groups.has(k)) groups.set(k, []);
@@ -59,8 +36,8 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     if (idx < 0) {
       // not in the catalog yet: it can still ride on a host pallet if a Kombinace rule says so
       const r0 = findRule(l.code, l.qty, present, combos);
-      if (r0 && r0.mode === 'group' && groupOf.get(low(l.code)) && groupOf.get(low(l.code)).lone) { const gr = String(groupOf.get(low(l.code)).group).toUpperCase(); unknown.push({ code: l.code, qty: l.qty, name: l.name || '', hint: 'bez partnerů z koli ' + gr }); errors.push('Artikl „' + l.code + '“: v zakázce nejsou ostatní artikly z koli ' + gr + ' a sám není v číselníku – přetáhněte ho na volné místo a určete, jak jede sám.'); return; }
-      if (r0 && r0.mode === 'group') { addGroup(groupOf.get(low(l.code)) || r0, { code: l.code, name: r0.name || l.name || '', kg: r0.kg || 0 }, -1, l); return; }
+      if (r0 && r0.mode === 'group' && overCap(r0, l.qty)) { unknown.push({ code: l.code, qty: l.qty, name: l.name || '', hint: capHint(r0) }); errors.push('Artikl „' + l.code + '“: ' + l.qty + ' ks je víc než max ' + r0.cap + ' ks v ' + r0.group + ' – zařaďte ho ručně.'); return; }
+      if (r0 && r0.mode === 'group') { addGroup(r0, { code: l.code, name: r0.name || l.name || '', kg: r0.kg || 0 }, -1, l); return; }
       if (r0 && r0.mode === 'host') {
         const a0 = { code: l.code, name: r0.name || l.name || '', kg: r0.kg || 0, per: 0, pl: 0, pw: 0, unknown: true };
         const ci = catalog.length + unknown.length + riders.length;
@@ -74,11 +51,9 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     const rule = findRule(a.code, l.qty, present, combos);
     const row = { code: a.code, name: a.name, qty: l.qty, kg: l.qty * (a.kg || 0), ci: idx, rule: rule ? ruleText(rule) : null };
     if (rule && rule.mode === 'group') {
-      const g = groupOf.get(low(l.code));
-      // no partners of its koli in this order: with its own (solo) packing it goes by that, otherwise it waits on the right
-      const solo = a.pack === 'balik' ? a.pl > 0 && a.pw > 0 && a.per > 0 : a.pack !== 'neurceno' && a.per > 0 && a.pl > 0 && a.pw > 0;
-      if (g && g.lone && !solo) { unknown.push({ code: l.code, qty: l.qty, name: a.name || l.name || '', known: true, hint: 'bez partnerů z koli ' + String(g.group).toUpperCase() }); errors.push('Artikl „' + l.code + '“: v zakázce nejsou ostatní artikly z koli ' + String(g.group).toUpperCase() + ' a sám nemá určené balení – přetáhněte ho na volné místo a určete, jak jede sám.'); return; }
-      if (!(g && g.lone)) { addGroup(g || rule, a, idx, l); return; }
+      // more pieces than the koli may carry: all of them wait on the right, labelled with the koli
+      if (overCap(rule, l.qty)) { unknown.push({ code: l.code, qty: l.qty, name: a.name || l.name || '', known: true, hint: capHint(rule) }); errors.push('Artikl „' + l.code + '“: ' + l.qty + ' ks je víc než max ' + rule.cap + ' ks v ' + rule.group + ' – zařaďte ho ručně.'); return; }
+      addGroup(rule, a, idx, l); return;
     }
     // packing not decided yet (article known from a koli): rides only by a rule, otherwise waits on the right side
     if (a.pack === 'neurceno' && !(rule && rule.mode !== 'group')) {
@@ -101,7 +76,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     list.sort((x, y) => y.qty - x.qty);
     const [m, ...rest] = list, tare = t.tare || 0;
     pallets.push({ code: m.code, units: m.qty, fill: 1, kg: tare + list.reduce((s, g) => s + g.qty * g.kg, 0), tare, pl: t.L, pw: t.W, rot: t.rot !== false, euro: isEuro({ pl: t.L, pw: t.W }), ci: m.ci,
-      pal: t.code, palName: t.name, palH: t.H || 0, maxKg: t.maxKg || 0, group: r0.group, extra: rest.length ? rest.map(g => ({ code: g.code, units: g.qty, ci: g.ci, mixed: true })) : undefined });
+      pal: t.code, palName: t.name, palH: t.H || 0, maxKg: t.maxKg || 0, group: r0.group, over: list.some(g => g.rule.per > 0 && g.qty > g.rule.per), extra: rest.length ? rest.map(g => ({ code: g.code, units: g.qty, ci: g.ci, mixed: true })) : undefined });
     list.forEach((g, n) => {
       const over = g.rule.per > 0 && g.qty > g.rule.per;
       if (over) errors.push('Společná paleta ' + r0.group + ': ' + g.code + ' má ' + g.qty + ' ks, ověřeno jen ' + g.rule.per + ' ks – zkontrolujte, zda se vše vejde.');

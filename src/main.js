@@ -49,7 +49,7 @@ const state = {
   rules: Object.assign(clone(DEFAULT_RULES), shared.rules || {}),
   csv: load(KEYS.csv, SAMPLE),
   orders: new Map(), results: new Map(), forced: new Map(), manual: new Map(), board: new Map(), plan: new Map(Object.entries(load('itab.plans.v1', {})).map(([k, v]) => [k, v.plan])),
-  koliForce: new Map(),
+
   projSel: new Map(Object.entries(load('itab.projsel.v1', {}))),
   saved: new Map(Object.entries(load('itab.plans.v1', {})).map(([k, v]) => [k, v.at])),
   ordered: new Set(load('itab.ordered.v1', [])), listUi: Object.assign({ sort: { key: null, dir: 'asc' }, filters: {} }, load('itab.listui.v1', {}), { open: null }), oneOff: new Map(), done: new Set(load('itab.done.v1', [])), isAdmin, sel: null, prioHidden: false,
@@ -89,7 +89,7 @@ function persist(name) {
 // ---------- calculation ----------
 function ctx(id) {
   // one-off moves (not remembered) apply only to that order and win over saved rules
-  return { catalog: state.catalog, vehicles: state.vehicles, pallets: state.pallets, rules: state.rules, combos: (state.oneOff.get(id) || []).concat(state.combos), forced: state.forced.has(id) ? state.forced.get(id) : null, added: state.board.get(id) || [], plan: state.plan.get(id) || null, forceGroups: state.koliForce.get(id), project: state.projSel.has(id) ? state.projSel.get(id) : undefined };
+  return { catalog: state.catalog, vehicles: state.vehicles, pallets: state.pallets, rules: state.rules, combos: (state.oneOff.get(id) || []).concat(state.combos), forced: state.forced.has(id) ? state.forced.get(id) : null, added: state.board.get(id) || [], plan: state.plan.get(id) || null, project: state.projSel.has(id) ? state.projSel.get(id) : undefined };
 }
 // Full recalculation (catalog, vehicles, rules … changed): the open order first, the rest in small
 // chunks in the background so the page never freezes.
@@ -921,10 +921,8 @@ onBoth('click', async e => {
   const t = typeOf(state.pallets, rows[0].pal);
   const list = rows.map(r => r.code + (inOrder.has(low(r.code)) ? ' ✓' : '')).join(', ');
   const ok = await ask('Koli ' + rows[0].group + ' – ' + rows[0].pal + (t ? ' ' + t.name : ''),
-    'Artikly koli (✓ = jsou v této zakázce): ' + list + '. Ostatní tu nejsou, takže tento artikl pojede sám. Doporučeno: Zrušit a přetáhnout ho na volné místo – určíte jeho vlastní balení (příště už se zařadí sám). Nebo výjimečně: vytvořit paletu ' + rows[0].group + ' jen v této zakázce.', 'Paleta ' + rows[0].group + ' jen teď');
-  if (!ok) return;
-  const set = state.koliForce.get(state.sel) || new Set(); set.add(low(rows[0].group)); state.koliForce.set(state.sel, set);
-  state.manual.delete(state.sel); keepScroll(() => recalcOne());
+    'Artikly koli (✓ = jsou v této zakázce): ' + list + '. Tento artikl má v zakázce víc kusů, než koli dovoluje (Max ks). Přetáhněte ho na jinou paletu nebo na volné místo; nebo zvyšte Max ks v Kombinacích.', 'Rozumím');
+  void ok;
 });
 function relearn() { state.manual.delete(state.sel); recalc(); }
 

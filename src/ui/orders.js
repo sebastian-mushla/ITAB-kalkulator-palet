@@ -313,7 +313,7 @@ function palletBoardHtml(r, isAdmin, board, types) {
   groups.forEach(list => {
     const p0 = list[0];
     h += '<div class="bgroup"><div class="bgroup-h"><b>' + esc(p0.pal || 'Jiná paleta') + '</b> <span class="muted">' + (p0.palName ? esc(p0.palName) + ' · ' : '') + Math.round(p0.pl / 10) + ' × ' + Math.round(p0.pw / 10) + ' cm · ' + list.length + ' ' + palWord(list.length) + '</span></div><div class="bgroup-p">' +
-      list.map(p => { const n = ++shown; return block(p, 'data-code="' + esc(p.code) + '" data-so="' + esc(p.so || '') + '"' + (p.group ? ' data-group="' + esc(p.group) + '" data-pal="' + esc(p.pal || '') + '"' : '') + (r.planOn ? ' data-bid="' + esc(p.board) + '"' : '') + ' data-pi="' + (num.get(p) - 1) + '" title="Paleta č. ' + n + ' – kliknutím upravíte obsah"', '<i class="pnum">' + n + '</i>' + label(p)); }).join('') + '</div></div>';
+      list.map(p => { const n = ++shown; return block(p, 'data-code="' + esc(p.code) + '" data-so="' + esc(p.so || '') + '"' + (p.group ? ' data-group="' + esc(p.group) + '" data-pal="' + esc(p.pal || '') + '"' : '') + (p.over ? ' data-over="1"' : '') + (r.planOn ? ' data-bid="' + esc(p.board) + '"' : '') + ' data-pi="' + (num.get(p) - 1) + '" title="Paleta č. ' + n + ' – kliknutím upravíte obsah"', '<i class="pnum">' + n + '</i>' + label(p)); }).join('') + '</div></div>';
   });
   // pallets the operator added by hand
   // in plan mode the hand-made list is the plan itself: show only its empty pallets here
