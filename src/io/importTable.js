@@ -104,6 +104,7 @@ export const CATALOG_FIELDS = {
 
 export function packValue(v) {
   const s = norm(v);
+  if (/^neurc|^nezn|undecided|^\?$/.test(s)) return 'neurceno';
   return ['balik', 'baliky', 'parcel', 'package', 'box', 'krabice', 'посылка', 'коробка', 'упаковка'].includes(s) ? 'balik' : 'paleta';
 }
 
@@ -126,11 +127,11 @@ export function rowsToCatalog(rows) {
     const per = toNum(get(r, 'per')), pl = toNum(get(r, 'pl')), pw = toNum(get(r, 'pw')), kg = toNum(get(r, 'kg') || 0);
     const pal = String(get(r, 'pal')).trim().toUpperCase(), pack = packValue(get(r, 'pack'));
     const bad = [];
-    if (!(per >= 1) || per % 1 !== 0) bad.push('počet kusů musí být celé číslo ≥ 1');
+    if (pack !== 'neurceno' && (!(per >= 1) || per % 1 !== 0)) bad.push('počet kusů musí být celé číslo ≥ 1');
     if (pack === 'balik') {
       if (!(pl > 0)) bad.push('chybí délka balíku');
       if (!(pw > 0)) bad.push('chybí šířka balíku');
-    } else if (!pal && !(pl > 0 && pw > 0)) bad.push('chybí typ palety (PAL-xxxx)');
+    } else if (pack !== 'neurceno' && !pal && !(pl > 0 && pw > 0)) bad.push('chybí typ palety (PAL-xxxx)');
     if (!(kg >= 0)) bad.push('váha není číslo');
     if (bad.length) { errors.push('řádek ' + line + ' (' + code + '): ' + bad.join(', ')); return; }
     items.push({

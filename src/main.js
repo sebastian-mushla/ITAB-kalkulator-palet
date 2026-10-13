@@ -724,10 +724,17 @@ $('#koForm').onsubmit = ev => {
   }
   // one normal table row per article (mode „na společné paletě“), new rows go first
   const group = nextKoloCode(state.combos), rows = koParsed.items.map(it => koloRow(it, group, code, $('#koName').value.trim()));
+  // missing articles get a catalog entry: name, weight 0 to fill in, packing decided later (alone it may be a parcel)
+  let addedArt = 0;
+  if ($('#koCat').checked) koParsed.items.forEach(it => {
+    if (state.catalog.some(a => String(a.code).toLowerCase() === it.code.toLowerCase())) return;
+    state.catalog.push({ code: it.code, name: it.name || '', pack: 'neurceno', per: 0, kg: 0, rot: true }); addedArt++;
+  });
+  if (addedArt) { persist('catalog'); drawCatalog(); }
   state.combos = rows.concat(state.combos); persist('combos'); drawCombos();
   logChanges('–', ['Import koli ' + group + ': ' + rows.length + ' řádků kombinací, společná paleta ' + code]);
   recalc();
-  flash('Koli ' + group + ': přidáno ' + rows.length + ' řádků do kombinací (' + code + ').');
+  flash('Koli ' + group + ': přidáno ' + rows.length + ' řádků do kombinací (' + code + ')' + (addedArt ? ', ' + addedArt + ' artiklů do číselníku' : '') + '.');
 };
 // ---------- consolidate koli: groups that say the same as another group ----------
 $('#koloMerge').addEventListener('click', () => {
@@ -970,7 +977,7 @@ function askMaterial(listU, bid) {
     listU.forEach((u, i) => {
       const units = Math.min(u.qty, Math.max(1, Math.round(toNum($('#dmRows [data-mu="' + i + '"]').value))));
       const per = Math.max(1, Math.round(toNum($('#dmRows [data-mp="' + i + '"]').value))), kg = toNum($('#dmRows [data-mk="' + i + '"]').value) || 0;
-      if (save) state.catalog.push({ code: u.code, name: u.name || '', pack: 'paleta', pal: t.code, per, kg, rot: true });
+      if (save) { const ex = state.catalog.find(c => String(c.code).toLowerCase() === u.code.toLowerCase()), na = { code: u.code, name: u.name || '', pack: 'paleta', pal: t.code, per, kg, rot: true }; if (ex) Object.assign(ex, na, { name: ex.name || na.name, kg: kg || ex.kg || 0 }); else state.catalog.push(na); }
       // without a plan the catalog makes the pallets itself; with a plan (or without saving) the pieces go on this pallet
       if (P || !save) b.contents.push({ code: u.code, name: u.name || '', units, per, kg, so: u.so });
     });
@@ -1015,7 +1022,10 @@ function askArticle(u, next, left) {
       state.pallets.push({ code, name: $('#daPName').value.trim() || 'Paleta ' + Math.round(L / 10) + ' × ' + Math.round(W / 10), L, W, H: 0, tare: toNum($('#daPTare').value) || 0, maxKg: 0, rot });
       persist('pallets'); drawPallets(); a.pal = code;
     }
-    state.catalog.push(a);
+    // an article known only from a koli (balení neurčeno) gets its packing now instead of a second entry
+    const ex = state.catalog.find(c => String(c.code).toLowerCase() === u.code.toLowerCase());
+    if (ex) { delete ex.pl; delete ex.pw; delete ex.pal; Object.assign(ex, a, { name: ex.name || a.name, kg: a.kg || ex.kg || 0 }); }
+    else state.catalog.push(a);
     // pallets edited by hand: the catalog does not change them, so the new article gets its own pallets in the plan
     const P = state.plan.get(state.sel);
     if (P && a.pack !== 'balik') {
@@ -1157,10 +1167,11 @@ function catalogProblems() {
   state.catalog.forEach(a => {
     const k = String(a.code).trim().toLowerCase(), p = [];
     if (seen.has(k)) p.push('je v číselníku víckrát'); seen.set(k, 1);
-    if (a.pack === 'balik') { if (!(a.pl > 0 && a.pw > 0)) p.push('balík bez rozměru'); }
+    if (a.pack === 'neurceno') p.push('balení neurčeno');
+    else if (a.pack === 'balik') { if (!(a.pl > 0 && a.pw > 0)) p.push('balík bez rozměru'); }
     else if (!a.pal) p.push('chybí typ palety');
     else if (!typeOf(state.pallets, a.pal)) p.push('typ palety ' + a.pal + ' neexistuje (záložka Palety)');
-    if (!(a.per >= 1)) p.push('chybí počet kusů na paletě');
+    if (a.pack !== 'neurceno' && !(a.per >= 1)) p.push('chybí počet kusů na paletě');
     if (!(a.kg > 0)) p.push('váha kusu je 0');
     if (!a.name) p.push('bez názvu');
     if (p.length) out.push('<li><b>' + esc(a.code) + '</b>: ' + p.join(', ') + '</li>');

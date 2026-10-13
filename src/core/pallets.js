@@ -47,7 +47,12 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     const rule = findRule(a.code, l.qty, present, combos);
     const row = { code: a.code, name: a.name, qty: l.qty, kg: l.qty * (a.kg || 0), ci: idx, rule: rule ? ruleText(rule) : null };
     if (rule && rule.mode === 'group') { addGroup(rule, a, idx, l); return; }
-    if (rule && rule.mode === 'host') { riders.push({ a, idx, qty: l.qty, rule, row }); rows.push(row); return; }
+    // packing not decided yet (article known from a koli): rides only by a rule, otherwise waits on the right side
+    if (a.pack === 'neurceno' && !(rule && rule.mode !== 'group')) {
+      unknown.push({ code: l.code, qty: l.qty, name: a.name || l.name || '', known: true, undecided: true });
+      errors.push('Artikl „' + l.code + '“: balení není určeno – zařaďte ho na ploše níže.'); return;
+    }
+    if (rule && rule.mode === 'host') { riders.push({ a: a.pack === 'neurceno' ? Object.assign({}, a, { unknown: true }) : a, idx, qty: l.qty, rule, row }); rows.push(row); return; }
     if (rule && rule.mode === 'pallet') a = rule.pal && typeOf(types, rule.pal)
       ? resolveArticle(Object.assign({}, a, { pack: 'paleta', pal: rule.pal, per: rule.per || a.per }), types)
       : Object.assign({}, a, { pack: 'paleta', pal: null, palName: '', tare: 0, pl: rule.pl || a.pl, pw: rule.pw || a.pw, per: rule.per || a.per });

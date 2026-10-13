@@ -22,8 +22,8 @@ export function renderCatalog(catalog, view, pallets) {
     const num = (f, min, step) => '<td><input type="number" min="' + (min || 0) + '" step="' + (step || 'any') + '" data-i="' + i + '" data-f="' + f + '" value="' + (a[f] == null ? '' : a[f]) + '"></td>';
     return '<tr><td><i class="sw" style="background:' + color(i) + '"></i><input type="text" data-i="' + i + '" data-f="code" value="' + esc(a.code) + '" aria-label="Artikl"></td>' +
       '<td>' + (a.name ? '<span class="ro-name" title="Název z ERP, nelze měnit">' + esc(a.name) + '</span>' : '<input type="text" data-i="' + i + '" data-f="name" value="" aria-label="Název" placeholder="doplnit">') + '</td>' +
-      '<td><select data-i="' + i + '" data-f="pack" aria-label="Balení"><option value="paleta"' + (a.pack !== 'balik' ? ' selected' : '') + '>paleta</option><option value="balik"' + (a.pack === 'balik' ? ' selected' : '') + '>balík</option></select></td>' +
-      (a.pack === 'balik'
+      '<td><select data-i="' + i + '" data-f="pack" aria-label="Balení"><option value="paleta"' + (a.pack !== 'balik' && a.pack !== 'neurceno' ? ' selected' : '') + '>paleta</option><option value="balik"' + (a.pack === 'balik' ? ' selected' : '') + '>balík</option><option value="neurceno"' + (a.pack === 'neurceno' ? ' selected' : '') + '>neurčeno</option></select></td>' +
+      (a.pack === 'neurceno' ? '<td class="muted">určí se při prvním zařazení</td>' : a.pack === 'balik'
         ? '<td><span class="dims"><input type="number" min="1" data-i="' + i + '" data-f="pl" value="' + (a.pl || '') + '" aria-label="Délka balíku, mm"> × <input type="number" min="1" data-i="' + i + '" data-f="pw" value="' + (a.pw || '') + '" aria-label="Šířka balíku, mm"> mm</span></td>'
         : '<td><select data-i="' + i + '" data-f="pal" aria-label="Typ palety">' + (a.pal ? '' : '<option value="">– vyberte –</option>') + pallets.map(p => '<option value="' + esc(p.code) + '"' + (p.code === a.pal ? ' selected' : '') + '>' + esc(p.code) + ' · ' + esc(p.name) + ' (' + Math.round(p.L / 10) + '×' + Math.round(p.W / 10) + ')</option>').join('') + '</select></td>') +
       num('per', 1, 1) + num('kg') +

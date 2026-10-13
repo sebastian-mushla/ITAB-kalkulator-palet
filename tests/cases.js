@@ -373,3 +373,11 @@ cases.push(['Koli: sloučení – stejné artikly a podmnožina se sloučí do s
   assert(groups.join() === 'KOLI-1,KOLI-4', groups.join());
   assert(res.find(r => r.group === 'KOLI-1' && r.code === 'A').per === 5, 'per raised');
 }]);
+cases.push(['Koli: artikl s balením „neurčeno“ – v koli jede, sám čeká vpravo', () => {
+  const cat = DEFAULT_CATALOG.concat([{ code: 'NEU-1', name: 'x', pack: 'neurceno', per: 0, kg: 0, rot: true }]);
+  const o = parseOrders('SO 9\nr10 NEU-1 x 3\nr20 V-POL police 10').orders.get('9');
+  const alone = solve(o, Object.assign({}, ctx, { catalog: cat }));
+  assert(alone.unknown.some(u => u.code === 'NEU-1' && u.undecided), 'čeká vpravo');
+  const inKoli = solve(o, Object.assign({}, ctx, { catalog: cat, combos: [koloRow({ code: 'NEU-1', seen: 3 }, 'KOLI-1', 'PAL-0001')] }));
+  assert(!inKoli.unknown.length && inKoli.pallets.some(p => p.group === 'KOLI-1'), 'v koli');
+}]);
