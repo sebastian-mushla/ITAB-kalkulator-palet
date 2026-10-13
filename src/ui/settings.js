@@ -70,22 +70,16 @@ export function renderCombos(combos, catalog, pallets) {
   $('#comboBody').innerHTML = combos.map((r, i) => {
     const txt = (f, ph, dis) => '<td><input type="text" list="codeList" data-i="' + i + '" data-f="' + f + '" value="' + esc(r[f] || '') + '" placeholder="' + ph + '"' + (dis ? ' disabled' : '') + '></td>';
     const num = (f, ph, dis) => '<td><input type="number" min="0" step="1" data-i="' + i + '" data-f="' + f + '" value="' + (r[f] > 0 ? r[f] : '') + '" placeholder="' + ph + '"' + (dis ? ' disabled' : '') + '></td>';
-    if (r.mode === 'kolo') {
-      const items = r.items || [];
-      return '<tr class="kolo-row' + (r.on === false ? ' off' : '') + '"><td><input type="checkbox" data-i="' + i + '" data-f="on"' + (r.on !== false ? ' checked' : '') + ' aria-label="Aktivní"></td>' +
-        '<td colspan="11"><b>' + esc(r.code) + '</b>' + (r.name ? ' · ' + esc(r.name) : '') + ' · spolu na paletě <b>' + esc(r.pal) + '</b> · ' + items.length + ' artiklů' +
-        '<details><summary>Artikly a ověřené množství</summary><ul class="kolo-items">' + items.map(it => '<li><b>' + esc(it.code) + '</b> ' + esc(it.name || '') + ' – ověřeno ' + it.seen + ' ks</li>').join('') + '</ul></details></td>' +
-        '<td class="nowrap"><button class="btn small" data-up="' + i + '" aria-label="Výš"' + (i === 0 ? ' disabled' : '') + '>↑</button> <button class="btn small" data-down="' + i + '" aria-label="Níž"' + (i === combos.length - 1 ? ' disabled' : '') + '>↓</button> <button class="btn small" data-del="' + i + '">Smazat</button></td></tr>';
-    }
-    const host = r.mode === 'host';
+    const host = r.mode === 'host', group = r.mode === 'group';
     return '<tr' + (r.on === false ? ' class="off"' : '') + '>' +
       '<td><input type="checkbox" data-i="' + i + '" data-f="on"' + (r.on !== false ? ' checked' : '') + ' aria-label="Aktivní"></td>' +
       txt('code', 'artikl') + txt('withCode', 'libovolně') + num('min', '–') + num('max', '–') +
       '<td><select data-i="' + i + '" data-f="mode" aria-label="Pojede">' + COMBO_MODES.map(m => '<option value="' + m[0] + '"' + (r.mode === m[0] ? ' selected' : '') + '>' + m[1] + '</option>').join('') + '</select></td>' +
-      (r.mode === 'pallet'
-        ? '<td><select data-i="' + i + '" data-f="pal" aria-label="Typ palety"><option value="">rozměr vpravo</option>' + pallets.map(p => '<option value="' + esc(p.code) + '"' + (p.code === r.pal ? ' selected' : '') + '>' + esc(p.code) + ' · ' + esc(p.name) + '</option>').join('') + '</select></td>'
+      (r.mode === 'pallet' || group
+        ? '<td><select data-i="' + i + '" data-f="pal" aria-label="Typ palety">' + (group ? '<option value="">– typ palety –</option>' : '<option value="">rozměr vpravo</option>') + pallets.map(p => '<option value="' + esc(p.code) + '"' + (p.code === r.pal ? ' selected' : '') + '>' + esc(p.code) + ' · ' + esc(p.name) + '</option>').join('') + '</select>' +
+          (group ? '<input type="text" data-i="' + i + '" data-f="group" value="' + esc(r.group || '') + '" placeholder="společná paleta, např. KOLI-1" aria-label="Společná paleta" class="grp-in">' : '') + '</td>'
         : txt('host', 'artikl', !host)) +
-      num('pl', host ? '' : 'z číselníku', host || !!r.pal) + num('pw', host ? '' : 'z číselníku', host || !!r.pal) + num('per', host ? 'bez limitu' : 'z číselníku') +
+      num('pl', host || group ? '' : 'z číselníku', host || group || !!r.pal) + num('pw', host || group ? '' : 'z číselníku', host || group || !!r.pal) + num('per', host ? 'bez limitu' : group ? 'ověřeno ks' : 'z číselníku') +
       '<td><input type="number" min="0" step="any" data-i="' + i + '" data-f="kg" value="' + (r.kg > 0 ? r.kg : '') + '" placeholder="z číselníku"></td>' +
       '<td><input type="text" data-i="' + i + '" data-f="note" value="' + esc(r.note || '') + '" aria-label="Poznámka"></td>' +
       '<td class="nowrap"><button class="btn small" data-up="' + i + '" aria-label="Výš"' + (i === 0 ? ' disabled' : '') + '>↑</button> <button class="btn small" data-down="' + i + '" aria-label="Níž"' + (i === combos.length - 1 ? ' disabled' : '') + '>↓</button> <button class="btn small" data-del="' + i + '">Smazat</button></td></tr>';

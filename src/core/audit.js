@@ -69,16 +69,15 @@ export function auditOrder(order, plan, combos, catalog) {
     if (types.length === 1 && low(types[0]) !== low(a.pal)) defs.push({ code: a.code, pal: types[0], was: a.pal || '' });
   });
 
-  // koli: more pieces than verified went on the pallet and the operator kept it → raise the verified quantity
+  // shared pallet (mode 'group'): more pieces than verified went on it and the operator kept it → raise the verified quantity
   const placed = new Map();
   plan.forEach(b => (b.contents || []).forEach(c => { if (c.units > 0) placed.set(low(c.code), (placed.get(low(c.code)) || 0) + c.units); }));
   const seen = [];
-  combos.forEach((k, i) => {
-    if (k.mode !== 'kolo' || k.on === false) return;
-    (k.items || []).forEach(it => {
-      const n = placed.get(low(it.code)) || 0;
-      if (n > (it.seen || 0)) seen.push({ i, code: it.code, from: it.seen || 0, to: n });
-    });
+  lines.forEach(l => {
+    const rule = findRule(l.code, l.qty, bySo.get(l.so || order.id), combos);
+    if (!rule || rule.mode !== 'group') return;
+    const n = placed.get(low(l.code)) || 0, i = combos.indexOf(rule);
+    if (n > (rule.per || 0) && !seen.some(x => x.i === i)) seen.push({ i, code: l.code, from: rule.per || 0, to: n });
   });
 
   return {

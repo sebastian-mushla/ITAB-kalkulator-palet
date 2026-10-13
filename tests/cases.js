@@ -6,7 +6,7 @@ import { freezePlan, moveUnits, mergePallets } from '../src/core/plan.js';
 import { solve } from '../src/core/solve.js';
 import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, DEFAULT_PALLETS, SAMPLE } from '../src/core/defaults.js';
 import { migrateCatalog } from '../src/core/palletTypes.js';
-import { parseKolo } from '../src/core/combos.js';
+import { parseKolo, koloRow, expandKolo } from '../src/core/combos.js';
 import { parseCsvRows, rowsToCatalog, rowsToVehicles, rowsToCombos, mergeBy } from '../src/io/importTable.js';
 
 const ctx = { catalog: DEFAULT_CATALOG, vehicles: DEFAULT_VEHICLES, rules: DEFAULT_RULES, combos: DEFAULT_COMBOS, pallets: DEFAULT_PALLETS };
@@ -342,14 +342,24 @@ cases.push(['Koli: import z ERP – duplicity sečtené, PAL řádek = paleta', 
 }]);
 cases.push(['Koli: artikly zakázky jedou spolu na jedné paletě, víc než ověřeno = upozornění', () => {
   const k = parseKolo(KOLI_TEXT);
-  const kolo = { on: true, mode: 'kolo', code: 'KOLI-1', pal: 'PAL-0001', items: k.items };
+  const rows = k.items.map(it => koloRow(it, 'KOLI-1', 'PAL-0001'));
   const o = parseOrders('SO 9\nr10 DRO-0988 kit 1\nr20 DRO-0987 kit 8\nr30 V-POL police 156').orders.get('9');
-  const r = solve(o, Object.assign({}, ctx, { combos: [kolo] }));
-  const kp = r.pallets.filter(p => p.kolo === 'KOLI-1');
+  const r = solve(o, Object.assign({}, ctx, { combos: rows }));
+  const kp = r.pallets.filter(p => p.group === 'KOLI-1');
   assert(kp.length === 1, 'jedna koli paleta: ' + kp.length);
   const codes = [kp[0].code].concat((kp[0].extra || []).map(e => e.code));
   assert(codes.length === 2 && codes.includes('DRO-0988') && codes.includes('DRO-0987'), codes.join(','));
   assert(r.unknown.length === 0, 'nic neznámého');
   assert(r.errors.some(e => /DRO-0987.*ověřeno jen 6/.test(e)), 'upozornění: ' + r.errors.join('; '));
   assert(r.pallets.length === 2, 'koli + V-POL: ' + r.pallets.length);
+}]);
+cases.push(['Společná paleta: pořadí pravidel – když první nesedí, platí druhé', () => {
+  const r1 = { on: true, code: 'DRO-0988', withCode: 'V06', mode: 'group', pal: 'PAL-0002', group: 'A', per: 1 };
+  const r2 = { on: true, code: 'DRO-0988', withCode: '', mode: 'group', pal: 'PAL-0001', group: 'B', per: 1 };
+  const o = parseOrders('SO 9\nr10 DRO-0988 kit 1\nr20 V-POL police 10').orders.get('9');
+  const r = solve(o, Object.assign({}, ctx, { combos: [r1, r2] }));
+  const g = r.pallets.find(p => p.code === 'DRO-0988');
+  assert(g && g.group === 'B' && g.pal === 'PAL-0001', JSON.stringify(g && [g.group, g.pal]));
+  const old = expandKolo([{ mode: 'kolo', code: 'KOLI-1', pal: 'PAL-0001', items: [{ code: 'X', seen: 2 }, { code: 'Y', seen: 3 }] }]);
+  assert(old.changed && old.combos.length === 2 && old.combos[1].per === 3 && old.combos[0].group === 'KOLI-1', 'migrace');
 }]);

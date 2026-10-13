@@ -10,29 +10,6 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
   const index = new Map(catalog.map((a, i) => [String(a.code).trim().toLowerCase(), i]));
   const present = new Set(lines.map(l => l.code.toLowerCase()));
   const riders = [];
-  // koli: articles that really travelled together on one pallet go on one pallet of that type again;
-  // the imported quantity is only "verified", more pieces still go on it but are flagged
-  const inKolo = new Set();
-  (combos || []).filter(k => k.on !== false && k.mode === 'kolo').forEach((k, ki) => {
-    const t = typeOf(types, k.pal); if (!t) return;
-    const items = new Map((k.items || []).map(it => [low(it.code), it]));
-    const mine = lines.filter(l => items.has(low(l.code)) && !inKolo.has(low(l.code)) && l.qty > 0);
-    if (!mine.length) return;
-    const parts = mine.map(l => {
-      inKolo.add(low(l.code));
-      const i = index.has(low(l.code)) ? index.get(low(l.code)) : -1, a = i >= 0 ? catalog[i] : null;
-      return { l, a, ci: i >= 0 ? i : catalog.length + 200 + ki, kg: a ? a.kg || 0 : 0, seen: items.get(low(l.code)).seen || 0 };
-    }).sort((x, y) => y.l.qty - x.l.qty);
-    const [m, ...rest] = parts, tare = t.tare || 0;
-    pallets.push({ code: m.l.code, units: m.l.qty, fill: 1, kg: tare + parts.reduce((s, p) => s + p.l.qty * p.kg, 0), tare, pl: t.L, pw: t.W, rot: t.rot !== false, euro: isEuro({ pl: t.L, pw: t.W }), ci: m.ci,
-      pal: t.code, palName: t.name, palH: t.H || 0, maxKg: t.maxKg || 0, kolo: k.code, extra: rest.length ? rest.map(p => ({ code: p.l.code, units: p.l.qty, ci: p.ci, mixed: true })) : undefined });
-    parts.forEach((p, n) => {
-      const over = p.seen > 0 && p.l.qty > p.seen;
-      if (over) errors.push('Koli ' + k.code + ': ' + p.l.code + ' má ' + p.l.qty + ' ks, ověřeno jen ' + p.seen + ' ks – zkontrolujte, zda se vše vejde.');
-      rows.push({ code: p.l.code, name: (p.a && p.a.name) || p.l.name || '', qty: p.l.qty, kg: p.l.qty * p.kg, ci: p.ci, rule: ruleText(k) + (over ? ' – víc než ověřeno (' + p.seen + ' ks)' : ''), over,
-        pack: 'paleta', full: n === 0 ? 1 : 0, rem: 0, per: 1, fillRem: 0, count: n === 0 ? 1 : 0, kolo: k.code, pal: t.code, palName: t.name, pl: t.L, pw: t.W });
-    });
-  });
 
   function build(a, idx, qty, row) {
     const full = Math.floor(qty / a.per), rem = qty % a.per;
@@ -45,12 +22,18 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     return Object.assign(row, { pack: parcel ? 'balik' : 'paleta', full, rem, per: a.per, fillRem: rem / a.per, count: full + (rem > 0 ? 1 : 0), pal: parcel ? null : (a.pal || null), palName: a.palName || '', pl: a.pl, pw: a.pw });
   }
 
+  const groups = new Map(); // shared pallets (mode 'group'): group|pal → articles
+  function addGroup(rule, a, idx, l) {
+    const k = low(rule.group) + '|' + low(rule.pal);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push({ rule, code: a.code || l.code, name: a.name || l.name || '', kg: rule.kg > 0 ? rule.kg : (a.kg || 0), qty: l.qty, ci: idx >= 0 ? idx : catalog.length + 200 + groups.size });
+  }
   lines.forEach(l => {
-    if (inKolo.has(low(l.code))) return;
     const idx = index.has(l.code.toLowerCase()) ? index.get(l.code.toLowerCase()) : -1;
     if (idx < 0) {
       // not in the catalog yet: it can still ride on a host pallet if a Kombinace rule says so
       const r0 = findRule(l.code, l.qty, present, combos);
+      if (r0 && r0.mode === 'group') { addGroup(r0, { code: l.code, name: r0.name || l.name || '', kg: r0.kg || 0 }, -1, l); return; }
       if (r0 && r0.mode === 'host') {
         const a0 = { code: l.code, name: r0.name || l.name || '', kg: r0.kg || 0, per: 0, pl: 0, pw: 0, unknown: true };
         const ci = catalog.length + unknown.length + riders.length;
@@ -63,6 +46,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     let a = resolveArticle(catalog[idx], types);
     const rule = findRule(a.code, l.qty, present, combos);
     const row = { code: a.code, name: a.name, qty: l.qty, kg: l.qty * (a.kg || 0), ci: idx, rule: rule ? ruleText(rule) : null };
+    if (rule && rule.mode === 'group') { addGroup(rule, a, idx, l); return; }
     if (rule && rule.mode === 'host') { riders.push({ a, idx, qty: l.qty, rule, row }); rows.push(row); return; }
     if (rule && rule.mode === 'pallet') a = rule.pal && typeOf(types, rule.pal)
       ? resolveArticle(Object.assign({}, a, { pack: 'paleta', pal: rule.pal, per: rule.per || a.per }), types)
@@ -70,6 +54,22 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     if (rule && rule.mode === 'parcel') a = Object.assign({}, a, { pack: 'balik', pl: rule.pl || a.pl, pw: rule.pw || a.pw, per: rule.per || a.per });
     if (!(a.per > 0) || !(a.pl > 0) || !(a.pw > 0)) { errors.push('U artiklu „' + a.code + '“ chybí rozměry nebo počet kusů.'); return; }
     rows.push(build(a, idx, l.qty, row));
+  });
+
+  // shared pallets: every group = one pallet of its type with all its articles; per is only "verified"
+  groups.forEach(list => {
+    const r0 = list[0].rule, t = typeOf(types, r0.pal);
+    if (!t) { list.forEach(g => errors.push('Artikl „' + g.code + '“: typ palety ' + r0.pal + ' pro společnou paletu ' + r0.group + ' neexistuje.')); return; }
+    list.sort((x, y) => y.qty - x.qty);
+    const [m, ...rest] = list, tare = t.tare || 0;
+    pallets.push({ code: m.code, units: m.qty, fill: 1, kg: tare + list.reduce((s, g) => s + g.qty * g.kg, 0), tare, pl: t.L, pw: t.W, rot: t.rot !== false, euro: isEuro({ pl: t.L, pw: t.W }), ci: m.ci,
+      pal: t.code, palName: t.name, palH: t.H || 0, maxKg: t.maxKg || 0, group: r0.group, extra: rest.length ? rest.map(g => ({ code: g.code, units: g.qty, ci: g.ci, mixed: true })) : undefined });
+    list.forEach((g, n) => {
+      const over = g.rule.per > 0 && g.qty > g.rule.per;
+      if (over) errors.push('Společná paleta ' + r0.group + ': ' + g.code + ' má ' + g.qty + ' ks, ověřeno jen ' + g.rule.per + ' ks – zkontrolujte, zda se vše vejde.');
+      rows.push({ code: g.code, name: g.name, qty: g.qty, kg: g.qty * g.kg, ci: g.ci, rule: ruleText(g.rule) + (over ? ' – víc než ověřeno' : ''), over,
+        pack: 'paleta', full: n === 0 ? 1 : 0, rem: 0, per: 1, fillRem: 0, count: n === 0 ? 1 : 0, group: r0.group, pal: t.code, palName: t.name, pl: t.L, pw: t.W });
+    });
   });
 
   // riders go onto the host article's pallets; what does not fit follows the normal logic

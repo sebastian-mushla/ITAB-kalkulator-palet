@@ -238,11 +238,14 @@ export const COMBO_FIELDS = {
   note: ['poznamka', 'note', 'комментарий'],
   kg: ['vaha kusu', 'vaha', 'weight', 'вес'],
   name: ['nazev', 'name', 'название'],
+  pal: ['typ palety', 'pallet type'],
+  group: ['spolecna paleta', 'skupina', 'group', 'koli'],
   on: ['aktivni', 'active', 'on', 'активно']
 };
 function comboMode(v) {
   const s = norm(v);
   if (/balik|parcel|посыл/.test(s)) return 'parcel';
+  if (/spolec|group|koli|общ/.test(s)) return 'group';
   if (/jin|other|drug|друг|pallet$|vlastn/.test(s) && !/artikl|host/.test(s)) return 'pallet';
   return 'host';
 }
@@ -259,11 +262,12 @@ export function rowsToCombos(rows) {
       on: toBool(get(r, 'on'), true), code: String(get(r, 'code')).trim(), withCode: String(get(r, 'withCode')).trim(),
       min: toNum(get(r, 'min') || 0) || 0, max: toNum(get(r, 'max') || 0) || 0, mode: comboMode(get(r, 'mode')),
       host: String(get(r, 'host')).trim(), pl: toNum(get(r, 'pl') || 0) || 0, pw: toNum(get(r, 'pw') || 0) || 0,
-      per: toNum(get(r, 'per') || 0) || 0, note: String(get(r, 'note')).trim(), kg: toNum(get(r, 'kg') || 0) || 0, name: String(get(r, 'name')).trim()
+      per: toNum(get(r, 'per') || 0) || 0, pal: String(get(r, 'pal')).trim().toUpperCase(), group: String(get(r, 'group')).trim(), note: String(get(r, 'note')).trim(), kg: toNum(get(r, 'kg') || 0) || 0, name: String(get(r, 'name')).trim()
     };
     if (!x.code) { errors.push('řádek ' + (hi + i + 2) + ': chybí artikl'); return; }
     if (x.mode === 'host' && !x.host) { errors.push('řádek ' + (hi + i + 2) + ': chybí artikl, na jehož paletě pojede'); return; }
-    if (x.mode === 'pallet' && !(x.pl > 0 && x.pw > 0 && x.per > 0)) { errors.push('řádek ' + (hi + i + 2) + ': u jiné palety chybí délka, šířka nebo ks'); return; }
+    if (x.mode === 'group' && !(x.pal && x.group)) { errors.push('řádek ' + (hi + i + 2) + ': u společné palety chybí typ palety nebo název společné palety'); return; }
+    if (x.mode === 'pallet' && !x.pal && !(x.pl > 0 && x.pw > 0 && x.per > 0)) { errors.push('řádek ' + (hi + i + 2) + ': u jiné palety chybí délka, šířka nebo ks'); return; }
     items.push(x);
   });
   return { items, errors, cols };

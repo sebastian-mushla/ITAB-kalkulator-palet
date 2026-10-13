@@ -173,10 +173,10 @@ function compositionHtml(r) {
   const known = r.rows.map(x => {
     const parts = [];
     if (x.planDist != null) parts.push(x.planDist);
-    else if (x.kolo) parts.push('na smíšené paletě ' + x.kolo);
+    else if (x.group) parts.push('na společné paletě ' + x.group);
     else if (x.onHost) parts.push(x.onHost + ' ks na paletách ' + x.host);
     if (x.planDist == null && x.board) parts.push(x.qty + ' ks na ručně přidané paletě');
-    if (x.planDist != null || !x.count || x.kolo) { /* everything rides on host pallets / one koli pallet */ }
+    if (x.planDist != null || !x.count || x.group) { /* everything rides on host pallets / one koli pallet */ }
     else if (x.pack === 'balik') parts.push(x.count + ' ' + balWord(x.count) + ' po ' + x.per + ' ks' + (x.rem ? ' (poslední ' + x.rem + ' ks)' : ''));
     else if (x.per === 1) parts.push(x.full + ' ' + palWord(x.full));
     else {

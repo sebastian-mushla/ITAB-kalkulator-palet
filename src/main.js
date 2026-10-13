@@ -5,7 +5,7 @@ import { roomFor, freezePlan, moveUnits, setPalletType, removePallet, newId, mer
 import { parseOrders, rowsToOrderText, ordersToText } from './core/parse.js';
 import { solve } from './core/solve.js';
 import { auditOrder } from './core/audit.js';
-import { ruleText, parseKolo, nextKoloCode } from './core/combos.js';
+import { ruleText, parseKolo, nextKoloCode, expandKolo, koloRow } from './core/combos.js';
 import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle, replaceVehicle, DEPOT } from './core/manual.js';
 import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, rowsToPallets, mergeBy, toCsv } from './io/importTable.js';
 import { renderKpis, renderPriorities, renderList, renderDetail, renderDock, requestText, loadPlanHtml, palOption, setNameLookup } from './ui/orders.js';
@@ -66,6 +66,9 @@ if (isAdmin && !me.demo) {
 // articles that still carry pallet sizes get a pallet type (PAL-xxxx)
 {
   const m = migrateCatalog(state.catalog, state.pallets);
+  // older imported koli (one special entry) become normal table rows
+  const ek = expandKolo(state.combos);
+  if (ek.changed) { state.combos = ek.combos; if (isAdmin && !me.demo) setTimeout(() => persist('combos'), 0); }
   if (m.changed) { state.catalog = m.catalog; state.pallets = m.types; if (isAdmin && !me.demo) setTimeout(() => { persist('pallets'); persist('catalog'); }, 0); }
 }
 
@@ -630,7 +633,7 @@ onBoth('click', e => {
   res.drop.forEach(i => rows.push({ k: 'drop', i, t: 'Smazat neplatnou kombinaci: ' + ruleText(state.combos[i]) }));
   res.update.forEach(u => rows.push({ k: 'upd', u, t: 'Upravit kombinaci ' + ruleText(state.combos[u.i]) + ' → ' + Object.entries(u.ch).map(([k, v]) => (k === 'per' ? 'max ' + v + ' ks/paleta' : 'do ' + v + ' ks')).join(', ') }));
   res.add.forEach(a => rows.push({ k: 'add', a, t: 'Nová kombinace: ' + ruleText(a) }));
-  res.seen.forEach(x => rows.push({ k: 'seen', x, t: 'Koli ' + state.combos[x.i].code + ': ' + x.code + ' ověřeno ' + x.from + ' → ' + x.to + ' ks' }));
+  res.seen.forEach(x => rows.push({ k: 'seen', x, t: 'Společná paleta ' + (state.combos[x.i].group || '') + ': ' + x.code + ' ověřeno ' + x.from + ' → ' + x.to + ' ks' }));
   res.defs.forEach(d => rows.push({ k: 'def', d, t: 'Artikl ' + d.code + ': typ palety ' + (d.was || '–') + ' → ' + d.pal }));
   const unk = (r.unknown || []).length;
   $('#auTitle').textContent = 'Zkontrolovat a uložit – zakázka ' + id;
@@ -642,7 +645,7 @@ onBoth('click', e => {
     rows.forEach((x, n) => {
       if (!on(n)) return;
       if (x.k === 'upd') Object.assign(state.combos[x.u.i], x.u.ch);
-      if (x.k === 'seen') { const it = (state.combos[x.x.i].items || []).find(c => c.code.toLowerCase() === x.x.code.toLowerCase()); if (it) it.seen = x.x.to; }
+      if (x.k === 'seen') state.combos[x.x.i].per = x.x.to;
       if (x.k === 'def') { const a = state.catalog.find(c => String(c.code).toLowerCase() === x.d.code.toLowerCase()); if (a) a.pal = x.d.pal; }
       done.push(x.t);
     });
@@ -719,11 +722,12 @@ $('#koForm').onsubmit = ev => {
     state.pallets.push({ code, name: $('#koNewName').value.trim() || code, L: Math.max(L, W), W: Math.min(L, W), H: 0, tare: toNum($('#koNewTare').value) || 0, maxKg: 0, rot: true });
     persist('pallets'); drawPallets();
   }
-  const rule = { on: true, mode: 'kolo', code: nextKoloCode(state.combos), name: $('#koName').value.trim(), pal: code, items: koParsed.items, note: 'Import koli' };
-  state.combos.unshift(rule); persist('combos'); drawCombos();
-  logChanges('–', ['Import koli ' + rule.code + ': ' + rule.items.length + ' artiklů na ' + code]);
+  // one normal table row per article (mode „na společné paletě“), new rows go first
+  const group = nextKoloCode(state.combos), rows = koParsed.items.map(it => koloRow(it, group, code, $('#koName').value.trim()));
+  state.combos = rows.concat(state.combos); persist('combos'); drawCombos();
+  logChanges('–', ['Import koli ' + group + ': ' + rows.length + ' řádků kombinací, společná paleta ' + code]);
   recalc();
-  flash('Koli ' + rule.code + ' uloženo (' + rule.items.length + ' artiklů, ' + code + ').');
+  flash('Koli ' + group + ': přidáno ' + rows.length + ' řádků do kombinací (' + code + ').');
 };
 function relearn() { state.manual.delete(state.sel); recalc(); }
 // one or more unknown articles ride on the pallets of article `host`
@@ -1253,18 +1257,17 @@ $('#comboAdd').addEventListener('click', () => {
   state.combos.push({ on: true, code: '', withCode: '', min: 0, max: 0, mode: 'host', host: '', pl: 0, pw: 0, per: 0, note: '' });
   persist('combos'); drawCombos();
 });
-const MODE_NAMES = { host: 'na palete artiklu', pallet: 'na jine palete', parcel: 'jako balik' };
+const MODE_NAMES = { host: 'na palete artiklu', pallet: 'na jine palete', group: 'na spolecne palete', parcel: 'jako balik' };
 $('#comboExport').addEventListener('click', () => download('kombinace.csv',
-  [['aktivni', 'artikl', 'kdyz_je_v_zakazce', 'mnozstvi_od', 'mnozstvi_do', 'pojede', 'cil', 'delka_mm', 'sirka_mm', 'max_ks_na_paletu', 'vaha_kusu_kg', 'poznamka']]
-    .concat(state.combos.filter(r => r.mode !== 'kolo').map(r => [r.on !== false ? 'ano' : 'ne', r.code, r.withCode, r.min || '', r.max || '', MODE_NAMES[r.mode], r.host, r.pl || '', r.pw || '', r.per || '', r.kg ? String(r.kg).replace('.', ',') : '', r.note]))));
+  [['aktivni', 'artikl', 'kdyz_je_v_zakazce', 'mnozstvi_od', 'mnozstvi_do', 'pojede', 'cil', 'delka_mm', 'sirka_mm', 'max_ks_na_paletu', 'vaha_kusu_kg', 'poznamka', 'typ_palety', 'spolecna_paleta']]
+    .concat(state.combos.map(r => [r.on !== false ? 'ano' : 'ne', r.code, r.withCode, r.min || '', r.max || '', MODE_NAMES[r.mode], r.host, r.pl || '', r.pw || '', r.per || '', r.kg ? String(r.kg).replace('.', ',') : '', r.note, r.pal || '', r.group || '']))));
 $('#comboFile').addEventListener('change', async e => {
   const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
   try {
     const { rows } = await readFileRows(f), res = rowsToCombos(rows), replace = $('#comboReplace').checked;
     let merged = null;
     if (res.items.length) {
-      // koli are not in the CSV, so they stay when the rules are replaced
-      merged = replace ? { list: state.combos.filter(r => r.mode === 'kolo').concat(res.items) } : { list: state.combos.concat(res.items), added: res.items.length, updated: 0 };
+      merged = replace ? { list: res.items } : { list: state.combos.concat(res.items), added: res.items.length, updated: 0 };
       state.combos = merged.list; persist('combos'); drawCombos(); recalc();
     }
     importReport($('#comboReport'), res, merged, replace);

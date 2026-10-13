@@ -3,7 +3,8 @@
 //  host   - ride on the pallets of article `host`, at most `per` pcs per host pallet (0 = no limit); size unchanged, weight added
 //  pallet - use pallet pl × pw with `per` pcs instead of the catalog values
 //  parcel - send as parcels, `per` pcs per parcel (pl/pw = parcel size, empty = catalog)
-export const COMBO_MODES = [['host', 'na paletě artiklu'], ['pallet', 'na jiné paletě'], ['parcel', 'jako balík']];
+//  group  - all articles with the same `group` go together on ONE pallet of type `pal`; per = verified pcs (more = warning, not a limit)
+export const COMBO_MODES = [['host', 'na paletě artiklu'], ['pallet', 'na jiné paletě'], ['group', 'na společné paletě'], ['parcel', 'jako balík']];
 
 const low = s => String(s == null ? '' : s).trim().toLowerCase();
 
@@ -17,13 +18,13 @@ export function findRule(code, qty, present, combos) {
 }
 
 export function ruleText(r) {
-  if (r.mode === 'kolo') return 'koli ' + r.code + (r.name ? ' ' + r.name : '') + ' → spolu na paletě ' + r.pal + ' (' + (r.items || []).length + ' artiklů)';
   const cond = [];
   if (low(r.withCode)) cond.push('s ' + r.withCode);
   if (r.min > 0) cond.push('od ' + r.min + ' ks');
   if (r.max > 0) cond.push('do ' + r.max + ' ks');
   let act;
-  if (r.mode === 'host') act = 'na paletě ' + r.host + (r.per > 0 ? ' (max ' + r.per + ' ks/paleta)' : '');
+  if (r.mode === 'group') act = 'na společné paletě ' + (r.group || '?') + ' (' + (r.pal || '?') + (r.per > 0 ? ', ověřeno ' + r.per + ' ks' : '') + ')';
+  else if (r.mode === 'host') act = 'na paletě ' + r.host + (r.per > 0 ? ' (max ' + r.per + ' ks/paleta)' : '');
   else if (r.mode === 'pallet') act = 'na paletě ' + r.pl + '×' + r.pw + ' mm, ' + r.per + ' ks';
   else act = 'jako balík' + (r.per > 0 ? ' po ' + r.per + ' ks' : '');
   return r.code + (cond.length ? ' ' + cond.join(', ') : '') + ' → ' + act;
@@ -49,6 +50,21 @@ export function parseKolo(text) {
   return { items: [...items.values()], pals, problems };
 }
 export function nextKoloCode(combos) {
-  const n = (combos || []).filter(r => r.mode === 'kolo').map(r => Number(String(r.code).replace(/\D/g, '')) || 0);
+  const n = (combos || []).filter(r => r.mode === 'group' && /^KOLI-\d+$/i.test(r.group || '')).map(r => Number(String(r.group).replace(/\D/g, '')) || 0);
   return 'KOLI-' + ((n.length ? Math.max(...n) : 0) + 1);
+}
+
+// older imported koli (one special entry) → normal table rows, one per article
+export function expandKolo(combos) {
+  let changed = false;
+  const out = [];
+  (combos || []).forEach(r => {
+    if (r.mode !== 'kolo') { out.push(r); return; }
+    changed = true;
+    (r.items || []).forEach(it => out.push(koloRow(it, r.code, r.pal, r.name, r.on)));
+  });
+  return { combos: out, changed };
+}
+export function koloRow(it, group, pal, name, on) {
+  return { on: on !== false, code: it.code, withCode: '', min: 0, max: 0, mode: 'group', host: '', pal, group, pl: 0, pw: 0, per: it.seen || 0, kg: 0, name: it.name || '', note: 'Koli ' + group + (name ? ' – ' + name : '') };
 }
