@@ -83,7 +83,7 @@ export function renderOrderTable(el, countEl, rows, ui, sel) {
     const st = ST[row.status], full = row.known === row.total;
     return '<tr class="orow' + (row.status === 'vyrizena' ? ' done' : '') + '" data-id="' + esc(row.id) + '"' + (row.id === sel ? ' aria-current="true"' : '') + '>' +
       '<td class="c-done"><input type="checkbox" data-done="' + esc(row.id) + '"' + (row.status === 'vyrizena' ? ' checked' : '') + (full ? '' : ' disabled') + ' title="' + (full ? 'Označit jako vyřízenou' : 'Nejdřív zařaďte všechny artikly') + '"></td>' +
-      '<td class="c-id"><b>' + esc(row.id) + '</b>' + (row.sos && (row.sos.length > 1 || row.sos[0] !== row.id) ? '<small class="sos" title="' + esc(row.sos.join(', ')) + '">' + row.sos.length + ' ' + plural(row.sos.length, ['zakázka', 'zakázky', 'zakázek']) + '</small>' : '') + '</td>' +
+      '<td class="c-id"><b>' + esc(row.id) + '</b>' + (row.sos && (row.sos.length > 1 || row.sos[0] !== row.id) ? '<small class="sos" title="' + esc(row.sos.join(', ')) + '">' + row.sos.length + ' ' + plural(row.sos.length, ['zakázka', 'zakázky', 'zakázek']) + '</small>' : '') + (row.project ? '<small class="proj-tag">' + esc(row.project) + '</small>' : '') + '</td>' +
       '<td><span class="st st-' + st.color + '">' + st.label + '</span></td>' +
       '<td class="num">' + ring(row.known, row.total) + '</td>' +
       '<td class="num">' + row.pallets + (row.parcels ? '<small> +' + row.parcels + ' bal.</small>' : '') + '</td>' +

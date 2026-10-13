@@ -210,7 +210,7 @@ function drawOrderTable(vs) {
   const edited = id => !!(state.plan.has(id) || (state.manual.get(id) && state.manual.get(id).touched));
   const rows = [...state.orders.keys()].filter(id => !q || id.toLowerCase().includes(q) || [...state.orders.get(id).lines.values()].some(l => l.code.toLowerCase().includes(q))).map(id => {
     const r = vs.get(id), total = state.orders.get(id).lines.size;
-    return { id, r, total, sos: state.orders.get(id).sos, known: total - (r.unknown || []).length, pallets: r.pallets.length, parcels: r.parcels.length, kg: r.kg, transport: transportOf(r), status: statusOf(r, id, { done: state.done, ordered: state.ordered, edited }) };
+    return { id, r, total, project: r.project || '', sos: state.orders.get(id).sos, known: total - (r.unknown || []).length, pallets: r.pallets.length, parcels: r.parcels.length, kg: r.kg, transport: transportOf(r), status: statusOf(r, id, { done: state.done, ordered: state.ordered, edited }) };
   });
   renderOrderTable($('#orderList'), $('#orderCount'), rows, state.listUi, state.sel);
 }
