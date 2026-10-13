@@ -199,7 +199,7 @@ function compositionHtml(r) {
     const unkHtml = unk.map((u, i) => [u.so, unknownRows.split('</tr>')[i] + '</tr>']);
     body = sos.map(so => '<tr class="so-head"><td colspan="5">Zakázka <b>' + esc(so) + '</b></td></tr>' + unkHtml.filter(x => x[0] === so).map(x => x[1]).join('') + rowsHtml.filter(x => x[0] === so).map(x => x[1]).join('')).join('');
   }
-  return '<div class="panel"><h3>Složení' + (sos.length > 1 ? ' – ' + sos.length + ' zakázky' : ' zakázky') + '</h3>' + sum + '<div class="tscroll"><table><thead><tr><th>Artikl</th><th class="num">Množství</th><th>Paleta</th><th>Rozdělení</th><th class="num">Váha</th></tr></thead><tbody>' + body + '</tbody></table></div></div>';
+  return '<div class="panel">' + fold('comp', r.rows.length + (r.unknown || []).length <= 15, 'Složení' + (sos.length > 1 ? ' – ' + sos.length + ' zakázky' : ' zakázky') + ' (' + (r.rows.length + (r.unknown || []).length) + ')', sum + '<div class="tscroll"><table><thead><tr><th>Artikl</th><th class="num">Množství</th><th>Paleta</th><th>Rozdělení</th><th class="num">Váha</th></tr></thead><tbody>' + body + '</tbody></table></div>', 'fold-comp') + '</div>';
 }
 function extrasOf(items) {
   const m = new Map();
@@ -349,7 +349,7 @@ export function renderDetail(r, { rules, isAdmin, board, pallets, saved }) {
     if (r.pallets.length) h += '<div><b>' + ldmText(r) + '</b><span>LDM</span></div>';
     h += '</div>';
   }
-  if (r.errors.length) h += '<ul class="errors">' + r.errors.map(e => '<li>' + esc(e) + '</li>').join('') + '</ul>';
+  if (r.errors.length) h += fold('err', r.errors.length <= 5, 'Upozornění (' + r.errors.length + ')', '<ul class="errors">' + r.errors.map(e => '<li>' + esc(e) + '</li>').join('') + '</ul>', 'fold-err');
   h += compositionHtml(r);
   if (r.pallets.length || r.parcels.length) h += '<details class="panel"><summary>Parametry nákladu pro poptávku</summary><table><tbody>' + cargoRows(r).map(x => '<tr><th scope="row">' + esc(x[0]) + '</th><td>' + esc(x[1]) + '</td></tr>').join('') + '</tbody></table><p class="hint">LDM je odhad podle plochy palet: plocha ÷ šířka korby největšího vozidla.</p></details>';
 
@@ -476,4 +476,12 @@ export function renderList(orders, results, sel, q, done, ulSel, countSel) {
     return '<li class="feedrow' + (isDone ? ' done' : '') + '">' + tick + '<button class="feed" data-id="' + esc(id) + '"' + (id === sel ? ' aria-current="true"' : '') + '>' + ring(r.known, r.total) + '<span class="ftext"><b>ID ' + esc(id) + ((orders.get(id).sos || []).length > 1 ? ' · ' + orders.get(id).sos.length + ' zak.' : '') + '</b><span>' + esc(r.listInfo) + transportText(r) + '</span>' + unkChip(r) + '</span><span class="chip ' + c + '">' + esc(r.stat) + '</span></button>' +
       '<button class="feed-x" data-del="' + esc(id) + '" aria-label="Odebrat zakázku ' + esc(id) + '" title="Odebrat ze seznamu">×</button></li>';
   }).join('');
+}
+
+// collapsible block; the operator's choice (open / closed) is kept across redraws
+const folds = {};
+if (typeof window !== 'undefined') window.__fold = folds;
+function fold(key, openByDefault, title, inner, cls) {
+  const open = key in folds ? folds[key] : openByDefault;
+  return '<details class="fold ' + (cls || '') + '"' + (open ? ' open' : '') + ' data-d="' + (openByDefault ? 1 : 0) + '" ontoggle="if (this.open === (this.dataset.d === \'1\')) delete window.__fold[\'' + key + '\']; else window.__fold[\'' + key + '\'] = this.open"><summary>' + esc(title) + '</summary>' + inner + '</details>';
 }

@@ -542,3 +542,6 @@ tr.so-head td{background:var(--soft);font-size:13px;padding:6px 10px;color:var(-
 #koText{width:100%;box-sizing:border-box;font:12px ui-monospace,monospace}.ko-new{padding:8px 12px;border-radius:10px;background:rgba(245,158,11,.12);margin:8px 0}
 .kolo-row td{background:color-mix(in srgb,#7866EE 6%,transparent)}.kolo-items{margin:4px 0 0 16px;padding:0;font-size:12.5px}
 .rule-note.over{color:#b45309;font-weight:600}
+.fold>summary{cursor:pointer;font-weight:700;margin:4px 0 8px}.fold-comp>summary{font-size:16px}
+.fold-err{margin:10px 0;padding:8px 14px;border:1px solid color-mix(in srgb,var(--red) 40%,transparent);border-radius:12px;background:color-mix(in srgb,var(--red) 7%,var(--panel))}
+.fold-err>summary{color:var(--red)}.fold-err .errors{margin:0;border:0;background:none;padding:0 0 0 18px}
