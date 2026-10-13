@@ -80,7 +80,18 @@ export function auditOrder(order, plan, combos, catalog) {
     if (n > (rule.per || 0) && !seen.some(x => x.i === i)) seen.push({ i, code: l.code, from: rule.per || 0, to: n });
   });
 
+  // koli pallets the operator added articles to: those articles join the koli
+  const koliAdd = [];
+  plan.forEach(b => {
+    if (!b.group) return;
+    const have = new Set(combos.filter(r => r.mode === 'group' && low(r.group) === low(b.group) && low(r.pal) === low(b.pal)).map(r => low(r.code)));
+    (b.contents || []).forEach(c => {
+      if (c.units > 0 && !have.has(low(c.code)) && !koliAdd.some(x => low(x.code) === low(c.code) && x.group === b.group)) koliAdd.push({ group: b.group, pal: b.pal, code: c.code, name: c.name || '', units: c.units });
+    });
+  });
+
   return {
+    koliAdd,
     seen,
     drop: [...verdict].filter(([, v]) => v === 'drop').map(([i]) => i),
     update: [...update].map(([i, ch]) => ({ i, ch })),

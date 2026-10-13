@@ -42,7 +42,7 @@ export function planPallets(plan, types, ci) {
       code: m.code, units: m.units, fill: list.filter(c => !c.ride).reduce((s, c) => s + c.units / (c.per || c.units), 0),
       kg: (t.tare || 0) + list.reduce((s, c) => s + c.units * (c.kg || 0), 0), tare: t.tare || 0,
       pl: t.L, pw: t.W, rot: t.rot !== false, euro: isEuro({ pl: t.L, pw: t.W }), ci: ci(m.code), pal: b.pal || t.code, palName: t.name, palH: t.H || 0, maxKg: t.maxKg || 0,
-      extra: rest.length ? rest.map(c => ({ code: c.code, units: c.units, ci: ci(c.code), mixed: !c.ride, so: c.so })) : undefined, board: b.id,
+      extra: rest.length ? rest.map(c => ({ code: c.code, units: c.units, ci: ci(c.code), mixed: !c.ride, so: c.so })) : undefined, board: b.id, group: b.group,
       so: m.so, sos: [...new Set(list.map(c => c.so).filter(Boolean))]
     });
   });
