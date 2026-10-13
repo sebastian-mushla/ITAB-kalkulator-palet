@@ -41,7 +41,8 @@ const isAdmin = me.role === 'admin';
 let shared = {};
 if (!me.demo) { try { shared = await loadSettings(); } catch (e) { alert(e.message); } }
 const state = {
-  catalog: Array.isArray(shared.catalog) && shared.catalog.length ? shared.catalog : clone(DEFAULT_CATALOG),
+  // an emptied shared catalog stays empty (demo articles only when nothing was ever saved)
+  catalog: Array.isArray(shared.catalog) && (shared.catalog.length || !me.demo) ? shared.catalog : clone(DEFAULT_CATALOG),
   vehicles: Array.isArray(shared.vehicles) && shared.vehicles.length ? shared.vehicles : clone(DEFAULT_VEHICLES),
   combos: Array.isArray(shared.combos) ? shared.combos : clone(DEFAULT_COMBOS),
   pallets: Array.isArray(shared.pallets) && shared.pallets.length ? shared.pallets : clone(DEFAULT_PALLETS),
