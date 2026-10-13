@@ -48,7 +48,7 @@ function contains(b, a, i, j) {
 // Priority: 1) fits, weight OK  2) left/right inside tolerance and, for a heavy load, centre of gravity inside the
 // zone along the body (out of norm = big penalty)  3) as few gaps as possible (compact block from the headboard).
 // Inside the norms a small left/right difference does not matter – gaps do.
-export const NORM_DEFAULTS = { lrTol: 60, cgMin: 35, cgMax: 60, heavyShare: 50, vehExtra: 0.3 };
+export const NORM_DEFAULTS = { lrTol: 60, cgMin: 35, cgMax: 60, heavyShare: 50, vehExtra: 0.3, minVeh: true };
 let norms = Object.assign({}, NORM_DEFAULTS);
 export function setNorms(r) { norms = Object.assign({}, NORM_DEFAULTS, r || {}); }
 
@@ -319,7 +319,8 @@ export function packAll(pallets, vehicles, forced, oneVehicle, seq, rules) {
       let c = 0;
       const typed = bins.map(b0 => { const { v, b } = downsize(b0, pool); c += (v.cost || 0) + b.usedL / 1e7 + imbalance(b, v.Wmm, v.Lmm, v.kg); return { v, b }; });
       // every extra vehicle costs something on top (loading, paperwork, dock time): fewer vehicles win when prices are close
-      c += Math.max(0, typed.length - 1) * (norms.vehExtra || 0);
+      // rule „co nejméně vozidel“: the number of vehicles decides first, price only between sets of the same size
+      c += Math.max(0, typed.length - 1) * (norms.minVeh !== false ? 1000 : (norms.vehExtra || 0));
       if (!best || c < best.c - 1e-9) best = { c, typed };
     });
   });
