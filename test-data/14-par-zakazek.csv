@@ -1,0 +1,13 @@
+ID;Zakázka;Artikl;Název;Množství
+9201;990001;V06;kabina;2
+9201;990001;V-POL;police;200
+9201;990002;KABEL-USB;kabel USB;15
+9202;990003;V-POL;police;156
+9203;990004;V04;dopravnik;1
+9203;990004;V-POL;police;80
+9204;990005;V06;kabina;6
+9204;990005;V04;dopravnik;10
+9204;990005;V-POL;police;1240
+9205;990006;V-POL;police;100
+9205;990007;V-POL;police;90
+9205;990007;SKENER-3;skener carovych kodu;4

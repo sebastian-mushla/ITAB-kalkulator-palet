@@ -1,0 +1,12 @@
+ID;Zakázka;Artikl;Název;Množství
+9401;992001;V06;kabina;8
+9401;992001;V04;dopravnik;6
+9401;992002;V-POL;police;900
+9402;992003;V-POL;police;150
+9402;992004;V-POL;police;140
+9403;992005;V06;kabina;1
+9403;992005;STOJAN-12;stojan pokladny;4
+9404;992006;V-POL;police;1000
+9404;992006;KABEL-NAP;kabel napajeci;30
+9405;992007;V04;dopravnik;1
+9405;992007;V-POL;police;60

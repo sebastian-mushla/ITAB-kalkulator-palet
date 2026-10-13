@@ -794,36 +794,6 @@ $('#koloMerge').addEventListener('click', () => {
   };
   $('#dlgAudit').showModal();
 });
-// ---------- koli → machine: accessories ride on the machine's pallet ----------
-const khList = () => { const m = new Map(); state.combos.forEach(r => { if (r.mode === 'group' && r.group) { const k = r.group + ' · ' + r.pal; if (!m.has(k)) m.set(k, { group: r.group, pal: r.pal, codes: [] }); m.get(k).codes.push(r.code); } }); return m; };
-$('#koloHostBtn').addEventListener('click', () => {
-  const m = khList();
-  $('#khGroups').innerHTML = [...m].map(([k, g]) => '<option value="' + esc(k) + '">' + esc(g.codes.length + ' artiklů: ' + g.codes.slice(0, 6).join(', ')) + '</option>').join('');
-  $('#khGroup').value = ''; $('#khMain').innerHTML = ''; $('#khMsg').textContent = '';
-  $('#dlgKoloHost').showModal(); $('#khGroup').focus();
-});
-$('#khGroup').addEventListener('input', () => {
-  const g = khList().get($('#khGroup').value.trim());
-  $('#khMain').innerHTML = g ? g.codes.map(c => { const a = state.catalog.find(x => String(x.code).toLowerCase() === c.toLowerCase()); return '<option value="' + esc(c) + '">' + esc(c + (a && a.name ? ' · ' + a.name : '')) + '</option>'; }).join('') : '';
-});
-$('#khForm').onsubmit = ev => {
-  if (!ev.submitter || ev.submitter.value !== 'yes') return;
-  const g = khList().get($('#khGroup').value.trim()), main = $('#khMain').value;
-  if (!g || !main) { ev.preventDefault(); $('#khMsg').textContent = 'Vyberte koli z nabídky a hlavní položku.'; return; }
-  const low = s => String(s).toLowerCase(), mine = r => r.mode === 'group' && r.group === g.group && r.pal === g.pal;
-  const items = state.combos.filter(mine).map(r => ({ code: r.code, name: r.name, seen: r.per || 1 }));
-  const at = state.combos.findIndex(mine), rows = koloHostRows(items, main, g.group, '');
-  const set = new Set(items.map(x => low(x.code)));
-  // the articles leave every koli (they now live as main item / přibal)
-  const rest = state.combos.filter(r => !mine(r) && !(r.mode === 'group' && set.has(low(r.code))));
-  rest.splice(Math.max(0, Math.min(at, rest.length)), 0, ...rows); state.combos = rest;
-  // the machine travels on the koli's pallet type when the catalog does not say otherwise
-  const a = state.catalog.find(x => low(x.code) === low(main));
-  if (a && (a.pack === 'neurceno' || !a.pal)) { Object.assign(a, { pack: 'paleta', pal: g.pal, per: 1 }); persist('catalog'); drawCatalog(); }
-  persist('combos'); drawCombos();
-  logChanges('–', ['Koli ' + g.group + ' převedeno: ' + rows.length + ' artiklů jede na paletě hlavní položky ' + main]);
-  recalc(); flash('Koli ' + g.group + ': ' + rows.length + ' pravidel „na paletě ' + main + '“.');
-};
 function relearn() { state.manual.delete(state.sel); recalc(); }
 // one or more unknown articles ride on the pallets of article `host`
 // přibal dropped again on its main item: suggest a max per pallet that fits everything of this order
