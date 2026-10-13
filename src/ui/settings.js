@@ -66,7 +66,11 @@ export function renderVehicles(vehicles) {
 
 export function renderCombos(combos, catalog, pallets) {
   pallets = pallets || [];
-  const codes = '<datalist id="codeList">' + catalog.slice(0, 5000).map(a => '<option value="' + esc(a.code) + '">').join('') + '</datalist>';
+  // article codes for the inputs: one datalist outside the table, rebuilt only when the catalog changes
+  const key = catalog.length + '|' + (catalog[0] && catalog[0].code) + '|' + (catalog[catalog.length - 1] && catalog[catalog.length - 1].code);
+  let dl = document.getElementById('codeList');
+  if (!dl) { dl = document.createElement('datalist'); dl.id = 'codeList'; document.body.appendChild(dl); }
+  if (dl.dataset.key !== key) { dl.innerHTML = catalog.slice(0, 5000).map(a => '<option value="' + esc(a.code) + '">').join(''); dl.dataset.key = key; }
   $('#comboBody').innerHTML = combos.map((r, i) => {
     const txt = (f, ph, dis) => '<td><input type="text" list="codeList" data-i="' + i + '" data-f="' + f + '" value="' + esc(r[f] || '') + '" placeholder="' + ph + '"' + (dis ? ' disabled' : '') + '></td>';
     const num = (f, ph, dis) => '<td><input type="number" min="0" step="1" data-i="' + i + '" data-f="' + f + '" value="' + (r[f] > 0 ? r[f] : '') + '" placeholder="' + ph + '"' + (dis ? ' disabled' : '') + '></td>';
@@ -76,7 +80,8 @@ export function renderCombos(combos, catalog, pallets) {
       txt('code', 'artikl') + txt('withCode', 'libovolně') + num('min', '–') + num('max', '–') +
       '<td><select data-i="' + i + '" data-f="mode" aria-label="Pojede">' + COMBO_MODES.map(m => '<option value="' + m[0] + '"' + (r.mode === m[0] ? ' selected' : '') + '>' + m[1] + '</option>').join('') + '</select></td>' +
       (r.mode === 'pallet' || group
-        ? '<td><select data-i="' + i + '" data-f="pal" aria-label="Typ palety">' + (group ? '<option value="">– typ palety –</option>' : '<option value="">rozměr vpravo</option>') + pallets.map(p => '<option value="' + esc(p.code) + '"' + (p.code === r.pal ? ' selected' : '') + '>' + esc(p.code) + ' · ' + esc(p.name) + '</option>').join('') + '</select>' +
+        // only the chosen pallet is rendered; the full list is filled in when the select gets focus (many rows × many pallet types)
+        ? '<td><select data-i="' + i + '" data-f="pal" data-lazy="' + (group ? 'g' : 'p') + '" aria-label="Typ palety">' + (r.pal ? '<option value="' + esc(r.pal) + '" selected>' + esc(r.pal) + ' · ' + esc((pallets.find(p => p.code === r.pal) || {}).name || '') + '</option>' : (group ? '<option value="">– typ palety –</option>' : '<option value="">rozměr vpravo</option>')) + '</select>' +
           (group ? '<input type="text" data-i="' + i + '" data-f="group" value="' + esc(r.group || '') + '" placeholder="společná paleta, např. KOLI-1" aria-label="Společná paleta" class="grp-in">' : '') + '</td>'
         : txt('host', 'artikl', !host)) +
       num('pl', host || group ? '' : 'z číselníku', host || group || !!r.pal) + num('pw', host || group ? '' : 'z číselníku', host || group || !!r.pal) + num('per', host ? 'bez limitu' : group ? 'ověřeno ks' : 'z číselníku') +
@@ -84,7 +89,6 @@ export function renderCombos(combos, catalog, pallets) {
       '<td><input type="text" data-i="' + i + '" data-f="note" value="' + esc(r.note || '') + '" aria-label="Poznámka"></td>' +
       '<td class="nowrap"><button class="btn small" data-up="' + i + '" aria-label="Výš"' + (i === 0 ? ' disabled' : '') + '>↑</button> <button class="btn small" data-down="' + i + '" aria-label="Níž"' + (i === combos.length - 1 ? ' disabled' : '') + '>↓</button> <button class="btn small" data-del="' + i + '">Smazat</button></td></tr>';
   }).join('') || '<tr><td colspan="14" class="empty">Zatím žádná pravidla. Bez pravidel platí běžný výpočet z číselníku.</td></tr>';
-  $('#comboBody').insertAdjacentHTML('beforeend', codes);
 }
 
 export function renderRules(rules) {

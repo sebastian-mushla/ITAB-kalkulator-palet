@@ -1285,6 +1285,13 @@ $('#vehFile').addEventListener('change', async e => {
 // ---------- combos ----------
 const drawCombos = () => { renderCombos(state.combos, state.catalog, state.pallets); filterTable($('#comboBody'), $('#comboSearch').value); };
 $('#comboSearch').addEventListener('input', e => filterTable($('#comboBody'), e.target.value));
+// lazy pallet list in the Kombinace table: filled the first time the select is used
+$('#comboBody').addEventListener('focusin', e => {
+  const sel = e.target.closest('select[data-lazy]'); if (!sel || sel.dataset.filled) return;
+  const cur = sel.value, first = sel.dataset.lazy === 'g' ? '– typ palety –' : 'rozměr vpravo';
+  sel.innerHTML = '<option value="">' + first + '</option>' + state.pallets.map(p => '<option value="' + esc(p.code) + '"' + (p.code === cur ? ' selected' : '') + '>' + esc(p.code) + ' · ' + esc(p.name) + '</option>').join('');
+  sel.dataset.filled = '1';
+});
 bindTable($('#comboBody'), () => state.combos, 'combos', drawCombos);
 $('#comboBody').addEventListener('change', e => { if (e.target.getAttribute('data-f') === 'mode' || e.target.getAttribute('data-f') === 'on') drawCombos(); });
 $('#comboBody').addEventListener('click', e => {
