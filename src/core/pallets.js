@@ -109,9 +109,10 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
       left -= n;
     });
     row.onHost = qty - left; row.host = rule.host;
-    if (left > 0 && a.unknown) {
-      unknown.push({ code: a.code, qty: left, name: a.name || '' });
-      errors.push('Artikl „' + a.code + '“: ' + left + ' ks se nevešlo na palety ' + rule.host + ' a není v číselníku.');
+    // přibal of a main item (rule.strict): the max per pallet is fixed – what does not fit waits on the right side
+    if (left > 0 && (a.unknown || rule.strict)) {
+      unknown.push({ code: a.code, qty: left, name: a.name || '', known: !a.unknown, so: undefined });
+      errors.push('Artikl „' + a.code + '“: ' + left + ' ks se nevešlo na palety ' + rule.host + (rule.strict ? ' (max ' + rule.per + ' ks na paletu) – přetáhněte ho na paletu, pravidlo se zvýší.' : ' a není v číselníku.'));
       Object.assign(row, { pack: 'paleta', full: 0, rem: 0, per: 0, fillRem: 0, count: 0 });
     } else if (left > 0) {
       if (!(a.per > 0) || !(a.pl > 0) || !(a.pw > 0)) { errors.push('U artiklu „' + a.code + '“ chybí rozměry nebo počet kusů.'); return; }

@@ -597,6 +597,8 @@ function addCombos(rules) {
     r.max = Math.max(r.max || 0, total, old ? old.max || 0 : 0);
     if (old && !(r.per > 0) && old.per > 0) r.per = old.per;
     if (old && !(r.kg > 0) && old.kg > 0) r.kg = old.kg;
+    // přibal of a main item stays a fixed per-pallet rule without a quantity limit
+    if (old && old.strict) { r.strict = true; r.max = 0; r.note = old.note; }
   });
   state.combos = rules.concat(state.combos.filter(c => !codes.has(key(c))));
 }
@@ -665,6 +667,17 @@ onBoth('click', e => {
   };
   $('#dlgAudit').showModal();
 });
+// articles used as main item or přibal (strict host rules) – they do not go into koli
+function hostCodes() {
+  const set = new Set();
+  state.combos.forEach(r => { if (r.mode === 'host' && r.strict) { set.add(String(r.code).toLowerCase()); set.add(String(r.host).toLowerCase()); } });
+  return set;
+}
+// articles that become a main item / přibal leave their koli rows
+function dropFromKoli(codes) {
+  const set = new Set(codes.map(c => String(c).toLowerCase()));
+  state.combos = state.combos.filter(r => !(r.mode === 'group' && set.has(String(r.code).toLowerCase())));
+}
 // ---------- import koli (articles that travelled together on one pallet) ----------
 let koParsed = { items: [], pals: [] };
 function koPalCode() {
@@ -726,20 +739,25 @@ $('#koForm').onsubmit = ev => {
   }
   // one normal table row per article (mode „na společné paletě“), new rows go first
   const main = $('#koMain').value, group = nextKoloCode(state.combos);
-  // with a machine: accessories ride on the machine's pallet; without: one shared pallet
-  const rows = main ? koloHostRows(koParsed.items, main, group, $('#koName').value.trim()) : koParsed.items.map(it => koloRow(it, group, code, $('#koName').value.trim()));
+  // an article lives in one kind of rule only: main item / přibal, or koli
+  const inHost = hostCodes(), lowc = c => String(c).toLowerCase();
+  let skipped = [], items = koParsed.items;
+  if (!main) { skipped = items.filter(it => inHost.has(lowc(it.code))).map(it => it.code); items = items.filter(it => !inHost.has(lowc(it.code))); }
+  else dropFromKoli(items.map(it => it.code));
+  // with a main item: přibal rides on its pallet (fixed max per pallet); without: one shared pallet
+  const rows = main ? koloHostRows(items, main, group, $('#koName').value.trim()) : items.map(it => koloRow(it, group, code, $('#koName').value.trim()));
   // missing articles get a catalog entry: name, weight 0 to fill in, packing decided later (alone it may be a parcel)
   let addedArt = 0;
   if ($('#koCat').checked) koParsed.items.forEach(it => {
     if (state.catalog.some(a => String(a.code).toLowerCase() === it.code.toLowerCase())) return;
     // the machine goes on the koli's pallet type; accessories get their packing later
-    state.catalog.push(it.code === main ? { code: it.code, name: it.name || '', pack: 'paleta', pal: code, per: Math.max(1, it.seen || 1), kg: 0, rot: true } : { code: it.code, name: it.name || '', pack: 'neurceno', per: 0, kg: 0, rot: true }); addedArt++;
+    state.catalog.push(it.code === main ? { code: it.code, name: it.name || '', pack: 'paleta', pal: code, per: 1, kg: 0, rot: true } : { code: it.code, name: it.name || '', pack: 'neurceno', per: 0, kg: 0, rot: true }); addedArt++;
   });
   if (addedArt) { persist('catalog'); drawCatalog(); }
   state.combos = rows.concat(state.combos); persist('combos'); drawCombos();
   logChanges('–', ['Import koli ' + group + ': ' + rows.length + ' řádků kombinací, společná paleta ' + code]);
   recalc();
-  flash('Koli ' + group + ': přidáno ' + rows.length + ' řádků do kombinací (' + code + ')' + (addedArt ? ', ' + addedArt + ' artiklů do číselníku' : '') + '.');
+  flash('Koli ' + group + ': přidáno ' + rows.length + ' řádků do kombinací (' + code + ')' + (addedArt ? ', ' + addedArt + ' artiklů do číselníku' : '') + (skipped.length ? '. Vynecháno ' + skipped.length + ' (už jsou jako hlavní položka / přibal): ' + skipped.join(', ') : '') + '.');
 };
 // ---------- articles used in combinations but missing in the catalog → catalog (packing decided later) ----------
 $('#comboToCat').addEventListener('click', async () => {
@@ -762,7 +780,7 @@ $('#koloMerge').addEventListener('click', () => {
   $('#auTitle').textContent = 'Sloučit koli';
   $('#auHint').textContent = 'Koli na stejném typu palety, která mají společný artikl, jsou jedno koli viděné po částech – spojí se do nejstaršího (1 2 3 4 5 + 3 4 5 6 → 1 2 3 4 5 6). Koli s jediným artiklem, který je ve větším koli, se smaže. Pravidla s podmínkou („když je v zakázce“, hlavní položka) se nemění.';
   $('#auRows').innerHTML = found.length ? found.map((m, n) => '<label class="inline ' + (m.kind === 'merge' ? 'au-add' : 'au-drop') + '"><input type="checkbox" data-au="' + n + '" checked>' +
-    esc(m.kind === 'merge' ? 'Spojit ' + m.drop.join(', ') + ' → ' + m.keep + ' · ' + m.pal + ' · celkem ' + m.codes + ' artiklů' : 'Smazat ' + m.drop + ' (jen ' + m.code.toUpperCase() + ', ten je v ' + m.into + ')') + '</label>').join('')
+    esc(m.kind === 'hostdup' ? 'Přibal ' + m.code + ' na ' + m.host + ' je dvakrát → jedno pravidlo, max ' + m.per + ' ks/paleta' : m.kind === 'merge' ? 'Spojit ' + m.drop.join(', ') + ' → ' + m.keep + ' · ' + m.pal + ' · celkem ' + m.codes + ' artiklů' : 'Smazat ' + m.drop + ' (jen ' + m.code.toUpperCase() + ', ten je v ' + m.into + ')') + '</label>').join('')
     : '<p class="ok">Žádné duplicitní koli ✓</p>';
   $('#dlgAudit').querySelector('form').onsubmit = ev => {
     $('#auHint').innerHTML = hint;
@@ -770,7 +788,7 @@ $('#koloMerge').addEventListener('click', () => {
     const chosen = found.filter((m, n) => $('#auRows [data-au="' + n + '"]').checked);
     if (!chosen.length) return;
     state.combos = mergeGroups(state.combos, chosen); persist('combos'); drawCombos();
-    logChanges('–', chosen.map(m => m.kind === 'merge' ? 'Koli ' + m.drop.join(', ') + ' spojeno do ' + m.keep : 'Koli ' + m.drop + ' smazáno (' + m.code.toUpperCase() + ' je v ' + m.into + ')'));
+    logChanges('–', chosen.map(m => m.kind === 'hostdup' ? 'Přibal ' + m.code + ' na ' + m.host + ': duplicitní pravidlo sloučeno (max ' + m.per + ')' : m.kind === 'merge' ? 'Koli ' + m.drop.join(', ') + ' spojeno do ' + m.keep : 'Koli ' + m.drop + ' smazáno (' + m.code.toUpperCase() + ' je v ' + m.into + ')'));
     recalc();
     flash('Sloučeno: ' + chosen.length + ' koli.');
   };
@@ -795,17 +813,29 @@ $('#khForm').onsubmit = ev => {
   const low = s => String(s).toLowerCase(), mine = r => r.mode === 'group' && r.group === g.group && r.pal === g.pal;
   const items = state.combos.filter(mine).map(r => ({ code: r.code, name: r.name, seen: r.per || 1 }));
   const at = state.combos.findIndex(mine), rows = koloHostRows(items, main, g.group, '');
-  const rest = state.combos.filter(r => !mine(r));
-  rest.splice(Math.max(0, at), 0, ...rows); state.combos = rest;
+  const set = new Set(items.map(x => low(x.code)));
+  // the articles leave every koli (they now live as main item / přibal)
+  const rest = state.combos.filter(r => !mine(r) && !(r.mode === 'group' && set.has(low(r.code))));
+  rest.splice(Math.max(0, Math.min(at, rest.length)), 0, ...rows); state.combos = rest;
   // the machine travels on the koli's pallet type when the catalog does not say otherwise
   const a = state.catalog.find(x => low(x.code) === low(main));
-  if (a && (a.pack === 'neurceno' || !a.pal)) { Object.assign(a, { pack: 'paleta', pal: g.pal, per: a.per > 0 ? a.per : 1 }); persist('catalog'); drawCatalog(); }
+  if (a && (a.pack === 'neurceno' || !a.pal)) { Object.assign(a, { pack: 'paleta', pal: g.pal, per: 1 }); persist('catalog'); drawCatalog(); }
   persist('combos'); drawCombos();
   logChanges('–', ['Koli ' + g.group + ' převedeno: ' + rows.length + ' artiklů jede na paletě hlavní položky ' + main]);
   recalc(); flash('Koli ' + g.group + ': ' + rows.length + ' pravidel „na paletě ' + main + '“.');
 };
 function relearn() { state.manual.delete(state.sel); recalc(); }
 // one or more unknown articles ride on the pallets of article `host`
+// přibal dropped again on its main item: suggest a max per pallet that fits everything of this order
+function suggestPer(u, host) {
+  const low = s => String(s).toLowerCase();
+  const old = state.combos.find(r => r.mode === 'host' && low(r.code) === low(u.code) && low(r.host) === low(host));
+  if (!old || !(old.per > 0)) return '';
+  const r0 = view(state.sel), o = state.orders.get(state.sel); if (!r0 || !o) return old.per;
+  const total = [...o.lines.values()].filter(l => low(l.code) === low(u.code) && (!u.so || l.so === u.so)).reduce((s, l) => s + l.qty, 0);
+  const hosts = r0.pallets.filter(p => low(p.code) === low(host) && (!u.so || p.so === u.so)).length || 1;
+  return Math.max(old.per, Math.ceil(total / hosts));
+}
 function askCombo(list, host, bid) {
   // the rule only works inside one zakázka: the host article must be on a pallet of the same zakázka
   const r0 = view(state.sel), lowH = host.toLowerCase();
@@ -816,7 +846,7 @@ function askCombo(list, host, bid) {
   $('#dcTitle').textContent = list.length > 1 ? 'Přesunout ' + list.length + ' artikly na paletu' : 'Přesunout artikl na paletu';
   $('#dcText').innerHTML = 'Pojedou na paletě <b>' + esc(host) + '</b>' + (hostArt && hostArt.name ? ' <span class="dlg-name">' + esc(hostArt.name) + '</span>' : '') + '.';
   $('#dcRows').innerHTML = '<div class="lr-h m"><span>Artikl</span><span>Kusů</span><span>Max ks / paleta</span><span>Váha kusu, kg</span></div>' + list.map((u, i) =>
-    '<div class="lr m"><span><b>' + esc(u.code) + '</b><small>' + esc(u.name || '') + '</small></span><span>' + u.qty + ' ks</span><input type="number" min="0" step="1" data-cp="' + i + '" placeholder="bez limitu"><input type="number" min="0" step="any" data-ck="' + i + '" placeholder="neznámá"></div>').join('');
+    '<div class="lr m"><span><b>' + esc(u.code) + '</b><small>' + esc(u.name || '') + '</small></span><span>' + u.qty + ' ks</span><input type="number" min="0" step="1" data-cp="' + i + '" placeholder="bez limitu" value="' + suggestPer(u, host) + '"><input type="number" min="0" step="any" data-ck="' + i + '" placeholder="neznámá"></div>').join('');
   $('#dcRule').textContent = 'Pravidlo: když je v zakázce ' + host + ' a artikl je nejvýše tolik kusů jako teď, jede na paletách ' + host + ' (nejvýše „Max ks / paleta“ na každou). Co se nevejde, zůstane vpravo.';
   $('#dcRemember').checked = true; $('#dcRule').hidden = false;
   // act on the button press itself; the dialog's close event is not reliable in every browser

@@ -254,6 +254,10 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <li><b>Na jiné paletě</b> – artikl dostane v této situaci jiný rozměr palety a počet kusů.</li>
             <li><b>Na společné paletě</b> – všechny artikly se stejným názvem společné palety (např. KOLI-1) jedou spolu na jedné paletě zvoleného typu. Počet kusů je jen <b>ověřený</b> (tolik se tam už vešlo), ne maximum: když je kusů víc, pojedou také, jen s oranžovým upozorněním. Tlačítko „Importovat koli“ vytvoří tyto řádky z balení zkopírovaného z ERP.</li>
             <li><b>Jako balík</b> – artikl jede balíky.</li></ul>
+            <p><b>Dva druhy koli:</b></p>
+            <ul><li><b>Hlavní položka + přibal</b> (např. pokladna V12 a k ní PLX, DRO, DAM): hlavní položka jede 1 ks na své paletě, přibal na ní má <b>pevné maximum na paletu</b>. Co se nevejde, čeká vpravo – přetažením na paletu hlavní položky se maximum zvýší. Kolik pokladen v zakázce, tolik palet, přibal se rozdělí na každou.</li>
+            <li><b>Koli – společná paleta</b> (drobný materiál): artikly jedou spolu, počty jsou jen ověřené a sloučením koli se seznam postupně doplňuje.</li></ul>
+            <p>Jeden artikl je vždy jen v jednom druhu: kdo je hlavní položka nebo přibal, nepatří do koli. „Sloučit koli“ spojí koli se společným artiklem a u přibalu sloučí duplicitní pravidla (max se nesčítá, bere se vyšší).</p>
             <p><b>Když je v zakázce</b> – podmínka pravidla: pravidlo platí, jen když je ve stejné zakázce (SO) i uvedený artikl. <b>„libovolně“</b> (prázdné pole) = bez podmínky, pravidlo platí vždy, když je v zakázce artikl z prvního sloupce.</p>
             <p>Pravidla se zkoušejí <b>shora dolů</b>, pro artikl platí první, které sedí. Příklad:</p>
             <ul><li>1. řádek: DRO-0988, když je v zakázce <b>V06</b> → na společné paletě A</li>

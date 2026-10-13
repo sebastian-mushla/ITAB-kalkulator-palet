@@ -111,6 +111,15 @@ export function findDuplicateGroups(combos) {
     out.push({ kind: 'merge', keep: c[0].group, drop: c.slice(1).map(x => x.group), pal: c[0].pal, codes: codes.size });
     c.slice(1).forEach(x => merged.add(x));
   });
+  // přibal of a main item imported twice: same article + same main item → one rule, max = the larger (never summed)
+  const seenHost = new Map();
+  (combos || []).forEach((r, i) => {
+    if (r.mode !== 'host' || !r.strict) return;
+    const k = low(r.code) + '|' + low(r.withCode) + '|' + low(r.host);
+    if (!seenHost.has(k)) { seenHost.set(k, i); return; }
+    const j = seenHost.get(k);
+    out.push({ kind: 'hostdup', code: r.code, host: r.host, keep: j, drop: i, per: Math.max(combos[j].per || 0, r.per || 0) });
+  });
   // single-article koli whose article is in a bigger koli (after merging)
   const big = list.filter(x => !merged.has(x) && x.codes.size > 1);
   const bigCodes = new Map(); big.forEach(x => x.codes.forEach(c => { if (!bigCodes.has(c)) bigCodes.set(c, x); }));
@@ -121,14 +130,17 @@ export function findDuplicateGroups(combos) {
   return out;
 }
 export function mergeGroups(combos, actions) {
-  const rename = new Map(), remove = new Set();
+  const rename = new Map(), remove = new Set(), dropIdx = new Set(), raise = new Map();
   actions.forEach(a => {
+    if (a.kind === 'hostdup') { dropIdx.add(a.drop); raise.set(a.keep, Math.max(raise.get(a.keep) || 0, a.per)); return; }
     if (a.kind === 'merge') a.drop.forEach(d => rename.set(low(d) + '|' + low(a.pal), a.keep));
     else remove.add(low(a.drop) + '|' + low(a.pal));
   });
   const plain = r => r.mode === 'group' && !low(r.withCode) && !(r.min > 0) && !(r.max > 0);
   const out = [];
-  (combos || []).forEach(r => {
+  (combos || []).forEach((r0, i) => {
+    if (dropIdx.has(i)) return;
+    const r = raise.has(i) ? Object.assign({}, r0, { per: raise.get(i) }) : r0;
     const k = low(r.group) + '|' + low(r.pal);
     if (plain(r) && remove.has(k)) return;
     const nr = plain(r) && rename.has(k) ? Object.assign({}, r, { group: rename.get(k), note: 'Koli ' + rename.get(k) + ' (sloučeno)' }) : r;
@@ -142,6 +154,6 @@ export function mergeGroups(combos, actions) {
 // koli of a machine: the other articles ride on the machine's pallet (when the machine is in the order)
 export function koloHostRows(items, main, group, name) {
   const m = items.find(x => low(x.code) === low(main)), n = Math.max(1, (m && m.seen) || 1);
-  return items.filter(x => low(x.code) !== low(main)).map(x => ({ on: true, code: x.code, withCode: main, min: 0, max: 0, mode: 'host', host: main, pl: 0, pw: 0,
+  return items.filter(x => low(x.code) !== low(main)).map(x => ({ on: true, strict: true, code: x.code, withCode: main, min: 0, max: 0, mode: 'host', host: main, pl: 0, pw: 0,
     per: Math.ceil((x.seen || 1) / n), kg: 0, name: x.name || '', note: 'Koli ' + group + ' – hlavní položka ' + main + (name ? ' – ' + name : '') }));
 }

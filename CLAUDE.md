@@ -115,6 +115,7 @@ r10 V-POL police 156
 - «Zkontrolovat a uložit» предлагает поднять `per` группы до фактического количества.
 - Артикул в нескольких koli → `makePallets` выбирает koli, покрывающее больше артикулов заказа (`groupOf`).
 - «Sloučit koli» (`findDuplicateGroups`/`mergeGroups`): koli на одном типе паллеты с общим артикулом сливаются в старшее; одиночное koli, чей артикул есть в большем, удаляется. Строки с условием не трогаются.
+- Два типа: (1) hlavní položka + přibal — строки `host` со `strict: true`: max на паллету фиксирован, остаток → справа (`unknown`), перетаскивание на паллету hlavní položky предлагает новый max (`suggestPer`), `addCombos` сохраняет strict и max=0; (2) koli `group`. Артикул только в одном типе (`hostCodes`, `dropFromKoli`). Консолидация: `hostdup` — дубли přibal сливаются с max (не сумма).
 - Koli машины: в импорте «Hlavní artikl – stroj» или кнопка «Koli → stroj» → `koloHostRows`: аксессуары `mode:'host'`, `withCode = host = stroj`, `per = ceil(seen/seen_stroje)`; машине в справочнике ставится паллета koli.
 - При импорте koli галочка «Doplnit chybějící artikly»: новые артикулы в справочник с `pack:'neurceno'` (название, вес 0, без паллеты/штук). В koli они едут; без правила → справа (`unknown.undecided`); при определении (окно Nový artikl / Materiál) запись обновляется, а не дублируется. «Zkontrolovat číselník» показывает «balení neurčeno».
 

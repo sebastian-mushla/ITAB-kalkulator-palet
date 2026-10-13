@@ -397,3 +397,14 @@ cases.push(['Koli: artikl ve více koli jde do toho, které pokrývá nejvíc ar
   const r = solve(o, Object.assign({}, ctx, { combos }));
   assert(r.pallets.length === 1 && r.pallets[0].group === 'KOLI-1', r.pallets.map(p => p.group + ':' + p.code).join(', '));
 }]);
+cases.push(['Hlavní položka: přibal má pevné max na paletu, zbytek čeká vpravo; duplicity se nesčítají', () => {
+  const rows = koloHostRows([{ code: 'V06', seen: 1 }, { code: 'PLX', seen: 1 }], 'V06', 'KOLI-9');
+  const o = parseOrders('SO 9\nr10 V06 kabina 2\nr20 PLX p 5').orders.get('9');
+  const r = solve(o, Object.assign({}, ctx, { combos: rows }));
+  const on = r.pallets.filter(p => p.code === 'V06').reduce((s, p) => s + (p.extra || []).reduce((a, e) => a + e.units, 0), 0);
+  assert(on === 2 && r.unknown.some(u => u.code === 'PLX' && u.qty === 3), 'na kabinách ' + on + ', vpravo ' + JSON.stringify(r.unknown));
+  const dup = rows.concat(koloHostRows([{ code: 'V06', seen: 1 }, { code: 'PLX', seen: 2 }], 'V06', 'KOLI-10'));
+  const f = findDuplicateGroups(dup).filter(a => a.kind === 'hostdup');
+  const res = mergeGroups(dup, f);
+  assert(res.length === 1 && res[0].per === 2, JSON.stringify(res.map(x => x.per)));
+}]);
