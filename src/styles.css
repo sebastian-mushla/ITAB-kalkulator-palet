@@ -558,3 +558,7 @@ html{background:var(--bg)}
 .unk-hint.linkbtn{display:block;padding:0;border:0;background:none;cursor:pointer;text-align:left}.unk-hint.linkbtn:hover{text-decoration:underline}
 .board-pal[data-over]{outline:3px solid #f59e0b;outline-offset:1px}.board-pal[data-over]::after{content:"!";position:absolute;top:2px;right:6px;font-weight:800;color:#fff;background:#f59e0b;border-radius:50%;width:16px;height:16px;font-size:12px;line-height:16px;text-align:center}
 .board-pal[data-tag]::before{content:attr(data-tag);position:absolute;top:-9px;left:6px;font-size:10px;font-weight:700;color:#5b4bd1;background:#fff;border:1px solid #d9d3fb;border-radius:6px;padding:0 4px}
+/* second article + "+N" on the pallet: the name may be cut, the count never */
+.board-pal em.ex{display:flex;align-items:center;gap:4px;max-width:100%;overflow:visible}
+.board-pal em.ex .ex-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.board-pal em.ex .more{flex:none}

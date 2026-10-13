@@ -296,15 +296,15 @@ function unknownTray(r, isAdmin) {
 // Admin also gets a palette of pallet types to drag onto the board (empty pallet for this order).
 export function palOption(t) { return t.code + ' · ' + t.name + ' · ' + Math.round(t.L / 10) + ' × ' + Math.round(t.W / 10) + ' cm'; }
 function palletBoardHtml(r, isAdmin, board, types) {
-  const S = 0.085; // px per mm
+  const S = 0.1; // px per mm
   const block = (p, attrs, inner, cls) => {
-    const w = Math.max(104, p.pl * S), hh = Math.max(66, p.pw * S);
+    const w = Math.max(132, p.pl * S), hh = Math.max(82, p.pw * S);
     return '<div class="board-pal' + (cls || '') + '" ' + attrs + ' style="width:' + w.toFixed(0) + 'px;height:' + hh.toFixed(0) + 'px;--c:' + color(p.ci) + ';--f:' + Math.min(100, Math.round(p.fill * 100)) + '%">' + inner + '</div>';
   };
   const multi = (r.sos || []).length > 1;
   const label = p => (multi && p.so ? '<small class="so-tag">Z ' + esc(p.so) + '</small>' : '') + '<b>' + esc(p.code) + '</b><span>' + fmtN(p.units) + ' ks' + (p.fill < 0.999 ? ' · ' + Math.round(p.fill * 100) + ' %' : '') + '</span>' +
     // second article written out, the rest only counted (+3) – the full list is in the pallet editor
-    (p.extra ? '<em>+ ' + esc(p.extra[0].code + ' ' + p.extra[0].units + ' ks') + (p.extra.length > 1 ? ' <b class="more">+' + (p.extra.length - 1) + '</b>' : '') + '</em>' : '');
+    (p.extra ? '<em class="ex"><span class="ex-t">+ ' + esc(p.extra[0].code + ' ' + p.extra[0].units + ' ks') + '</span>' + (p.extra.length > 1 ? '<b class="more">+' + (p.extra.length - 1) + '</b>' : '') + '</em>' : '');
   const num = new Map(r.pallets.map((p, i) => [p, i + 1]));
   const groups = new Map();
   // grouped by pallet type (not by article): same pallets side by side, the same article next to each other
