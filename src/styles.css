@@ -562,3 +562,14 @@ html{background:var(--bg)}
 .board-pal em.ex{display:flex;align-items:center;gap:4px;max-width:100%;overflow:visible}
 .board-pal em.ex .ex-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .board-pal em.ex .more{flex:none}
+/* Kombinace: compact rows with labelled fields, no horizontal scroll */
+#view-combos table{table-layout:auto;width:100%}#view-combos td{vertical-align:top;padding:8px 6px}
+#view-combos .cf{display:flex;flex-direction:column;gap:2px;margin-bottom:6px;min-width:0}#view-combos .cf>span{font-size:11px;color:var(--ink2);font-weight:600}
+#view-combos .cf2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#view-combos input,#view-combos select{width:100%;box-sizing:border-box;min-width:0}
+#view-combos .c-art{min-width:230px}#view-combos .c-art .code-in{font-weight:700}#view-combos .c-name{display:block;color:var(--ink2);font-size:12px;margin-top:3px}
+#view-combos .c-cond{min-width:190px}#view-combos .c-kam{min-width:230px}#view-combos .c-num{min-width:150px}#view-combos .c-note{min-width:140px}
+#view-combos td select[data-f="mode"]{min-width:150px}
+#view-combos .c-art{min-width:190px}#view-combos .c-cond{min-width:160px}#view-combos .c-kam{min-width:200px}#view-combos .c-num{min-width:120px}#view-combos .c-note{min-width:90px}
+#view-combos td select[data-f="mode"]{min-width:130px}#view-combos td.nowrap .btn{padding:4px 7px}
+#view-combos .c-art{min-width:235px}#view-combos .c-art .code-in{font-size:13px;letter-spacing:-.01em}#view-combos .c-note{min-width:80px}#view-combos .c-cond{min-width:150px}
