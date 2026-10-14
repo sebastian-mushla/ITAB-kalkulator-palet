@@ -1500,11 +1500,8 @@ function catalogProblems() {
     const k = String(a.code).trim().toLowerCase(), p = [];
     if (seen.has(k)) p.push('je v číselníku víckrát'); seen.set(k, 1);
     if (a.pack === 'sluzba' || a.pack === 'kit') { if (p.length) out.push('<li><b>' + esc(a.code) + '</b>: ' + p.join(', ') + '</li>'); return; }
-    if (a.pack === 'neurceno') p.push('balení neurčeno');
-    else if (a.pack === 'balik') { if (!(a.pl > 0 && a.pw > 0)) p.push('balík bez rozměru'); }
-    else if (!a.pal) p.push('chybí typ palety');
-    else if (!typeOf(state.pallets, a.pal)) p.push('typ palety ' + a.pal + ' neexistuje (záložka Palety)');
-    if (a.pack !== 'neurceno' && !(a.per >= 1)) p.push('chybí počet kusů na paletě');
+    // packing lives in Způsob balení: a problem only when no rule there mentions the article (as article or main item)
+    if (!state.combos.some(r => r.on !== false && (String(r.code).toLowerCase() === k || (r.mode === 'host' && String(r.host).toLowerCase() === k)))) p.push('není v žádném způsobu balení');
     if (!(a.kg > 0)) p.push('váha kusu je 0');
     if (!a.name) p.push('bez názvu');
     if (p.length) out.push('<li><b>' + esc(a.code) + '</b>: ' + p.join(', ') + '</li>');
