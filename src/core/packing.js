@@ -407,8 +407,13 @@ function packAllRaw(pallets, vehicles, forced, oneVehicle, seq, rules) {
     const order = items.slice().sort((a, b) => rank(a.so) - rank(b.so) || area(b) - area(a) || b.kg - a.kg);
     const bins = [];
     let cur = null;
+    // zakázka after zakázka; every pallet goes to the first open vehicle with room (holes are filled),
+    // only a pallet that fits nowhere opens the next vehicle
     order.forEach(it => {
-      if (cur && cur.kg + it.kg <= cur.v.kg && roomFor(cur)) { const pos = cur.find(it.pl, it.pw, it.rot); if (pos) { cur.place(pos, it); return; } }
+      for (const bn of bins) {
+        if (bn.kg + it.kg > bn.v.kg || !roomFor(bn)) continue;
+        const pos = bn.find(it.pl, it.pw, it.rot); if (pos) { bn.place(pos, it); return; }
+      }
       const v = bySize.find(x => fitsVehicle(it, x));
       cur = new Bin(v); bins.push(cur);
       const pos = cur.find(it.pl, it.pw, it.rot); if (pos) cur.place(pos, it);
