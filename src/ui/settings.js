@@ -91,8 +91,8 @@ export function renderCombos(combos, catalog, pallets, projects) {
     const pt = c => pallets.find(p => String(p.code).toLowerCase() === String(c || '').toLowerCase());
     const ptxt = t => t ? '<small class="c-name">' + esc(t.code) + ' · ' + (t.L || 0) + ' × ' + (t.W || 0) + ' mm</small>' : '<small class="c-name warn">paleta neurčena</small>';
     // "Typ palety" first, the fields of the chosen type below
-    const typSel = '<select data-i="' + i + '" data-f="kind" aria-label="Typ palety">' +
-      [['main', 'Paleta hlavního artiklu'], ['mix', 'Paleta ze seznamu'], ['parcel', 'Balík']].map(m => '<option value="' + m[0] + '"' + (kind === m[0] ? ' selected' : '') + '>' + m[1] + '</option>').join('') + '</select>';
+    // pallet type follows the kind of balení (fixed, change the kind in the first column)
+    const typSel = '<div class="ro">' + (main ? 'Paleta hlavního artiklu' : group ? 'Paleta ze seznamu' : 'Balík') + '</div>';
     let pal = fld('Typ palety', typSel);
     if (main) { const ha = catalog.find(x => String(x.code).toLowerCase() === String(r.host || '').toLowerCase()), t = pt(ha && ha.pal); pal += fld('Paleta hlavního artiklu', '<div class="ro">' + esc(t ? t.name || t.code : (ha && ha.pal) || (r.host ? 'hlavní artikl nemá paletu' : 'zadejte hlavní položku')) + '</div>') + (t ? ptxt(t) : ''); }
     else if (group) pal += fld('Paleta ze seznamu', palSel) + ptxt(pt(r.pal));
