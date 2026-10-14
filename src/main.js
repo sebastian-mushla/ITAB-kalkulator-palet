@@ -501,6 +501,7 @@ function endDrag(e, cancel) {
   const d = drag; drag = null;
   document.querySelectorAll('.drop-ok,.drop-no').forEach(el => el.classList.remove('drop-ok', 'drop-no')); markSel();
   if (d.ghost) d.ghost.remove();
+  document.querySelectorAll('.drag-ghost').forEach(x => x.remove()); // never leave a stuck ghost
   d.g.classList.remove('dragging');
   document.querySelectorAll('.drop-target,.drop-host').forEach(x => x.classList.remove('drop-target', 'drop-host'));
   if (cancel || !d.moved) return;
@@ -1269,6 +1270,11 @@ function daSections() {
 }
 $('#daPack').addEventListener('change', daSections);
 onBoth('pointercancel', e => endDrag(e, true));
+// right click, Alt+Tab, switching tabs or a lost pointer during a drag: cancel it, nothing stays in the air
+['blur', 'contextmenu'].forEach(ev => window.addEventListener(ev, () => endDrag(null, true)));
+document.addEventListener('visibilitychange', () => { if (document.hidden) endDrag(null, true); });
+document.addEventListener('lostpointercapture', () => { if (drag && drag.moved) endDrag(null, true); }, true);
+document.addEventListener('pointerdown', e => { if (drag && e.button !== 0) endDrag(null, true); }, true);
 
 // ---------- packing list ----------
 onBoth('click', e => {
