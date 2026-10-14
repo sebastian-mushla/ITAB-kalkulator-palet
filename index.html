@@ -237,6 +237,21 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
       <section id="view-help" hidden>
         <div class="pagehead"><div><h1>Jak to funguje</h1><p>Podle čeho kalkulátor počítá palety, vybírá vozidla a skládá nakládku.</p></div></div>
         <div class="help">
+          <section class="card help-wide" id="helpLoading"><h2>Jak se palety skládají do vozidel – v bodech</h2>
+            <ol class="steps" type="I">
+              <li><b>Palety zakázky.</b> Nejdřív se spočítají palety: plné + jedna neúplná na artikl, smíšené a společné (koli), hlavní položky s přibalem. Každá paleta je obdélník (délka × šířka) s váhou. Palety se <b>nestohují</b>, skládají se jen po podlaze. Služby (doprava, poplatky) na paletu nejdou.</li>
+              <li><b>Sběrná služba.</b> Když jsou všechny palety europalety a je jich nejvýše <b data-help="gMax"></b>, vozidlo není potřeba – zakázka jede sběrnou službou.</li>
+              <li><b>Jedna zakázka = jedno vozidlo.</b> Kalkulátor zkusí každé vozidlo od nejlevnějšího. Když se celá zakázka vejde do jednoho vozidla (podlaha, nosnost, max. počet palet), vezme <b>nejlevnější takové vozidlo</b> – i kdyby dvě menší vyšla levněji.</li>
+              <li><b>Jak se pozná „vejde se“.</b> Palety se kladou od čela korby ke dveřím do volných obdélníků (metoda MaxRects), paleta se smí otočit, pokud to má povolené. Zkouší se <b>mnoho pořadí</b>: největší napřed, nejtěžší napřed, nejužší napřed a desítky náhodných. Stačí, když se vše vejde v jednom z nich.</li>
+              <li><b>Když se nevejde do žádného vozidla:</b>
+                <ul><li><b>víc zakázek v jednom ID</b> – nakládá se po zakázkách v pořadí; první paleta, která se nevejde, otevře další vozidlo;</li>
+                <li><b>jedna zakázka</b> – vozidla se plní postupně, zkouší se různá „hlavní“ vozidla (kamion, nákladní auto…) a různá pořadí palet.</li></ul></li>
+              <li><b>Co nejméně vozidel, pak nejlevněji.</b> Vyhrává <b>nejmenší počet vozidel</b>; teprve mezi stejným počtem rozhoduje <b>cena</b> podle sloupce „Cena“ na záložce Vozidla. Každé naložené vozidlo se zkusí přeložit do levnějšího (např. zbytek 2 palet do dodávky místo kamionu).</li>
+              <li><b>Rozložení v korbě.</b> Palety jdou co nejtěsněji k čelu, volné místo zůstane vcelku u dveří. Když mají artikly <b>váhu</b>, hlídají se i normy: levá / pravá strana nejvýše <b data-help="lrTol"></b> % váhy, u těžkého nákladu (od <b data-help="heavyShare"></b> % nosnosti) těžiště v <b data-help="cgMin"></b>–<b data-help="cgMax"></b> % délky korby. <b>Bez váhy</b> se skládá jen podle místa a v záhlaví vozidla svítí „Chybí váha“.</li>
+              <li><b>Doladění.</b> Palety se dorazí k čelu a zaplní mezery blíž kabině. Pak se zkusí vyprázdnit menší vozidlo do volného místa ve větších; když se celé nevejde, přeloží se aspoň část a pro zbytek se vezme levnější vozidlo. V záhlaví vozidla vidíte „mezery / těžiště / L-P“.</li>
+              <li><b>Ruční úprava.</b> Na záložce Nakládka můžete palety přetáhnout, otočit (dvojklik), přidat nebo vyměnit vozidlo. Přetížení se zvýrazní červeně, ale nezakáže.</li>
+            </ol>
+            <p class="hint">Váhy artiklů jsou důležité: bez nich (váha 0) nejde ověřit nosnost ani rozložení nákladu.</p></section>
           <section class="card"><h2>0. Struktura: vozidla → palety → materiál</h2>
             <p><b>Vozidla</b> (záložka Vozidla) vezou <b>palety</b>. Typy palet mají kód PAL-xxxx (záložka Palety): rozměr, výšku, vlastní váhu a nosnost. Na paletách jede <b>materiál</b> – artikly z číselníku. U artiklu je napsáno, na jakém typu palety jede a kolik kusů se na ni vejde.</p>
             <p>Na jedné paletě může jet víc artiklů (smíšená paleta). Váha palety = materiál + vlastní váha palety.</p></section>
@@ -264,21 +279,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <ul><li>1. řádek: DRO-0988, když je v zakázce <b>V06</b> → na společné paletě A</li>
             <li>2. řádek: DRO-0988, <b>libovolně</b> → na společné paletě B</li></ul>
             <p>Zakázka s V06 pojede podle řádku 1, zakázka bez V06 podle řádku 2.</p></section>
-          <section class="card"><h2>Jak se palety skládají do vozidel – v bodech</h2>
-            <ol class="steps" type="I">
-              <li><b>Palety zakázky.</b> Nejdřív se spočítají palety: plné + jedna neúplná na artikl, smíšené a společné (koli), hlavní položky s přibalem. Každá paleta je obdélník (délka × šířka) s váhou. Palety se <b>nestohují</b>, skládají se jen po podlaze. Služby (doprava, poplatky) na paletu nejdou.</li>
-              <li><b>Sběrná služba.</b> Když jsou všechny palety europalety a je jich nejvýše <b data-help="gMax"></b>, vozidlo není potřeba – zakázka jede sběrnou službou.</li>
-              <li><b>Jedna zakázka = jedno vozidlo.</b> Kalkulátor zkusí každé vozidlo od nejlevnějšího. Když se celá zakázka vejde do jednoho vozidla (podlaha, nosnost, max. počet palet), vezme <b>nejlevnější takové vozidlo</b> – i kdyby dvě menší vyšla levněji.</li>
-              <li><b>Jak se pozná „vejde se“.</b> Palety se kladou od čela korby ke dveřím do volných obdélníků (metoda MaxRects), paleta se smí otočit, pokud to má povolené. Zkouší se <b>mnoho pořadí</b>: největší napřed, nejtěžší napřed, nejužší napřed a desítky náhodných. Stačí, když se vše vejde v jednom z nich.</li>
-              <li><b>Když se nevejde do žádného vozidla:</b>
-                <ul><li><b>víc zakázek v jednom ID</b> – nakládá se po zakázkách v pořadí; první paleta, která se nevejde, otevře další vozidlo;</li>
-                <li><b>jedna zakázka</b> – vozidla se plní postupně, zkouší se různá „hlavní“ vozidla (kamion, nákladní auto…) a různá pořadí palet.</li></ul></li>
-              <li><b>Co nejméně vozidel, pak nejlevněji.</b> Vyhrává <b>nejmenší počet vozidel</b>; teprve mezi stejným počtem rozhoduje <b>cena</b> podle sloupce „Cena“ na záložce Vozidla. Každé naložené vozidlo se zkusí přeložit do levnějšího (např. zbytek 2 palet do dodávky místo kamionu).</li>
-              <li><b>Rozložení v korbě.</b> Palety jdou co nejtěsněji k čelu, volné místo zůstane vcelku u dveří. Když mají artikly <b>váhu</b>, hlídají se i normy: levá / pravá strana nejvýše <b data-help="lrTol"></b> % váhy, u těžkého nákladu (od <b data-help="heavyShare"></b> % nosnosti) těžiště v <b data-help="cgMin"></b>–<b data-help="cgMax"></b> % délky korby. <b>Bez váhy</b> se skládá jen podle místa a v záhlaví vozidla svítí „Chybí váha“.</li>
-              <li><b>Doladění.</b> Palety se dorazí k čelu a zaplní mezery blíž kabině. Pak se zkusí vyprázdnit menší vozidlo do volného místa ve větších; když se celé nevejde, přeloží se aspoň část a pro zbytek se vezme levnější vozidlo. V záhlaví vozidla vidíte „mezery / těžiště / L-P“.</li>
-              <li><b>Ruční úprava.</b> Na záložce Nakládka můžete palety přetáhnout, otočit (dvojklik), přidat nebo vyměnit vozidlo. Přetížení se zvýrazní červeně, ale nezakáže.</li>
-            </ol>
-            <p class="hint">Váhy artiklů jsou důležité: bez nich (váha 0) nejde ověřit nosnost ani rozložení nákladu.</p></section>
+          
           <section class="card"><h2>3. Sběrná služba nebo vlastní vozidlo</h2>
             <p>Palety jdou sběrnou službou (PPL, DPD, UPS, Česká pošta), jen když jsou všechny europalety 120 × 80 cm a je jich nejvýše <b data-help="gMax"></b>. Jinak se objedná vozidlo.</p>
             <p>Balík smí vážit nejvýše <b data-help="pKg"></b> kg a mít nejdelší stranu nejvýše <b data-help="pL"></b> m. Těžší nebo delší balík označíme „Zkontrolovat“.</p>

@@ -574,3 +574,4 @@ html{background:var(--bg)}
 #view-combos td select[data-f="mode"]{min-width:130px}#view-combos td.nowrap .btn{padding:4px 7px}
 #view-combos .c-art{min-width:235px}#view-combos .c-art .code-in{font-size:13px;letter-spacing:-.01em}#view-combos .c-note{min-width:80px}#view-combos .c-cond{min-width:150px}
 .steps[type="I"]{list-style:upper-roman;padding-left:30px}
+.help .help-wide{grid-column:1/-1;column-span:all}
