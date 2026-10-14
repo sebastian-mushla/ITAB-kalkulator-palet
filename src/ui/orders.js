@@ -256,7 +256,14 @@ function vehicleHtml(v) {
   if (v.items.length && noKg) bal = '<span class="bal warn" title="Artikly nemají vyplněnou váhu kusu (Číselník → Zkontrolovat číselník).">' + (noKg === v.items.length ? 'Chybí váha' : 'Chybí váha u ' + noKg + ' z ' + v.items.length + ' palet') + ' – rozloženo jen podle místa (co nejtěsněji od čela), vyvážení a nosnost nelze ověřit · mezery ' + Math.round((ev || evalLoad(v.items, v.L, v.W, v.maxKg)).gapPct) + ' %</span>';
   const rm = v.idx != null && !v.items.length ? '<button class="veh-x" data-rmveh="' + v.idx + '" aria-label="Odebrat vozidlo">×</button>' : '';
   const tools = v.idx != null ? '<span class="veh-tools"><button class="btn small" data-undo="1" title="Vrátit poslední změnu nakládky">↶ Zpět</button><button class="btn small" data-reset="1" title="Vrátit automatické rozložení všech vozidel">Vrátit vše</button></span>' : '';
-  return '<article class="panel veh' + (over ? ' over' : '') + '"><header>' + tools + '<h3>' + esc(v.title) + ', korba ' + fmtM(v.L) + ' × ' + fmtM(v.W) + ' m</h3><p>' + (v.items.length ? v.items.length + ' ' + palWord(v.items.length) + ', ' + fmtKg(v.kg) + ' (' + load + ' % nosnosti' + (over ? ', přetíženo!' : '') + ')' : 'prázdné – přetáhněte sem palety') + rm + '</p>' + bal + '</header><div class="plan">' + svgVehicle(v) + '</div>' + (v.items.length ? palletTable(v, nameOf) : '') + '</article>';
+  // share of each zakázka in this vehicle: small ring + %
+  let shares = '';
+  if (v.soTot && v.items.length) {
+    const m = new Map(); v.items.forEach(i => m.set(i.so, (m.get(i.so) || 0) + 1));
+    shares = '<div class="so-shares">' + [...m].map(([so, n]) => { const tot = v.soTot.get(so) || n, pc = Math.round(n / tot * 100), C = 2 * Math.PI * 7;
+      return '<span class="so-share" title="Zakázka ' + esc(so || '') + ': ' + n + ' z ' + tot + ' palet v tomto vozidle"><svg width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="7" style="fill:none;stroke:var(--line);stroke-width:3"/><circle cx="9" cy="9" r="7" transform="rotate(-90 9 9)" style="fill:none;stroke:var(--primary);stroke-width:3;stroke-dasharray:' + (C * n / tot).toFixed(1) + ' ' + C.toFixed(1) + '"/></svg><b>' + esc(so || '–') + '</b> ' + pc + ' %<small> (' + n + '/' + tot + ')</small></span>'; }).join('') + '</div>';
+  }
+  return '<article class="panel veh' + (over ? ' over' : '') + '"><header>' + tools + '<h3>' + esc(v.title) + ', korba ' + fmtM(v.L) + ' × ' + fmtM(v.W) + ' m</h3>' + shares + '<p>' + (v.items.length ? v.items.length + ' ' + palWord(v.items.length) + ', ' + fmtKg(v.kg) + ' (' + load + ' % nosnosti' + (over ? ', přetíženo!' : '') + ')' : 'prázdné – přetáhněte sem palety') + rm + '</p>' + bal + '</header><div class="plan">' + svgVehicle(v) + '</div>' + (v.items.length ? palletTable(v, nameOf) : '') + '</article>';
 }
 function depotHtml(d, rules) {
   const nonEuro = [...new Set(d.items.filter(p => !p.euro).map(p => p.code))];
@@ -413,7 +420,9 @@ export function renderDock(r, { rules, vehicles }) {
       '<div class="vehtools"><span class="zoom" role="group" aria-label="Měřítko nákresu"><button class="btn small" data-zoom="-1" title="Zmenšit">−</button><button class="btn small" data-zoom="1" title="Zvětšit">+</button></span><select id="addVehSel" aria-label="Vozidlo k přidání">' + opts + '</select><button class="btn" id="addVehBtn">+ Přidat vozidlo</button>' +
       (r.manualOn ? '<button class="btn" id="resetManual">Vrátit automatické rozložení</button>' : '') + '</div></div>';
     if (r.vehicles.length || r.depot) h += '<p class="hint drag-hint">Paletu chyťte myší a přetáhněte jinam nebo do jiného vozidla. Dvojklik paletu otočí. Prázdné vozidlo odeberete křížkem.</p>';
-    h += r.vehicles.map((v, i) => vehicleHtml(Object.assign({ idx: i }, v, { lift: vehicles[v.vi] && vehicles[v.vi].lift }))).join('');
+    // pallets of every zakázka in the whole ID: the vehicle header shows which share of each zakázka it carries
+    const soTot = new Map(); r.vehicles.concat(r.depot ? [r.depot] : []).forEach(v => v.items.forEach(i => soTot.set(i.so, (soTot.get(i.so) || 0) + 1)));
+    h += r.vehicles.map((v, i) => vehicleHtml(Object.assign({ idx: i }, v, { lift: vehicles[v.vi] && vehicles[v.vi].lift, soTot }))).join('');
     if (r.depot) h += depotHtml(r.depot, rules);
     h += '<p class="note">Rozložení je orientační: pohled shora, palety nestohujeme, váha je bez vlastních palet. Nakládku a konečné rozhodnutí určuje dopravce.</p>';
   }
