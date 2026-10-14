@@ -34,7 +34,7 @@ export function parseOrders(text) {
     if (rw) {
       if (!cur) { problems.push('řádek ' + (idx + 1) + ': chybí hlavička zakázky (SO číslo)'); return; }
       const q = toNum(rw[3]);
-      if (!isFinite(q) || q % 1 !== 0 || q <= 0) { problems.push('řádek ' + (idx + 1) + ': množství musí být celé číslo větší než nula'); return; }
+      if (!isFinite(q) || q % 1 !== 0 || q <= 0) return; // quantity 0, negative or not whole (e.g. 0,50): ignored
       add(curId || cur, cur, rw[1], q, (rw[2] || '').trim()); return;
     }
     // ERP position without "r": "10<TAB>artikl<TAB>název<TAB>1,00" (pasted from the ERP grid)
@@ -43,7 +43,7 @@ export function parseOrders(text) {
       // only under an SO line or with an ERP quantity like 1,00 – otherwise it is the table zakázka;artikl;…
       && (cur || /[.,]\d{2}$/.test(cells[cells.length - 1]))) {
       const q = toNum(cells[cells.length - 1]);
-      if (q % 1 !== 0 || q <= 0) { problems.push('řádek ' + (idx + 1) + ': množství musí být celé číslo větší než nula'); return; }
+      if (q % 1 !== 0 || q <= 0) return; // quantity 0, negative or not whole (e.g. 0,50): ignored
       if (!cur) { cur = 'BEZ-SO'; problems.push('chybí řádek „SO číslo“ – položky jsou v zakázce BEZ-SO'); }
       add(curId || cur, cur, cells[1], q, cells.slice(2, -1).join(' ').trim()); return;
     }
@@ -55,7 +55,7 @@ export function parseOrders(text) {
     const qCell = p[p.length - 1];
     const qty = toNum(qCell);
     if (!isFinite(qty)) { if (isFirst) return; problems.push('řádek ' + (idx + 1) + ': množství „' + qCell + '“ není číslo'); return; }
-    if (qty % 1 !== 0 || qty <= 0) { problems.push('řádek ' + (idx + 1) + ': množství musí být celé číslo větší než nula'); return; }
+    if (qty % 1 !== 0 || qty <= 0) return; // quantity 0, negative or not whole (e.g. 0,50): ignored
     // ID;zakázka;artikl;(název;)množství without a header: the first two columns are numbers
     if (p.length >= 4 && /^\d+$/.test(p[0]) && /^\d+$/.test(p[1]) && !/^\d+$/.test(p[2])) { add(p[0], p[1], p[2], qty, p.slice(3, -1).join(' ').trim()); return; }
     add(p[0], p[0], p[1], qty, p.slice(2, -1).join(' ').trim());
