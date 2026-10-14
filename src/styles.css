@@ -616,3 +616,4 @@ label.check.nowrap{white-space:nowrap}
 .c-code{font-weight:700}
 .pe-issues{margin:8px 0 10px;padding:10px 12px;border-radius:10px;background:var(--amber-t);color:#8a4b00;font-size:13px}.pe-issues ul{margin:4px 0 8px 18px;padding:0}
 .pe-row.bad{background:var(--amber-t);border-radius:8px}.pe-row.bad b{color:#8a4b00}
+.pe-iss-acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}

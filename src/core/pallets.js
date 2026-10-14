@@ -31,13 +31,14 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     if (!groups.has(k)) groups.set(k, []);
     groups.get(k).push({ rule, code: a.code || l.code, name: a.name || l.name || '', kg: rule.kg > 0 ? rule.kg : (a.kg || 0), qty: l.qty, ci: idx >= 0 ? idx : catalog.length + 200 + groups.size });
   }
+  const spill = [];
   lines.forEach(l => {
     const idx = index.has(l.code.toLowerCase()) ? index.get(l.code.toLowerCase()) : -1;
     let solo = null;
     if (idx < 0) {
       // not in the catalog yet: it can still ride on a host pallet if a Způsob balení rule says so
       const r0 = findRule(l.code, l.qty, present, combos);
-      if (r0 && r0.mode === 'group' && overCap(r0, l.qty)) { unknown.push({ code: l.code, qty: l.qty, name: l.name || '', hint: capHint(r0) }); errors.push('Artikl „' + l.code + '“: ' + l.qty + ' ks je víc než max ' + r0.cap + ' ks v ' + r0.group + ' – zařaďte ho ručně.'); return; }
+      if (r0 && r0.mode === 'group' && overCap(r0, l.qty)) { spill.push({ l, rule: r0 }); l = Object.assign({}, l, { qty: r0.cap }); }
       if (r0 && r0.mode === 'group') { addGroup(r0, { code: l.code, name: r0.name || l.name || '', kg: r0.kg || 0 }, -1, l); return; }
       if (r0 && r0.mode === 'host') {
         const a0 = { code: l.code, name: r0.name || l.name || '', kg: r0.kg || 0, per: 0, pl: 0, pw: 0, unknown: true };
@@ -58,7 +59,8 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     const row = { code: a.code, name: a.name, qty: l.qty, kg: l.qty * (a.kg || 0), ci: ci, rule: rule ? ruleText(rule) : null };
     if (rule && rule.mode === 'group') {
       // more pieces than the balení may carry: all of them wait on the right, labelled with the balení
-      if (overCap(rule, l.qty)) { unknown.push({ code: l.code, qty: l.qty, name: a.name || l.name || '', known: true, hint: capHint(rule) }); errors.push('Artikl „' + l.code + '“: ' + l.qty + ' ks je víc než max ' + rule.cap + ' ks v ' + rule.group + ' – zařaďte ho ručně.'); return; }
+      // more pieces than the balení may carry: max goes on the balení pallet, the rest is calculated again (next rules, otherwise right side)
+      if (overCap(rule, l.qty)) { spill.push({ l, rule }); l = Object.assign({}, l, { qty: rule.cap }); row.qty = rule.cap; }
       addGroup(rule, a, ci, l); return;
     }
     // packing not decided yet (article known from a balení): rides only by a rule, otherwise waits on the right side
@@ -133,6 +135,13 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     const ks = [...new Set((combos || []).filter(r => r.mode === 'host' && r.strict && low(r.host) === low(p.code)).map(koliOf).filter(Boolean))];
     if (ks.length) p.tag = ks.length > 1 ? 'BAL ' + ks.map(k => k.replace(/^(KOLI|BAL)-/, '')).join('·') : ks[0];
   });
+  // pieces over „Max ks“ of a balení: calculated again without that row (another balení, solo, or the right side)
+  if (spill.length) {
+    const skip = new Set(spill.map(x => x.rule));
+    const sub = makePallets(spill.map(x => Object.assign({}, x.l, { qty: x.l.qty - x.rule.cap })), catalog, combos.filter(r => !skip.has(r)), types, Object.assign({}, opts, { mix: false }));
+    pallets.push(...sub.pallets); parcels.push(...sub.parcels); rows.push(...sub.rows); errors.push(...sub.errors);
+    sub.unknown.forEach(u => { const x = spill.find(y => low(y.l.code) === low(u.code)); unknown.push(Object.assign(u, x ? { hint: 'nad max ' + x.rule.cap + ' ks v ' + x.rule.group } : {})); });
+  }
   return { pallets: opts.mix === false ? pallets : mixLeftovers(pallets), parcels, errors, rows, unknown };
 }
 

@@ -414,7 +414,7 @@ cases.push(['Koli bez skrytých pravidel: artikl jede na paletě svého koli i s
   assert(one.pallets.some(p => p.group === 'BAL-1') && !one.unknown.length, 'sám na koli');
   const capped = rows.map(r => Object.assign({}, r, { cap: 3 }));
   const many = solve(parseOrders('SO 1\nr10 V06 k 1\nr20 A a 5\nr30 B b 1').orders.get('1'), Object.assign({}, ctx, { combos: capped, rules }));
-  assert(many.unknown.some(u => u.code === 'A' && u.qty === 5 && /nevešlo se do BAL-1/.test(u.hint)), 'A nad max vpravo');
+  assert(many.unknown.some(u => u.code === 'A' && u.qty === 2 && /nad max 3 ks v BAL-1/.test(u.hint)) && many.pallets.some(p => p.group === 'BAL-1'), 'A: 3 ks na balení, 2 ks nad max vpravo');
   const over = solve(parseOrders('SO 1\nr10 V06 k 1\nr20 A a 5').orders.get('1'), Object.assign({}, ctx, { combos: rows, rules }));
   assert(over.pallets.some(p => p.group === 'BAL-1' && p.over), 'víc než ověřeno = oranžová');
   const other = solve(parseOrders('SO 1\nr10 A a 1').orders.get('1'), Object.assign({}, ctx, { combos: rows, rules }));

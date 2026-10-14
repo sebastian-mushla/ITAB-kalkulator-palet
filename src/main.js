@@ -1082,13 +1082,24 @@ function drawPalEditor() {
     '<p class="muted">' + cm(t.L) + ' × ' + cm(t.W) + ' cm · ' + Math.round(kg) + ' kg (tara ' + (t.tare || 0) + ' kg)' + (t.maxKg ? ' · nosnost ' + t.maxKg + ' kg' : '') + ' · zaplnění ' + Math.round(fill * 100) + ' %</p>' +
     '<div class="pe-fill' + (fill > 1.001 || (t.maxKg && kg - (t.tare || 0) > t.maxKg) ? ' over' : '') + '"><i style="width:' + Math.min(100, Math.round(fill * 100)) + '%"></i></div>' +
     (iss.length ? '<div class="pe-issues"><b>Problémy na paletě</b><ul>' + iss.map(x => '<li><b>' + esc(x.c.code) + '</b>: ' + esc(x.t) + '</li>').join('') + '</ul>' +
-      (iss.some(x => x.fix) ? '<button type="button" class="btn small primary" id="peConfirm">✓ Potvrdit množství v balení</button><small class="muted"> – ověřené / max kusy se zvýší, paleta přestane svítit</small>' : '') + '</div>' : '') +
+      (iss.some(x => x.fix) ? '<div class="pe-iss-acts"><button type="button" class="btn small primary" id="peConfirm">✓ Potvrdit množství</button><small class="muted">ověřené / max kusy se zvýší</small></div>' +
+      (iss.some(x => x.fix && x.r && x.r.mode === 'group') ? '<div class="pe-iss-acts"><button type="button" class="btn small" id="peNoConfirm">✗ Nepotvrzovat množství</button><small class="muted">Max ks = ověřeno; kusy navíc se přepočítají (jiné balení, solo, jinak vpravo)</small></div>' : '') : '') + '</div>' : '') +
     (b.contents.length ? b.contents.map((c, i) => '<div class="pe-row' + (iss.some(x => x.i === i) ? ' bad' : '') + '"><span><b>' + esc(c.code) + '</b><span class="muted">' + esc(c.name || '') + (c.ride ? ' · navrch' : '') + '</span></span><span>' + c.units + ' ks</span>' +
       (peCur.row === i ? '' : '<button type="button" class="btn small" data-po="' + i + '">Přesunout…</button>') + '</div>' + (peCur.row === i ? movePanel(c, i) : '')).join('')
       : '<p class="muted">Paleta je prázdná. Přetáhněte na ni materiál na ploše nebo ji smažte.</p>');
   $('#peDelete').hidden = false;
 }
 $('#peBody').addEventListener('click', e => {
+  if (e.target.id === 'peNoConfirm') {
+    const { id, pid } = peCur, b = state.plan.get(id).find(x => x.id === pid), done = [];
+    palIssues(b).filter(x => x.fix && x.r && x.r.mode === 'group').forEach(x => { x.r.cap = x.r.per; done.push(x.c.code + ': max ' + x.r.per + ' ks v ' + x.r.group); });
+    persist('combos'); drawCombos(); logChanges(id, done.map(t => 'Nepotvrzeno, ' + t));
+    // back to the automatic calculation so the extra pieces are calculated again
+    if (!peCur.wasPlan) { state.plan.delete(id); peCur.wasPlan = true; }
+    else { const all = load('itab.plans.v1', {}); state.plan.delete(id); delete all[id]; save('itab.plans.v1', all); }
+    $('#dlgPalEdit').close(); keepScroll(() => recalcOne()); flash('Nepotvrzeno: ' + done.join(', ') + ' – kusy navíc přepočítány.');
+    return;
+  }
   if (e.target.id === 'peConfirm') {
     const { id, pid } = peCur, b = state.plan.get(id).find(x => x.id === pid), done = [];
     palIssues(b).filter(x => x.fix && x.r).forEach(x => { Object.assign(x.r, x.fix); done.push(x.c.code + ' → ' + x.fix.per + ' ks'); });

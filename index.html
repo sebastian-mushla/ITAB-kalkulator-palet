@@ -182,7 +182,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <label class="check nowrap"><input type="checkbox" id="comboReplace">Nahradit všechna pravidla</label>
             <button class="btn" id="comboExport">Stáhnout CSV</button>
           </div>
-          <p class="hint"><b>1 · Hl.+přibal</b> – artikl (přibal) jede na paletě hlavní položky, nejvýš „Max ks na 1 hlavní položku“. <b>2 · Mix</b> – všechny artikly se stejným číslem balení jedou spolu na paletě balení; „Ověřeno ks“ = tolik už jelo (víc = oranžová kontrola), „Max ks“ = víc už ne (artikl čeká vpravo). Nejdřív platí typ 1, pak typ 2, nakonec číselník. <b>Projekt</b>: balení platí jen v zakázkách projektu – stejný artikl se v Action a Reve může balit jinak. Váha je vždy z číselníku.</p>
+          <p class="hint"><b>1 · Hl.+přibal</b> – artikl (přibal) jede na paletě hlavní položky, nejvýš „Max ks na 1 hlavní položku“. <b>2 · Mix</b> – všechny artikly se stejným číslem balení jedou spolu na paletě balení; „Ověřeno ks“ = tolik už jelo (víc = oranžová kontrola), „Max ks“ = víc na paletu balení nejde – kusy navíc se přepočítají podle dalších pravidel (jiné balení, Solo P./B.), jinak čekají vpravo. Nejdřív platí typ 1, pak typ 2, nakonec číselník. <b>Projekt</b>: balení platí jen v zakázkách projektu – stejný artikl se v Action a Reve může balit jinak. Váha je vždy z číselníku.</p>
           <div id="comboReport"></div>
           <details class="howto"><summary>Historie změn (Zkontrolovat a uložit)</summary><ul id="comboLog" class="log"></ul></details>
           <label class="search tbl-search"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="comboSearch" type="search" placeholder="Hledat ve způsobech balení: artikl, paleta, skupina…" aria-label="Hledat"></label>
@@ -289,7 +289,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <p>Hlavní položka (např. pokladna V12) jede <b>1 ks na své paletě</b>. Přibal (money box, plexi kit…) má <b>„Max ks na 1 hlavní položku“</b>. Kolik pokladen v zakázce, tolik palet; přibal se rozdělí na každou. Přibal více pokladen se dělí mezi všechny. Co se nevejde, čeká vpravo s poznámkou „nevešlo se na balení …“ – přetažením na paletu pokladny se maximum zvýší. <b>Jedna hlavní položka = jedno balení.</b></p>
             <h3>4.4 Balení – společná paleta (drobný materiál)</h3>
             <ul><li><b>Ověřeno ks</b> – tolik už jelo spolu. Víc kusů pojede také, paleta jen svítí oranžově s „!“.</li>
-            <li><b>Limit ks</b> – víc kusů na paletu balení nejde; když je v zakázce víc, všechny kusy artiklu čekají vpravo („nevešlo se do BAL-…“). Prázdné = bez limitu.</li>
+            <li><b>Max ks</b> – víc kusů na paletu balení nejde; kusy navíc se přepočítají podle dalších pravidel (jiné balení, Solo P./B.), jinak čekají vpravo („nad max … v BAL-…“). Prázdné = bez limitu. V okně palety: „✓ Potvrdit množství“ zvýší ověřeno, „✗ Nepotvrzovat množství“ nastaví Max ks = ověřeno.</li>
             <li>Artikl z balení projektu jede na paletě balení vždy, i když je v zakázce sám.</li></ul>
             <p>Jeden artikl je jen v jednom druhu: kdo je hlavní položka nebo přibal, nepatří do balení.</p>
             <h3>4.5 Import balení</h3>

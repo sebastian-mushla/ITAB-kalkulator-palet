@@ -101,7 +101,7 @@ export function renderCombos(combos, catalog, pallets, projects) {
     else pal += '<div class="cf2">' + fld('Délka balíku, mm', num('pl', 'mm')) + fld('Šířka balíku, mm', num('pw', 'mm')) + '</div>';
     const pocty = main
       ? fld('Max ks na 1 hlavní položku', num('per', 'bez limitu'), 'Kolik kusů smí jet na jedné paletě hlavní položky. Co se nevejde, čeká vpravo.')
-      : group ? fld('Ověřeno ks', num('per', '–'), 'Tolik kusů už na této paletě jelo. Víc jich pojede také, paleta jen svítí oranžově.') + fld('Max ks', num('cap', 'bez limitu'), 'Když je v zakázce víc kusů, na paletu balení nepůjde žádný – všechny čekají vpravo.')
+      : group ? fld('Ověřeno ks', num('per', '–'), 'Tolik kusů už na této paletě jelo. Víc jich pojede také, paleta jen svítí oranžově.') + fld('Max ks', num('cap', 'bez limitu'), 'Víc kusů na paletu balení nejde – kusy navíc se přepočítají (jiné balení, solo), jinak čekají vpravo.')
       : fld(pallet ? 'Ks na paletě' : 'Ks v balíku', num('per', 'vše na jedné'), 'Prázdné = celé množství na jedné paletě / v jednom balíku. 1 = každý kus zvlášť.') +
         // solo / balík can depend on the quantity in the order (e.g. from 150 ks on a pallet, up to 149 ks as balík)
         '<div class="cf2">' + fld('Od ks v zakázce', num('min', '–'), 'Platí, když je v zakázce aspoň tolik kusů.') + fld('Do ks v zakázce', num('max', '–'), 'Platí, když je v zakázce nejvýš tolik kusů.') + '</div>';
