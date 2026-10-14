@@ -1495,7 +1495,22 @@ $('#comboBody').addEventListener('focusin', e => {
   sel.dataset.filled = '1';
 });
 bindTable($('#comboBody'), () => state.combos, 'combos', drawCombos);
-$('#comboBody').addEventListener('change', e => { if (e.target.getAttribute('data-f') === 'mode' || e.target.getAttribute('data-f') === 'on') drawCombos(); });
+$('#comboBody').addEventListener('change', e => {
+  const f = e.target.getAttribute('data-f'), r = state.combos[e.target.getAttribute('data-i')];
+  // type of packaging → mode (+ strict for a main item); a main item row keeps withCode = host
+  if (f === 'kind' && r) {
+    const k = r.kind; delete r.kind;
+    r.mode = k === 'main' ? 'host' : k === 'mix' ? 'group' : k; r.strict = k === 'main';
+    if (k === 'main') { r.withCode = r.host || r.withCode || ''; if (!r.koli) r.koli = nextKoloCode(state.combos); }
+    if (k === 'mix' && !r.group) r.group = nextKoloCode(state.combos);
+    persist('combos'); recalc();
+  }
+  if (f === 'kind' || f === 'mode' || f === 'on') drawCombos();
+});
+$('#comboBody').addEventListener('input', e => {
+  const r = state.combos[e.target.getAttribute('data-i')];
+  if (r && e.target.getAttribute('data-f') === 'host' && r.mode === 'host' && r.strict) { r.withCode = r.host; persist('combos'); }
+});
 $('#comboBody').addEventListener('click', e => {
   const up = e.target.getAttribute('data-up'), down = e.target.getAttribute('data-down');
   if (up == null && down == null) return;

@@ -80,25 +80,39 @@ export function renderCombos(combos, catalog, pallets, projects) {
     const host = r.mode === 'host', group = r.mode === 'group', pallet = r.mode === 'pallet', parcel = r.mode === 'parcel';
     const palSel = '<select data-i="' + i + '" data-f="pal" data-lazy="' + (group ? 'g' : 'p') + '" aria-label="Typ palety">' + (r.pal ? '<option value="' + esc(r.pal) + '" selected>' + esc(r.pal) + ' · ' + esc((pallets.find(p => p.code === r.pal) || {}).name || '') + '</option>' : (group ? '<option value="">– typ palety –</option>' : '<option value="">rozměr níže</option>')) + '</select>';
     const projSel = '<select data-i="' + i + '" data-f="project" aria-label="Projekt"><option value="">všechny projekty</option>' + projects.map(n => '<option' + (n === r.project ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + (r.project && !projects.includes(r.project) ? '<option selected>' + esc(r.project) + '</option>' : '') + '</select>';
-    // where it goes – only the fields this kind of rule needs
-    let kam;
-    if (host) kam = fld('Na paletě artiklu (hlavní položka)', inp('host', 'artikl'));
-    else if (group) kam = fld('Typ palety', palSel) + '<div class="cf2">' + fld('Balení', '<input type="text" data-i="' + i + '" data-f="group" value="' + esc(r.group || '') + '" placeholder="BAL-1">') + fld('Projekt', projSel) + '</div>';
-    else kam = (pallet ? fld('Typ palety', palSel) : '') + ((pallet && !r.pal) || parcel ? '<div class="cf2">' + fld(parcel ? 'Délka balíku, mm' : 'Délka, mm', num('pl', 'z číselníku')) + fld(parcel ? 'Šířka balíku, mm' : 'Šířka, mm', num('pw', 'z číselníku')) + '</div>' : '');
+    // kind of packaging: 1 main item + přibal, 2 mix (shared pallet, by balení number), 3 other rules
+    const main = host && r.strict;
+    const kind = main ? 'main' : group ? 'mix' : r.mode;
+    const kindSel = '<select class="kind-sel k-' + (main ? 1 : group ? 2 : 3) + '" data-i="' + i + '" data-f="kind" aria-label="Typ balení">' +
+      [['main', '1 · Hlavní položka + přibal'], ['mix', '2 · Mix (společná paleta)'], ['host', '3 · Na paletě artiklu'], ['pallet', '3 · Na jiné paletě'], ['parcel', '3 · Jako balík']]
+        .map(m => '<option value="' + m[0] + '"' + (kind === m[0] ? ' selected' : '') + '>' + m[1] + '</option>').join('') + '</select>';
+    const codeF = main ? 'koli' : group ? 'group' : '';
+    const codeIn = codeF ? '<input type="text" class="bal-code" data-i="' + i + '" data-f="' + codeF + '" value="' + esc(r[codeF] || '') + '" placeholder="BAL-?">' : '<span class="bal-none">bez čísla</span>';
+    // the condition: main item for type 1, nothing for mix, free condition for the rest
+    let cond;
+    if (main) cond = fld('Hlavní položka', inp('host', 'artikl pokladny'));
+    else if (group) cond = '<span class="muted small">jede s ostatními artikly balení ' + esc(r.group || '') + '</span>';
+    else cond = fld('Když je v zakázce', inp('withCode', 'libovolně')) + (host ? fld('Na paletě artiklu', inp('host', 'artikl')) : '');
+    if (!main) cond += '<div class="cf2">' + fld('Ks od', num('min', '–')) + fld('Ks do', num('max', '–')) + '</div>';
+    // the pallet
+    let pal;
+    if (main) pal = '<span class="muted small">paleta hlavní položky</span>';
+    else if (host) pal = '<span class="muted small">paleta artiklu ' + esc(r.host || '') + '</span>';
+    else pal = (parcel ? '' : fld('Typ palety', palSel)) + ((pallet && !r.pal) || parcel ? '<div class="cf2">' + fld(parcel ? 'Délka balíku, mm' : 'Délka, mm', num('pl', 'z číselníku')) + fld(parcel ? 'Šířka balíku, mm' : 'Šířka, mm', num('pw', 'z číselníku')) + '</div>' : '');
     // the numbers with plain names
     let pocty;
-    if (host) pocty = fld('Max ks na 1 ' + (r.strict ? 'hlavní položku' : 'paletu'), num('per', 'bez limitu'), 'Kolik kusů smí jet na jedné paletě hlavní položky. Co se nevejde, čeká vpravo.');
+    if (host) pocty = fld('Max ks na 1 ' + (main ? 'hlavní položku' : 'paletu'), num('per', 'bez limitu'), 'Kolik kusů smí jet na jedné paletě hlavní položky. Co se nevejde, čeká vpravo.');
     else if (group) pocty = fld('Ověřeno ks', num('per', '–'), 'Tolik kusů už na této paletě jelo. Víc jich pojede také, paleta jen svítí oranžově.') + fld('Limit ks', num('cap', 'bez limitu'), 'Když je v zakázce víc kusů, žádný na paletu balení nepůjde – všechny čekají vpravo.');
     else pocty = fld(parcel ? 'Ks v balíku' : 'Ks na paletě', num('per', 'z číselníku'));
     const nm = names.get(String(r.code || '').toLowerCase()) || r.name || '';
-    return '<tr' + (r.on === false ? ' class="off"' : '') + '>' +
+    return '<tr class="' + (r.on === false ? 'off ' : '') + 'kind-' + (main ? 1 : group ? 2 : 3) + '"' + (r.note ? ' title="' + esc(r.note) + '"' : '') + '>' +
       '<td><input type="checkbox" data-i="' + i + '" data-f="on"' + (r.on !== false ? ' checked' : '') + ' aria-label="Aktivní"></td>' +
+      '<td class="c-bal">' + codeIn + kindSel + '</td>' +
       '<td class="c-art">' + inp('code', 'artikl', ' class="code-in"') + (nm ? '<small class="c-name">' + esc(nm) + '</small>' : '') + '</td>' +
-      '<td class="c-cond">' + fld('Když je v zakázce', inp('withCode', 'libovolně')) + '<div class="cf2">' + fld('Ks od', num('min', '–')) + fld('Ks do', num('max', '–')) + '</div></td>' +
-      '<td><select data-i="' + i + '" data-f="mode" aria-label="Pojede">' + COMBO_MODES.map(m => '<option value="' + m[0] + '"' + (r.mode === m[0] ? ' selected' : '') + '>' + m[1] + '</option>').join('') + '</select></td>' +
-      '<td class="c-kam">' + (kam || '<span class="muted">–</span>') + '</td>' +
+      '<td class="c-cond">' + cond + '</td>' +
+      '<td class="c-kam">' + (pal || '<span class="muted">–</span>') + '</td>' +
       '<td class="c-num">' + pocty + fld('Váha kusu, kg', num('kg', 'z číselníku', 'any')) + '</td>' +
-      '<td class="c-note"><input type="text" data-i="' + i + '" data-f="note" value="' + esc(r.note || '') + '" aria-label="Poznámka"></td>' +
+      '<td class="c-proj">' + projSel + '</td>' +
       '<td class="nowrap"><button class="btn small" data-up="' + i + '" aria-label="Výš"' + (i === 0 ? ' disabled' : '') + '>↑</button> <button class="btn small" data-down="' + i + '" aria-label="Níž"' + (i === combos.length - 1 ? ' disabled' : '') + '>↓</button> <button class="btn small" data-del="' + i + '" title="Smazat" aria-label="Smazat">×</button></td></tr>';
   }).join('') || '<tr><td colspan="8" class="empty">Zatím žádná pravidla. Bez pravidel platí běžný výpočet z číselníku.</td></tr>';
 }

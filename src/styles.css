@@ -577,3 +577,10 @@ html{background:var(--bg)}
 .help .help-wide{grid-column:1/-1;column-span:all}
 .help-doc h3{font-size:14.5px;margin:14px 0 4px;color:#5b4bd1}.help-doc h2{margin-bottom:4px}.help-doc ul,.help-doc ol{margin:4px 0 8px 20px;padding:0}.help-doc li{margin:3px 0}
 .help-toc{font-size:13.5px;line-height:1.9}.help-toc a{color:#5b4bd1;text-decoration:none}.help-toc a:hover{text-decoration:underline}
+
+#view-combos .c-bal{min-width:170px}#view-combos .bal-code{font-weight:800;color:#5b4bd1;margin-bottom:6px}
+#view-combos .bal-none{display:block;color:var(--ink2);font-size:12px;margin:6px 0 10px}
+#view-combos .kind-sel{font-size:12px;font-weight:600;border-radius:8px}
+#view-combos .kind-sel.k-1{background:#efeafd;color:#4b3cc4}#view-combos .kind-sel.k-2{background:#e6f6ec;color:#1d7a43}#view-combos .kind-sel.k-3{background:#f3f3f5;color:var(--ink2)}
+#view-combos tr.kind-1>td:first-child{box-shadow:inset 3px 0 #7866EE}#view-combos tr.kind-2>td:first-child{box-shadow:inset 3px 0 #2fa862}
+#view-combos .c-proj{min-width:120px}#view-combos .small{font-size:12px}

@@ -66,7 +66,7 @@ export function parseKolo(text) {
 }
 export function nextKoloCode(combos) {
   // BAL-n (formerly KOLI-n) from shared pallets and from machine balení (their note says „Balení KOLI-n – hlavní položka …“)
-  const n = (combos || []).map(r => { const m = String((r.mode === 'group' && r.group) || r.note || '').match(/(?:KOLI|BAL)-(\d+)/i); return m ? Number(m[1]) : 0; });
+  const n = (combos || []).map(r => { const m = String((r.mode === 'group' && r.group) || r.koli || r.note || '').match(/(?:KOLI|BAL)-(\d+)/i); return m ? Number(m[1]) : 0; });
   return 'BAL-' + ((n.length ? Math.max(...n) : 0) + 1);
 }
 
@@ -187,7 +187,7 @@ export function projectOf(order, projects) {
 }
 // balení of another project do not apply; balení without a project apply everywhere
 export function combosFor(combos, project) {
-  return (combos || []).filter(r => r.mode !== 'group' || !low(r.project) || (project && low(r.project) === low(project)));
+  return (combos || []).filter(r => !low(r.project) || (project && low(r.project) === low(project)));
 }
 
 // balení number of a rule (main item + přibal rows keep it in `balení`, older ones only in the note)

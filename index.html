@@ -182,13 +182,13 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <label class="check"><input type="checkbox" id="comboReplace">Nahradit všechna pravidla</label>
             <button class="btn" id="comboExport">Stáhnout CSV</button>
           </div>
-          <p class="hint">Pravidla se zkoušejí shora dolů, použije se první, které sedí. Příklad: <b>V04</b>, když je v zakázce <b>V06</b>, množství do <b>10</b> → pojede <b>na paletě artiklu V06</b>. Rozměr palety se nemění, přičte se jen váha. Co se na hostitelské palety nevejde (max ks na paletu), jede normálně. Prázdné pole = bez podmínky.</p>
+          <p class="hint"><b>Typ 1 · Hlavní položka + přibal</b> – přibal jede na paletě hlavní položky (max ks na 1 hlavní položku). <b>Typ 2 · Mix</b> – všechny artikly se stejným číslem balení jedou na jedné společné paletě. <b>Typ 3</b> – ostatní pravidla. Pořadí: nejdřív typ 1, pak typ 2, pak typ 3, nakonec číselník. <b>Projekt</b>: pravidlo platí jen v zakázkách tohoto projektu (stejný artikl může mít v Action a Reve jiné balení).</p>
           <div id="comboReport"></div>
           <details class="howto"><summary>Historie změn (Zkontrolovat a uložit)</summary><ul id="comboLog" class="log"></ul></details>
           <label class="search tbl-search"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="comboSearch" type="search" placeholder="Hledat ve způsobech balení: artikl, paleta, skupina…" aria-label="Hledat"></label>
           <div class="tscroll">
             <table>
-              <thead><tr><th></th><th>Artikl</th><th>Podmínka</th><th>Pojede</th><th>Kam</th><th>Počty</th><th>Poznámka</th><th></th></tr></thead>
+              <thead><tr><th></th><th>Balení a typ</th><th>Artikl</th><th>Hlavní položka / podmínka</th><th>Paleta</th><th>Počty</th><th>Projekt</th><th></th></tr></thead>
               <tbody id="comboBody"></tbody>
             </table>
           </div>
