@@ -821,6 +821,13 @@ $('#koForm').onsubmit = ev => {
     }
   }
   let rows = main ? koloHostRows(items, main, group, $('#koName').value.trim()) : items.map(it => koloRow(it, group, code, $('#koName').value.trim(), true, proj));
+  if (main) {
+    // přibal rows belong to the chosen project; the main item itself rides on the balení's pallet (Solo P., 1 ks) unless it already has one
+    rows.forEach(r => { r.project = proj; });
+    const lw = c => String(c || '').toLowerCase();
+    if (!state.combos.some(r => r.mode === 'pallet' && lw(r.code) === lw(main) && (lw(r.project) === lw(proj) || !r.project)))
+      rows.push({ on: true, code: main, withCode: '', min: 0, max: 0, mode: 'pallet', host: '', pal: code, pl: 0, pw: 0, per: 1, kg: 0, name: (items.find(it => lw(it.code) === lw(main)) || {}).name || '', project: proj, note: 'Hlavní položka balení ' + group });
+  }
   if (mainRows.length) rows = rows.filter(n => { const old = mainRows.find(r => lowm(r.code) === lowm(n.code)); if (!old) return true; old.per = Math.max(old.per || 0, n.per || 0); return false; });
   // missing articles get a catalog entry: name, weight 0 to fill in, packing decided later (alone it may be a parcel)
   let addedArt = 0;
