@@ -15,9 +15,9 @@ export function filterCatalog(catalog, q) {
 export function renderCatalog(catalog, view, pallets, combos) {
   pallets = pallets || []; combos = combos || [];
   // how the article is packed – only from Způsob balení (the catalog holds no packing)
-  const KIND = { group: 'mix', pallet: 'solo', parcel: 'balík' };
+  const KIND = { group: 'Mix', pallet: 'Solo P.', parcel: 'Solo B.' };
   const balOf = code => { const l = String(code || '').toLowerCase(), rs = combos.filter(r => r.on !== false && String(r.code || '').toLowerCase() === l);
-    return rs.length ? rs.map(r => (r.mode === 'host' ? 's ' + (r.host || '?') : (KIND[r.mode] || r.mode) + (r.mode === 'group' ? ' ' + (r.group || '') : r.pal ? ' ' + r.pal : '')) + (r.project ? ' · ' + r.project : '')).map(esc).join('<br>') : '<span class="warn">není – čeká vpravo</span>'; };
+    return rs.length ? rs.map(r => (r.mode === 'host' ? 'Hl.+přibal ' + (r.host || '?') : (KIND[r.mode] || r.mode) + (r.mode === 'group' ? ' ' + (r.group || '') : r.pal ? ' ' + r.pal : '')) + (r.project ? ' · ' + r.project : '')).map(esc).join('<br>') : '<span class="warn">není – čeká vpravo</span>'; };
   const list = filterCatalog(catalog, view.q), pages = Math.max(1, Math.ceil(list.length / PAGE));
   view.page = Math.min(view.page, pages - 1);
   const slice = list.slice(view.page * PAGE, view.page * PAGE + PAGE);
@@ -86,7 +86,7 @@ export function renderCombos(combos, catalog, pallets, projects) {
     const main = !group && !parcel && !pallet;
     const kind = main ? 'main' : group ? 'mix' : pallet ? 'solo' : 'parcel', kn = main ? 1 : group ? 2 : pallet ? 3 : 4;
     const kindSel = '<select class="kind-sel k-' + kn + '" data-i="' + i + '" data-f="kind" aria-label="Typ balení">' +
-      [['main', '1 · Hlavní položka'], ['mix', '2 · Mix paleta'], ['solo', '3 · Solo paleta'], ['parcel', '4 · Balík']].map(m => '<option value="' + m[0] + '"' + (kind === m[0] ? ' selected' : '') + '>' + m[1] + '</option>').join('') + '</select>';
+      [['main', '1 · Hl.+přibal'], ['mix', '2 · Mix'], ['solo', '3 · Solo P. (paleta)'], ['parcel', '4 · Solo B. (balík)']].map(m => '<option value="' + m[0] + '"' + (kind === m[0] ? ' selected' : '') + '>' + m[1] + '</option>').join('') + '</select>';
     const codeF = main ? 'koli' : group ? 'group' : '';
     const codeIn = codeF ? '<input type="text" class="bal-code" data-i="' + i + '" data-f="' + codeF + '" value="' + esc(r[codeF] || '') + '" placeholder="BAL-?">' : '<span class="bal-none">bez čísla</span>';
     const nm = names.get(String(r.code || '').toLowerCase()) || r.name || '';

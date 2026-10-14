@@ -190,9 +190,9 @@ function compositionHtml(r) {
     const on = r.pallets.filter(p => (String(p.code).toLowerCase() === lc || (p.extra || []).some(e => String(e.code).toLowerCase() === lc)) && (!x.so || !p.so || String(p.so) === String(x.so)));
     const nos = on.map(p => boardNo.get(p)).filter(Boolean).sort((a, b) => a - b);
     const t = x.pack === 'sluzba' ? ['gray', 'Služba', 'nic se neveze'] : x.pack === 'kit' ? ['gray', 'Kit item', 'nic se neveze']
-      : x.group ? ['mix', 'Mix ' + x.group, 'společná paleta'] : x.onHost ? ['host', 'Přibal', 'na paletě hlavní položky']
-      : x.pack === 'balik' ? ['parcel', 'Balík', x.count + ' ' + balWord(x.count) + ' · ' + cm(x.pl) + ' × ' + cm(x.pw) + ' cm']
-      : x.planDist != null ? ['hand', 'Upraveno ručně', x.planDist] : x.board ? ['hand', 'Ručně', 'ručně přidaná paleta'] : ['solo', 'Solo', (x.pal ? x.pal + ' ' : '') + (x.palName || (cm(x.pl) + ' × ' + cm(x.pw) + ' cm'))];
+      : x.group ? ['mix', 'Mix ' + x.group, 'společná paleta'] : x.onHost ? ['host', 'Hl.+přibal', 'na paletě hlavní položky']
+      : x.pack === 'balik' ? ['parcel', 'Solo B.', x.count + ' ' + balWord(x.count) + ' · ' + cm(x.pl) + ' × ' + cm(x.pw) + ' cm']
+      : x.planDist != null ? ['hand', 'Upraveno ručně', x.planDist] : x.board ? ['hand', 'Ručně', 'ručně přidaná paleta'] : ['solo', 'Solo P.', (x.pal ? x.pal + ' ' : '') + (x.palName || (cm(x.pl) + ' × ' + cm(x.pw) + ' cm'))];
     const how = '<span class="how how-' + t[0] + '"' + (x.rule ? ' title="Pravidlo: ' + esc(x.rule) + '"' : '') + '>' + esc(t[1]) + '</span> <span class="how-d">' + esc(t[2]) + '</span>' + (x.over ? ' <span class="how-over">víc než ověřeno</span>' : '');
     return '<tr><td><i class="sw" style="background:' + color(x.ci) + '"></i><b class="c-code">' + esc(x.code) + '</b><br><span class="hint">' + esc(x.name || '') + '</span></td><td class="num"><b>' + fmtN(x.qty) + '</b> ks</td><td>' + how + '</td><td>' + (nos.length ? nos.map(n => '<span class="pno">' + n + '</span>').join('') : '<span class="muted">–</span>') + '</td><td class="num">' + (x.kg ? fmtKg(x.kg) : '<span class="muted">–</span>') + '</td></tr>';
   }).join('');
@@ -340,7 +340,7 @@ function palletBoardHtml(r, isAdmin, board, types) {
       h += (h ? '</div>' : '') + '<div class="so-block"><h3 class="so-head">Zakázka ' + esc(curSo || '–') + ' <span class="muted">' + n + ' ' + palWord(n) + '</span></h3>';
     }
     h += '<div class="bgroup"><div class="bgroup-h"><b>' + esc(p0.pal || 'Jiná paleta') + '</b> <span class="muted">' + (p0.palName ? esc(p0.palName) + ' · ' : '') + Math.round(p0.pl / 10) + ' × ' + Math.round(p0.pw / 10) + ' cm · ' + list.length + ' ' + palWord(list.length) + '</span></div><div class="bgroup-p">' +
-      list.map(p => { const n = ++shown; boardNo.set(p, n); return block(p, 'data-code="' + esc(p.code) + '" data-so="' + esc(p.so || '') + '"' + (p.group ? ' data-group="' + esc(p.group) + '" data-pal="' + esc(p.pal || '') + '"' : '') + (p.over ? ' data-over="1"' : '') + (p.tag ? ' data-tag="' + esc(p.tag) + '"' : '') + (r.planOn ? ' data-bid="' + esc(p.board) + '"' : '') + ' data-pi="' + (num.get(p) - 1) + '" title="Paleta č. ' + n + ' – kliknutím upravíte obsah"', '<i class="pnum">' + n + '</i>' + label(p)); }).join('') + '</div></div>';
+      list.map(p => { const n = ++shown; boardNo.set(p, n); return block(p, 'data-code="' + esc(p.code) + '" data-so="' + esc(p.so || '') + '"' + (p.group ? ' data-group="' + esc(p.group) + '" data-pal="' + esc(p.pal || '') + '"' : '') + (p.over ? ' data-over="1"' : '') + ' data-tag="' + esc((p.group ? 'Mix' : p.tag ? 'Hl.+přibal' : p.board != null && !r.planOn ? 'Ručně' : 'Solo P.') + (p.tag ? ' ' + p.tag : '')) + '"' + (r.planOn ? ' data-bid="' + esc(p.board) + '"' : '') + ' data-pi="' + (num.get(p) - 1) + '" title="Paleta č. ' + n + ' – kliknutím upravíte obsah"', '<i class="pnum">' + n + '</i>' + label(p)); }).join('') + '</div></div>';
   });
   if (multi && curSo !== null) h += '</div>';
   // pallets the operator added by hand

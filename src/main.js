@@ -1019,10 +1019,39 @@ function openPalEditor(id, bid, pi) {
   const filled = P.filter(b => b.contents.some(c => c.units > 0));
   const b = (wasPlan && bid && P.find(x => x.id === bid)) || filled[pi] || P.find(x => x.id === bid);
   if (!b) return;
-  peCur = { id, pid: b.id, row: null };
+  peCur = { id, pid: b.id, row: null, wasPlan, snap: JSON.stringify(P) };
   if (!wasPlan) keepScroll(() => recalcOne());
   drawPalEditor();
   $('#dlgPalEdit').showModal();
+}
+// closing the editor without any change: the order stays automatic (no "edited by hand" banner)
+function peClosed() {
+  if (!peCur || peCur.wasPlan) return;
+  const P = state.plan.get(peCur.id); peCur.wasPlan = true;
+  if (P && JSON.stringify(P) === peCur.snap) { state.plan.delete(peCur.id); keepScroll(() => recalcOne()); }
+}
+// the dialog's close event is not reliable: also the form submit (Hotovo) and Esc
+$('#dlgPalEdit').addEventListener('close', peClosed);
+$('#dlgPalEdit').addEventListener('cancel', () => setTimeout(peClosed, 0));
+$('#dlgPalEdit').querySelector('form').addEventListener('submit', () => setTimeout(peClosed, 0));
+// problems of one pallet: pieces over the verified count / over the max of the rule
+function palIssues(b) {
+  const low = s => String(s || '').toLowerCase(), main = b.contents.find(c => c.units > 0 && !c.ride);
+  return b.contents.map((c, i) => {
+    if (!(c.units > 0)) return null;
+    if (b.group) {
+      const r = state.combos.find(x => x.mode === 'group' && low(x.group) === low(b.group) && low(x.code) === low(c.code));
+      if (!r) return { i, c, r: null, t: 'není v balení ' + b.group };
+      if (r.cap > 0 && c.units > r.cap) return { i, c, r, t: c.units + ' ks, max ' + r.cap + ' ks' };
+      if (r.per > 0 && c.units > r.per) return { i, c, r, t: c.units + ' ks, ověřeno jen ' + r.per + ' ks', fix: { per: c.units } };
+      return null;
+    }
+    if (c.ride && main) {
+      const r = state.combos.find(x => x.mode === 'host' && low(x.code) === low(c.code) && low(x.host) === low(main.code));
+      if (r && r.per > 0 && c.units > r.per) return { i, c, r, t: c.units + ' ks, max ' + r.per + ' ks na hlavní položku', fix: { per: c.units } };
+    }
+    return null;
+  }).filter(Boolean);
 }
 function drawPalEditor() {
   const { id, pid } = peCur, P = state.plan.get(id), b = P.find(x => x.id === pid);
@@ -1035,6 +1064,7 @@ function drawPalEditor() {
   const soNow = (b.contents.find(c => c.units > 0) || {}).so;
   const others = P.filter(x => x !== b && sameSo(x, soNow)).map(x => '<option value="' + esc(x.id) + '">' + esc(label(x)) + '</option>').join('');
   $('#peTitle').textContent = (n ? 'Paleta č. ' + n : 'Prázdná paleta') + ' – zakázka ' + id;
+  const iss = palIssues(b);
   const cm = mm => Math.round((mm || 0) / 10);
   // panel for moving pieces of one article: same type / other type from the database / brand new pallet / existing pallet
   const movePanel = (c, i) => '<div class="pe-move">' +
@@ -1051,12 +1081,25 @@ function drawPalEditor() {
     '<div class="pe-head"><input type="search" id="peType" list="palList2" value="' + esc(t.code ? t.code + ' · ' + t.name : '') + '" aria-label="Typ palety" style="flex:1 1 260px"><datalist id="palList2">' + state.pallets.map(p => '<option value="' + esc(palOption(p)) + '"></option>').join('') + '</datalist><button type="button" class="btn small" id="peTypeBtn">Změnit typ</button></div>' +
     '<p class="muted">' + cm(t.L) + ' × ' + cm(t.W) + ' cm · ' + Math.round(kg) + ' kg (tara ' + (t.tare || 0) + ' kg)' + (t.maxKg ? ' · nosnost ' + t.maxKg + ' kg' : '') + ' · zaplnění ' + Math.round(fill * 100) + ' %</p>' +
     '<div class="pe-fill' + (fill > 1.001 || (t.maxKg && kg - (t.tare || 0) > t.maxKg) ? ' over' : '') + '"><i style="width:' + Math.min(100, Math.round(fill * 100)) + '%"></i></div>' +
-    (b.contents.length ? b.contents.map((c, i) => '<div class="pe-row"><span><b>' + esc(c.code) + '</b><span class="muted">' + esc(c.name || '') + (c.ride ? ' · navrch' : '') + '</span></span><span>' + c.units + ' ks</span>' +
+    (iss.length ? '<div class="pe-issues"><b>Problémy na paletě</b><ul>' + iss.map(x => '<li><b>' + esc(x.c.code) + '</b>: ' + esc(x.t) + '</li>').join('') + '</ul>' +
+      (iss.some(x => x.fix) ? '<button type="button" class="btn small primary" id="peConfirm">✓ Potvrdit množství v balení</button><small class="muted"> – ověřené / max kusy se zvýší, paleta přestane svítit</small>' : '') + '</div>' : '') +
+    (b.contents.length ? b.contents.map((c, i) => '<div class="pe-row' + (iss.some(x => x.i === i) ? ' bad' : '') + '"><span><b>' + esc(c.code) + '</b><span class="muted">' + esc(c.name || '') + (c.ride ? ' · navrch' : '') + '</span></span><span>' + c.units + ' ks</span>' +
       (peCur.row === i ? '' : '<button type="button" class="btn small" data-po="' + i + '">Přesunout…</button>') + '</div>' + (peCur.row === i ? movePanel(c, i) : '')).join('')
       : '<p class="muted">Paleta je prázdná. Přetáhněte na ni materiál na ploše nebo ji smažte.</p>');
   $('#peDelete').hidden = false;
 }
 $('#peBody').addEventListener('click', e => {
+  if (e.target.id === 'peConfirm') {
+    const { id, pid } = peCur, b = state.plan.get(id).find(x => x.id === pid), done = [];
+    palIssues(b).filter(x => x.fix && x.r).forEach(x => { Object.assign(x.r, x.fix); done.push(x.c.code + ' → ' + x.fix.per + ' ks'); });
+    persist('combos'); drawCombos(); logChanges(id, done.map(t => 'Potvrzeno množství: ' + t));
+    // nothing else changed on the pallets: back to the automatic calculation
+    const P = state.plan.get(id);
+    if (!peCur.wasPlan && JSON.stringify(P) === peCur.snap) { state.plan.delete(id); peCur.wasPlan = true; $('#dlgPalEdit').close(); }
+    else drawPalEditor();
+    keepScroll(() => recalcOne()); flash('Potvrzeno: ' + done.join(', '));
+    return;
+  }
   const po = e.target.getAttribute('data-po');
   if (po != null) { peCur.row = Number(po); drawPalEditor(); return; }
   if (e.target.getAttribute('data-pcancel')) { peCur.row = null; drawPalEditor(); return; }

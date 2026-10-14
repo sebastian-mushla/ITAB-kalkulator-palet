@@ -182,7 +182,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <label class="check nowrap"><input type="checkbox" id="comboReplace">Nahradit všechna pravidla</label>
             <button class="btn" id="comboExport">Stáhnout CSV</button>
           </div>
-          <p class="hint"><b>1 · Hlavní položka</b> – artikl (přibal) jede na paletě hlavní položky, nejvýš „Max ks na 1 hlavní položku“. <b>2 · Mix paleta</b> – všechny artikly se stejným číslem balení jedou spolu na paletě balení; „Ověřeno ks“ = tolik už jelo (víc = oranžová kontrola), „Max ks“ = víc už ne (artikl čeká vpravo). Nejdřív platí typ 1, pak typ 2, nakonec číselník. <b>Projekt</b>: balení platí jen v zakázkách projektu – stejný artikl se v Action a Reve může balit jinak. Váha je vždy z číselníku.</p>
+          <p class="hint"><b>1 · Hl.+přibal</b> – artikl (přibal) jede na paletě hlavní položky, nejvýš „Max ks na 1 hlavní položku“. <b>2 · Mix</b> – všechny artikly se stejným číslem balení jedou spolu na paletě balení; „Ověřeno ks“ = tolik už jelo (víc = oranžová kontrola), „Max ks“ = víc už ne (artikl čeká vpravo). Nejdřív platí typ 1, pak typ 2, nakonec číselník. <b>Projekt</b>: balení platí jen v zakázkách projektu – stejný artikl se v Action a Reve může balit jinak. Váha je vždy z číselníku.</p>
           <div id="comboReport"></div>
           <details class="howto"><summary>Historie změn (Zkontrolovat a uložit)</summary><ul id="comboLog" class="log"></ul></details>
           <label class="search tbl-search"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="comboSearch" type="search" placeholder="Hledat ve způsobech balení: artikl, paleta, skupina…" aria-label="Hledat"></label>
@@ -248,9 +248,9 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <p><b>ID</b> = jedna adresa / zásilka. <b>SO (zakázka)</b> = prodejní objednávka. Jedno ID může mít víc SO. Palety se počítají pro každou zakázku zvlášť (zakázky se na jedné paletě nemíchají) a na paletě je číslo zakázky. Celé ID se snaží jet jedním vozidlem.</p>
             <h3>1.3 Pořadí rozhodování pro každý artikl</h3>
             <p>Všechno o balení je jen v záložce <b>Způsob balení</b>. Číselník má jen kód, název, váhu a druh (zboží / služba).</p>
-            <ol><li><b>1 · Hlavní položka</b> – přibal jede na paletě hlavní položky (pokladny), když je v zakázce.</li>
-            <li><b>2 · Mix paleta</b> – jede s ostatními artikly svého balení na společné paletě.</li>
-            <li><b>3 · Solo paleta v projektu</b> zakázky (vlastní paleta ze seznamu, ks na paletu) nebo <b>4 · Balík</b> v projektu.</li>
+            <ol><li><b>1 · Hl.+přibal</b> – přibal jede na paletě hlavní položky (pokladny), když je v zakázce.</li>
+            <li><b>2 · Mix</b> – jede s ostatními artikly svého balení na společné paletě.</li>
+            <li><b>3 · Solo paleta v projektu</b> zakázky (vlastní paleta ze seznamu, ks na paletu) nebo <b>4 · Solo B.</b> v projektu.</li>
             <li><b>Solo / balík bez projektu.</b></li>
             <li>Nic z toho → artikl čeká <b>vpravo</b> a zařadíte ho ručně (kapitola 7). Co se naučí v zakázce, uloží se jako solo v projektu zakázky.</li></ol>
             <p>Balení jiného projektu se nepoužije – stejný artikl se v Action a Reve může balit jinak.</p></section>
@@ -278,11 +278,11 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
 
           <section class="card help-wide" id="h4"><h2>4. Způsob balení a balení</h2>
             <h3>4.1 Typy balení</h3>
-            <ul><li><b>1 · Hlavní položka</b> – přibal jede na paletě hlavní položky (rozměr palety hlavní položky dává její solo pravidlo).</li>
-            <li><b>2 · Mix paleta</b> – artikly se stejným číslem balení jedou spolu na vybrané paletě.</li>
-            <li><b>3 · Solo paleta</b> – artikl jede sám na své paletě ze seznamu, „Ks na paletě“.</li>
-            <li><b>4 · Balík</b> – rozměr balíku a ks v balíku.</li></ul>
-            <p>Solo a balík mají „Od / Do ks v zakázce“: např. od 150 ks solo paleta, do 149 ks balík. Platí první řádek, kterému množství odpovídá. „Ks na paletě / v balíku“: prázdné = vše na jedné, 1 = každý kus zvlášť (např. pokladny).</p>
+            <ul><li><b>1 · Hl.+přibal</b> – přibal jede na paletě hlavní položky (rozměr palety hlavní položky dává její solo pravidlo).</li>
+            <li><b>2 · Mix</b> – artikly se stejným číslem balení jedou spolu na vybrané paletě.</li>
+            <li><b>3 · Solo P.</b> – artikl jede sám na své paletě ze seznamu, „Ks na paletě“.</li>
+            <li><b>4 · Solo B.</b> – rozměr balíku a ks v balíku.</li></ul>
+            <p>Solo P. a Solo B. mají „Od / Do ks v zakázce“: např. od 150 ks solo paleta, do 149 ks balík. Platí první řádek, kterému množství odpovídá. „Ks na paletě / v balíku“: prázdné = vše na jedné, 1 = každý kus zvlášť (např. pokladny).</p>
             <h3>4.2 Pořadí</h3>
             <p>1 → 2 → 3/4 v projektu zakázky → 3/4 bez projektu → vpravo. Uvnitř shora dolů. Váha je vždy z Číselníku.</p>
             <h3>4.3 Balení s hlavní položkou (pokladna + přibal)</h3>
