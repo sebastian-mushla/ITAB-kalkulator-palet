@@ -436,7 +436,8 @@ function packAllRaw(pallets, vehicles, forced, oneVehicle, seq, rules) {
       return { vi: v.vi, type: v.type, name: v.name, n, title: v.name + ' ' + n, L: v.Lmm, W: v.Wmm, maxKg: v.kg, eup: v.eup, items: balanceLoad(b.items, v.Wmm, v.Lmm, v.kg), kg: b.kg };
     });
   // after the final (tighter) layout there may be room left: empty a smaller vehicle into the free space of the others
-  if (forced == null) { absorb(out); shrink(out, pool); }
+  // sequential loading (zakázka 1, then 2, the rest into the next vehicle) must not be reshuffled across vehicles afterwards
+  if (forced == null && !best.seq) { absorb(out); shrink(out, pool); }
   // pallets moved out of a vehicle leave holes: pull what is left towards the cab again
   out.forEach(v => { compactToCab(v.items); pullForward(v.items, v.W); compactToCab(v.items); });
   const cnt = new Map();
