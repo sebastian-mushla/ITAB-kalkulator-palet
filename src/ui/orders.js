@@ -302,6 +302,7 @@ function unknownTray(r, isAdmin) {
 // All pallets of the order as blocks (size to scale), grouped by article; drop target for learning.
 // Admin also gets a palette of pallet types to drag onto the board (empty pallet for this order).
 export function palOption(t) { return t.code + ' · ' + t.name + ' · ' + Math.round(t.L / 10) + ' × ' + Math.round(t.W / 10) + ' cm'; }
+const boardNo = new WeakMap(); // pallet → number shown on the board (for the warnings)
 function palletBoardHtml(r, isAdmin, board, types) {
   const S = 0.1; // px per mm
   const block = (p, attrs, inner, cls) => {
@@ -330,7 +331,7 @@ function palletBoardHtml(r, isAdmin, board, types) {
       h += (h ? '</div>' : '') + '<div class="so-block"><h3 class="so-head">Zakázka ' + esc(curSo || '–') + ' <span class="muted">' + n + ' ' + palWord(n) + '</span></h3>';
     }
     h += '<div class="bgroup"><div class="bgroup-h"><b>' + esc(p0.pal || 'Jiná paleta') + '</b> <span class="muted">' + (p0.palName ? esc(p0.palName) + ' · ' : '') + Math.round(p0.pl / 10) + ' × ' + Math.round(p0.pw / 10) + ' cm · ' + list.length + ' ' + palWord(list.length) + '</span></div><div class="bgroup-p">' +
-      list.map(p => { const n = ++shown; return block(p, 'data-code="' + esc(p.code) + '" data-so="' + esc(p.so || '') + '"' + (p.group ? ' data-group="' + esc(p.group) + '" data-pal="' + esc(p.pal || '') + '"' : '') + (p.over ? ' data-over="1"' : '') + (p.tag ? ' data-tag="' + esc(p.tag) + '"' : '') + (r.planOn ? ' data-bid="' + esc(p.board) + '"' : '') + ' data-pi="' + (num.get(p) - 1) + '" title="Paleta č. ' + n + ' – kliknutím upravíte obsah"', '<i class="pnum">' + n + '</i>' + label(p)); }).join('') + '</div></div>';
+      list.map(p => { const n = ++shown; boardNo.set(p, n); return block(p, 'data-code="' + esc(p.code) + '" data-so="' + esc(p.so || '') + '"' + (p.group ? ' data-group="' + esc(p.group) + '" data-pal="' + esc(p.pal || '') + '"' : '') + (p.over ? ' data-over="1"' : '') + (p.tag ? ' data-tag="' + esc(p.tag) + '"' : '') + (r.planOn ? ' data-bid="' + esc(p.board) + '"' : '') + ' data-pi="' + (num.get(p) - 1) + '" title="Paleta č. ' + n + ' – kliknutím upravíte obsah"', '<i class="pnum">' + n + '</i>' + label(p)); }).join('') + '</div></div>';
   });
   if (multi && curSo !== null) h += '</div>';
   // pallets the operator added by hand
@@ -372,13 +373,14 @@ export function renderDetail(r, { rules, isAdmin, board, pallets, saved }) {
     if (r.pallets.length) h += '<div><b>' + ldmText(r) + '</b><span>LDM</span></div>';
     h += '</div>';
   }
-  if (r.errors.length) h += fold('err', r.errors.length <= 5, 'Upozornění (' + r.errors.length + ')', '<ul class="errors">' + r.errors.map(e => '<li>' + esc(e) + '</li>').join('') + '</ul>', 'fold-err');
+  const boardH = palletBoardHtml(r, isAdmin, board && board.get(r.id) || [], pallets);
+  if (r.errors.length) h += fold('err', r.errors.length <= 5, 'Upozornění (' + r.errors.length + ')', warningsHtml(r), 'fold-err');
   h += compositionHtml(r);
   if (r.pallets.length || r.parcels.length) h += '<details class="panel"><summary>Parametry nákladu pro poptávku</summary><table><tbody>' + cargoRows(r).map(x => '<tr><th scope="row">' + esc(x[0]) + '</th><td>' + esc(x[1]) + '</td></tr>').join('') + '</tbody></table><p class="hint">LDM je odhad podle plochy palet: plocha ÷ šířka korby největšího vozidla.</p></details>';
 
   const tray = unknownTray(r, isAdmin), n = (r.unknown || []).length;
   h += '<div class="sec-head vis"><h2>Palety zakázky</h2></div>';
-  h += '<div class="load' + (tray ? ' with-tray' : '') + '"><div class="load-main">' + palletBoardHtml(r, isAdmin, board && board.get(r.id) || [], pallets) + '</div>' + tray + '</div>';
+  h += '<div class="load' + (tray ? ' with-tray' : '') + '"><div class="load-main">' + boardH + '</div>' + tray + '</div>';
   const ready = !n && r.mode !== 'empty';
   h += '<div class="go-dock">' + (r.pallets.length || r.parcels.length ? '<button class="btn big print" id="packBtn"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>Tisk pro balení</button>' : '') + (isAdmin && r.pallets.length ? '<button class="btn big" id="auditBtn" title="Zkontroluje způsob balení a definice artiklů podle palet této zakázky a uloží palety">✓ Zkontrolovat a uložit</button>' : '') + (saved && saved.has(r.id) ? '<span class="muted saved-at">Uloženo ' + esc(saved.get(r.id)) + '</span>' : '') + '<button class="btn primary big" id="goDock"' + (ready ? '' : ' disabled') + '>Přejít k nakládce →</button>' +
     '<span class="muted">' + (ready ? 'Palety jsou spočítané. V nakládce je rozložíte do vozidel a objednáte dopravu.' : (n ? 'Nejdřív zařaďte ' + n + ' ' + plural(n, ['neznámý artikl', 'neznámé artikly', 'neznámých artiklů']) + '.' : 'Zakázka nemá žádné palety.')) + '</span></div>';
@@ -507,4 +509,30 @@ if (typeof window !== 'undefined') window.__fold = folds;
 function fold(key, openByDefault, title, inner, cls) {
   const open = key in folds ? folds[key] : openByDefault;
   return '<details class="fold ' + (cls || '') + '"' + (open ? ' open' : '') + ' data-d="' + (openByDefault ? 1 : 0) + '" ontoggle="if (this.open === (this.dataset.d === \'1\')) delete window.__fold[\'' + key + '\']; else window.__fold[\'' + key + '\'] = this.open"><summary>' + esc(title) + '</summary>' + inner + '</details>';
+}
+
+// Warnings grouped by kind, with the pallet number from the board
+function warningsHtml(r) {
+  const multi = (r.sos || []).length > 1;
+  const G = { unk: [], over: new Map(), host: [], other: [] };
+  r.errors.forEach(e0 => {
+    let so = '', e = e0; const m0 = e0.match(/^Zakázka (\S+): (.*)$/); if (m0) { so = m0[1]; e = m0[2]; }
+    const soT = multi && so ? ' <small class="w-so">Z ' + esc(so) + '</small>' : '';
+    let m;
+    if ((m = e.match(/^Artikl „(.+?)“ (?:není v číselníku|: balení není určeno)/))) G.unk.push('<span class="w-code">' + esc(m[1]) + '</span>' + soT);
+    else if ((m = e.match(/^Společná paleta (\S+): (\S+) má (\d+) ks, ověřeno jen (\d+)/))) {
+      const p = r.pallets.find(x => x.group === m[1] && (!so || String(x.so) === so)), no = p && boardNo.get(p);
+      const k = m[1] + '|' + so, g = G.over.get(k) || { head: (no ? '<b class="w-no">č. ' + no + '</b> ' : '') + '<b>' + esc(m[1]) + '</b>' + soT, rows: [] };
+      g.rows.push('<span class="w-code">' + esc(m[2]) + '</span> <b>' + m[3] + ' ks</b> <span class="muted">ověřeno ' + m[4] + '</span>'); G.over.set(k, g);
+    } else if ((m = e.match(/^Artikl „(.+?)“: (\d+) ks se nevešlo na palety (\S+) \(max (\d+)/))) {
+      const nos = r.pallets.filter(x => x.code === m[3] && (!so || String(x.so) === so)).map(x => boardNo.get(x)).filter(Boolean);
+      G.host.push('<span class="w-code">' + esc(m[1]) + '</span> <b>' + m[2] + ' ks navíc</b> <span class="muted">na ' + esc(m[3]) + (nos.length ? ' (č. ' + nos.join(', ') + ')' : '') + ' smí max ' + m[4] + ' ks</span>' + soT);
+    } else G.other.push(esc(e) + soT);
+  });
+  const sec = (title, hint, items) => items.length ? '<div class="w-sec"><div class="w-h"><b>' + title + '</b> <span class="w-n">' + items.length + '</span><span class="muted">' + hint + '</span></div><ul>' + items.map(x => '<li>' + x + '</li>').join('') + '</ul></div>' : '';
+  return '<div class="warns">' +
+    sec('Nejsou v číselníku', 'čekají vpravo – přetáhněte je na paletu nebo na volné místo', G.unk) +
+    sec('Víc kusů než ověřeno', 'zkontrolujte, zda se vše vejde; po kontrole „Zkontrolovat a uložit“', [...G.over.values()].map(g => g.head + '<div class="w-rows">' + g.rows.join('<br>') + '</div>')) +
+    sec('Nevešlo se na paletu hlavní položky', 'čeká vpravo – přetažením na paletu se max zvýší', G.host) +
+    sec('Ostatní', '', G.other) + '</div>';
 }
