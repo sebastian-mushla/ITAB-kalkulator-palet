@@ -1605,8 +1605,10 @@ $('#comboBody').addEventListener('click', e => {
   persist('combos'); drawCombos(); recalc();
 });
 $('#comboAdd').addEventListener('click', () => {
-  state.combos.push({ on: true, code: '', withCode: '', min: 0, max: 0, mode: 'group', group: nextKoloCode(state.combos), pal: '', host: '', pl: 0, pw: 0, per: 0, note: '' });
+  // new rule on top (the order of rows matters only between rules of the same type and project)
+  state.combos.unshift({ on: true, code: '', withCode: '', min: 0, max: 0, mode: 'group', group: nextKoloCode(state.combos), pal: '', host: '', pl: 0, pw: 0, per: 0, note: '' });
   persist('combos'); drawCombos();
+  const f = $('#comboBody input[data-f="code"]'); if (f) { f.scrollIntoView({ block: 'center' }); f.focus(); }
 });
 const MODE_NAMES = { host: 'na palete artiklu', pallet: 'na jine palete', group: 'na spolecne palete', parcel: 'jako balik' };
 $('#comboExport').addEventListener('click', () => download('zpusob-baleni.csv',
