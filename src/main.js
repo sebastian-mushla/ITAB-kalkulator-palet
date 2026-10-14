@@ -716,6 +716,8 @@ function dropFromKoli(codes) {
 // weights from the pasted balení (netto column, kg of one piece) for catalog articles without weight
 function kgSetPre() {
   let n = 0;
+  // pallet types without own weight get it from the PAL line (brutto)
+  (koParsed ? koParsed.pals : []).forEach(p => { const t = p.kg > 0 && state.pallets.find(x => String(x.code).toLowerCase() === p.code.toLowerCase()); if (t && !(t.tare > 0)) { t.tare = p.kg; persist('pallets'); drawPallets(); } });
   (koParsed ? koParsed.items : []).forEach(it => { const a = it.kg > 0 && state.catalog.find(x => String(x.code).toLowerCase() === it.code.toLowerCase()); if (a && !(a.kg > 0)) { a.kg = it.kg; n++; } });
   return n;
 }
@@ -744,6 +746,7 @@ function koPalCheck() {
     $('#koNewName').value = nm || code;
     $('#koNewL').value = nums.length >= 2 ? Math.max(nums[0], nums[1]) : '';
     $('#koNewW').value = nums.length >= 2 ? Math.min(nums[0], nums[1]) : '';
+    $('#koNewTare').value = fromKolo && fromKolo.kg > 0 ? fromKolo.kg : 0; // brutto of the PAL line = own weight of the pallet
   }
   const okPal = exists || (isNew && toNum($('#koNewL').value) > 0 && toNum($('#koNewW').value) > 0);
   $('#koSave').disabled = !(koParsed.items.length && okPal);

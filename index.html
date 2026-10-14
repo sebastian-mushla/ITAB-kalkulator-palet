@@ -423,8 +423,8 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
 <dialog class="dlg" id="dlgKolo">
   <form method="dialog" id="koForm">
     <h2>Importovat balení</h2>
-    <p class="hint">Vložte řádky balení z ERP (artikl, název, množství, netto hmotnost). Artikly pak pojedou spolu na jedné paletě. Množství se bere jako <b>ověřené</b>, ne jako maximum – když jich bude v zakázce víc, pojedou také, jen s upozorněním.</p>
-    <textarea id="koText" rows="7" spellcheck="false" placeholder="artikl · název · množství · netto hmotnost kg (nepovinné)&#10;DRO-0988&#9;FASTENERS KIT ACTION 0988&#9;1,00&#9;0,250&#10;PAL-0013&#9;EURO paleta 1200x800&#9;1,00"></textarea>
+    <p class="hint">Vložte řádky balení z ERP (artikl, název, množství, netto, brutto). Artikly pak pojedou spolu na jedné paletě. Množství se bere jako <b>ověřené</b>, ne jako maximum – když jich bude v zakázce víc, pojedou také, jen s upozorněním.</p>
+    <textarea id="koText" rows="7" spellcheck="false" placeholder="artikl · název · množství · netto kg · brutto kg (váhy nepovinné, za 1 ks)&#10;V1-SPR-055-040-9003&#9;IMPULSE ISLAND 1096&#9;1,00&#9;66,9000&#9;0,0000&#10;PAL-0062&#9;Paleta 1200 x 1200&#9;1,00&#9;0,0000&#9;13,9600"></textarea>
     <div id="koPreview" class="ko-preview"></div>
     <label id="koPalWrap">Typ palety<input type="search" id="koPal" list="koPalList" autocomplete="off" placeholder="Hledat: kód, název nebo rozměr"><datalist id="koPalList"></datalist></label>
     <label id="koSelWrap" hidden>Typ palety (v balení je víc palet – vyberte)<select id="koSel"></select></label>

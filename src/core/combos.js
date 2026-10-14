@@ -51,26 +51,29 @@ export function parseKolo(text) {
     if (cells.length < 2) {
       const w = line.split(/\s+/), last = w[w.length - 1];
       const dec = t => /^\d+[.,]\d+$/.test(t || '');
-      cells = w.length >= 3 && dec(last) && dec(w[w.length - 2]) ? [w[0], w.slice(1, -2).join(' '), w[w.length - 2], last]
-        : w.length >= 2 && dec(last) ? [w[0], w.slice(1, -1).join(' '), last] : [w[0], w.slice(1).join(' '), '1'];
+      let k = 0; while (k < 3 && w.length - k > 1 && dec(w[w.length - 1 - k])) k++;
+      cells = k ? [w[0], w.slice(1, w.length - k).join(' ')].concat(w.slice(w.length - k)) : [w[0], w.slice(1).join(' '), '1'];
     }
     while (cells.length > 2 && cells[cells.length - 1] === '') cells.pop();
-    // leading position number (10, 20…) only when the line is long enough to have one: with a netto column it has 5 cells
-    const isNum = t => /^[\d\s]+([.,]\d+)?$/.test(t || '');
-    const hasNetto = cells.length >= 4 && /[.,]/.test(cells[cells.length - 1]) && isNum(cells[cells.length - 1]) && isNum(cells[cells.length - 2]);
-    if (cells.length >= (hasNetto ? 5 : 4) && /^\d{1,4}$/.test(cells[0])) cells = cells.slice(1);
+    // leading position number (10, 20…): the line is longer than artikl + název + its number columns
+    { const isN0 = t => /^[\d\s]+([.,]\d+)?$/.test(t || ''); let n0 = 0; for (let j = cells.length - 1; j >= 2 && n0 < 3 && isN0(cells[j]); j--) n0++;
+      if (cells.length >= 3 + Math.max(1, n0) && /^\d{1,4}$/.test(cells[0])) cells = cells.slice(1); }
     if (cells.length < 2) { problems.push('řádek ' + (i + 1) + ': chybí množství'); return; }
-    // optional next column „netto hmotnost“ (kg of one piece): two numbers at the end = quantity + net weight
+    // trailing number columns: množství, then optional netto and brutto hmotnost (kg of one piece / of the pallet)
     const num = t => Number(String(t).replace(/\s/g, '').replace(',', '.'));
-    let netto = 0;
-    if (cells.length >= 4 && /^[\d\s]+([.,]\d+)?$/.test(cells[cells.length - 1]) && /^[\d\s]+([.,]\d+)?$/.test(cells[cells.length - 2])) netto = num(cells.pop());
+    const isN = t => /^[\d\s]+([.,]\d+)?$/.test(t || '');
+    let nums = 0; for (let j = cells.length - 1; j >= 1 && nums < 3 && isN(cells[j]); j--) nums++;
+    let netto = 0, brutto = 0;
+    if (nums === 3) { brutto = num(cells.pop()); netto = num(cells.pop()); }
+    else if (nums === 2 && cells.length >= 4) netto = num(cells.pop());
     const qty = Number(String(cells[cells.length - 1]).replace(/\s/g, '').replace(',', '.'));
     const code = cells[0], name = cells.slice(1, -1).join(' ').replace(/\s+/g, ' ').trim();
     if (!code || !isFinite(qty) || qty <= 0) { problems.push('řádek ' + (i + 1) + ': nerozpoznáno'); return; }
-    if (/^PAL-[0-9][0-9A-Z-]*$/i.test(code)) { if (!pals.some(p => low(p.code) === low(code))) pals.push({ code: code.toUpperCase(), name }); return; }
+    if (/^PAL-[0-9][0-9A-Z-]*$/i.test(code)) { if (!pals.some(p => low(p.code) === low(code))) pals.push({ code: code.toUpperCase(), name, kg: brutto > 0 ? brutto : netto > 0 ? netto : 0 }); return; }
     const k = low(code), g = items.get(k) || { code, name, seen: 0, kg: 0 };
     g.seen += Math.round(qty);
-    if (netto > 0 && !(g.kg > 0)) g.kg = netto; // netto column = weight of ONE piece (not of the line)
+    const w = netto > 0 ? netto : brutto; // weight of ONE piece: netto, otherwise brutto
+    if (w > 0 && !(g.kg > 0)) g.kg = w;
     items.set(k, g);
   });
   return { items: [...items.values()], pals, problems };
