@@ -433,6 +433,8 @@ function packAllRaw(pallets, vehicles, forced, oneVehicle, seq, rules) {
     });
   // after the final (tighter) layout there may be room left: empty a smaller vehicle into the free space of the others
   if (forced == null) { absorb(out); shrink(out, pool); }
+  // pallets moved out of a vehicle leave holes: pull what is left towards the cab again
+  out.forEach(v => { compactToCab(v.items); pullForward(v.items, v.W); compactToCab(v.items); });
   const cnt = new Map();
   out.forEach(v => { const n = (cnt.get(v.vi) || 0) + 1; cnt.set(v.vi, n); v.n = n; v.title = v.name + ' ' + n; delete v.eup; });
   return { vehicles: out, oversize };

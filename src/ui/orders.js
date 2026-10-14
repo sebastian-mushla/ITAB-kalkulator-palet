@@ -226,7 +226,10 @@ function palletTable(v, names) {
       '<td>' + arts.map(a => '<b>' + esc(a.code) + '</b>').join('<br>') + '</td><td class="pt-name">' + arts.map(a => esc(names(a.code))).join('<br>') + '</td>' +
       '<td class="num">' + arts.map(a => fmtN(a.units) + ' ks').join('<br>') + '</td><td class="num">' + fmtN(it.kg) + ' kg</td><td>' + esc(it.pal || '') + (it.fill < 0.999 ? ' · ' + Math.round(it.fill * 100) + ' %' : '') + '</td></tr>';
   }).join('');
-  return '<details class="ptable" open><summary>Seznam palet (' + v.items.length + ')</summary><div class="tscroll"><table><thead><tr><th class="num">Č.</th>' + (multi ? '<th>Zakázka</th>' : '') + '<th>Artikl</th><th>Název</th><th class="num">Kusů</th><th class="num">Váha</th><th>Paleta</th></tr></thead><tbody>' + rows + '</tbody></table></div></details>';
+  // closed by default (the loader needs the drawing); an opened list stays open after re-render
+  const key = String(v.title || v.vi || '').replace(/'/g, '');
+  const open = typeof window !== 'undefined' && window.__ptOpen && window.__ptOpen[key];
+  return '<details class="ptable"' + (open ? ' open' : '') + ' ontoggle="(window.__ptOpen = window.__ptOpen || {})[\'' + key + '\'] = this.open"><summary>Seznam palet (' + v.items.length + ')</summary><div class="tscroll"><table><thead><tr><th class="num">Č.</th>' + (multi ? '<th>Zakázka</th>' : '') + '<th>Artikl</th><th>Název</th><th class="num">Kusů</th><th class="num">Váha</th><th>Paleta</th></tr></thead><tbody>' + rows + '</tbody></table></div></details>';
 }
 let nameOf = () => '';
 export function setNameLookup(fn) { nameOf = fn; }
@@ -269,7 +272,7 @@ export function loadPlanHtml(r, vehicles) {
     const plain = Object.assign({}, v, { idx: null, lift: vehicles[v.vi] && vehicles[v.vi].lift });
     const legend = groupItems(v.items).map(g => '<li><i style="background:' + color(g.ci) + '"></i>' + esc(g.code) + ': ' + g.count + ' ' + palWord(g.count) + ', ' + g.units + ' ks</li>').join('') +
       extrasOf(v.items).map(e => '<li><i style="background:' + color(e.ci) + '"></i>' + esc(e.code) + ': ' + e.units + ' ks na paletách ' + esc(e.host) + '</li>').join('');
-    return '<section><h2>' + esc(v.title) + ' <small>korba ' + fmtM(v.L) + ' × ' + fmtM(v.W) + ' m · ' + v.items.length + ' ' + palWord(v.items.length) + ' · ' + fmtKg(v.kg) + '</small></h2><ul>' + legend + '</ul>' + svgVehicle(plain) + (v.items.length ? palletTable(v, nameOf) : '') + '</section>';
+    return '<section><h2>' + esc(v.title) + ' <small>korba ' + fmtM(v.L) + ' × ' + fmtM(v.W) + ' m · ' + v.items.length + ' ' + palWord(v.items.length) + ' · ' + fmtKg(v.kg) + '</small></h2>' + svgVehicle(plain) + (v.items.length ? palletTable(v, nameOf) : '') + '</section>';
   }).join('') : '<p>Zakázka nemá vlastní vozidlo (jede sběrnou službou).</p>';
   return '<!DOCTYPE html><html lang="cs"><head><meta charset="utf-8"><title>Nakládka – ID ' + esc(r.id) + '</title><style>' +
     ':root{--truck:#F1EFFA;--truck-line:#4A4568;--ink2:#555}' +
