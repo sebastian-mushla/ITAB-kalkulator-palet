@@ -80,27 +80,28 @@ export function renderCombos(combos, catalog, pallets, projects) {
     const host = r.mode === 'host', group = r.mode === 'group', pallet = r.mode === 'pallet', parcel = r.mode === 'parcel';
     const palSel = '<select data-i="' + i + '" data-f="pal" data-lazy="' + (group ? 'g' : 'p') + '" aria-label="Typ palety">' + (r.pal ? '<option value="' + esc(r.pal) + '" selected>' + esc(r.pal) + ' · ' + esc((pallets.find(p => p.code === r.pal) || {}).name || '') + '</option>' : (group ? '<option value="">– typ palety –</option>' : '<option value="">rozměr níže</option>')) + '</select>';
     const projSel = '<select data-i="' + i + '" data-f="project" aria-label="Projekt"><option value="">všechny projekty</option>' + projects.map(n => '<option' + (n === r.project ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + (r.project && !projects.includes(r.project) ? '<option selected>' + esc(r.project) + '</option>' : '') + '</select>';
-    // two kinds of packaging: 1 main item + přibal (rides on the main item's pallet), 2 mix (shared pallet by balení number)
-    const main = !group;
-    const kindSel = '<select class="kind-sel k-' + (main ? 1 : 2) + '" data-i="' + i + '" data-f="kind" aria-label="Typ balení">' +
-      [['main', '1 · Hlavní položka'], ['mix', '2 · Mix paleta']].map(m => '<option value="' + m[0] + '"' + ((main ? 'main' : 'mix') === m[0] ? ' selected' : '') + '>' + m[1] + '</option>').join('') + '</select>';
-    const codeF = main ? 'koli' : 'group';
-    const codeIn = '<input type="text" class="bal-code" data-i="' + i + '" data-f="' + codeF + '" value="' + esc(r[codeF] || '') + '" placeholder="BAL-?">';
+    // kinds of packaging: 1 main item + přibal (pallet of the main item), 2 mix (pallet from the list, by balení number), balík (parcel)
+    const main = !group && !parcel;
+    const kind = main ? 'main' : group ? 'mix' : 'parcel', kn = main ? 1 : group ? 2 : 3;
+    const kindSel = '<select class="kind-sel k-' + kn + '" data-i="' + i + '" data-f="kind" aria-label="Typ balení">' +
+      [['main', '1 · Hlavní položka'], ['mix', '2 · Mix paleta'], ['parcel', '3 · Balík']].map(m => '<option value="' + m[0] + '"' + (kind === m[0] ? ' selected' : '') + '>' + m[1] + '</option>').join('') + '</select>';
+    const codeF = main ? 'koli' : group ? 'group' : '';
+    const codeIn = codeF ? '<input type="text" class="bal-code" data-i="' + i + '" data-f="' + codeF + '" value="' + esc(r[codeF] || '') + '" placeholder="BAL-?">' : '<span class="bal-none">bez čísla</span>';
     const nm = names.get(String(r.code || '').toLowerCase()) || r.name || '';
-    // pallet: main item → its pallet from the catalog (read only); mix → chosen pallet type
     const pt = c => pallets.find(p => String(p.code).toLowerCase() === String(c || '').toLowerCase());
     const ptxt = t => t ? '<small class="c-name">' + esc(t.code) + ' · ' + (t.L || 0) + ' × ' + (t.W || 0) + ' mm</small>' : '<small class="c-name warn">paleta neurčena</small>';
-    // one pallet field: "Paleta hlavní položky" (type 1, pallet from the catalog of the main item) or a pallet from the list (mix)
-    const ha = main ? catalog.find(x => String(x.code).toLowerCase() === String(r.host || '').toLowerCase()) : null;
-    const shown = main ? pt(ha && ha.pal) : pt(r.pal);
-    const pkSel = '<select data-i="' + i + '" data-f="palkind" data-lazy="m"' + (main ? '' : ' data-mix="1"') + ' aria-label="Paleta">' + (main
-      ? '<option value="" selected>Paleta hlavní položky</option>'
-      : '<option value="">Paleta hlavní položky</option>' + (r.pal ? '<option value="' + esc(r.pal) + '" selected>' + esc(r.pal) + ' · ' + esc((shown || {}).name || '') + '</option>' : '<option value="" selected disabled>– vyberte paletu –</option>')) + '</select>';
-    const pal = fld('Paleta', pkSel) + (main ? '<div class="ro">' + esc(shown ? shown.name || shown.code : (ha && ha.pal) || 'hlavní položka nemá paletu') + '</div>' : '') + ptxt(shown);
+    // "Typ palety" first, the fields of the chosen type below
+    const typSel = '<select data-i="' + i + '" data-f="kind" aria-label="Typ palety">' +
+      [['main', 'Paleta hlavního artiklu'], ['mix', 'Paleta ze seznamu'], ['parcel', 'Balík']].map(m => '<option value="' + m[0] + '"' + (kind === m[0] ? ' selected' : '') + '>' + m[1] + '</option>').join('') + '</select>';
+    let pal = fld('Typ palety', typSel);
+    if (main) { const ha = catalog.find(x => String(x.code).toLowerCase() === String(r.host || '').toLowerCase()), t = pt(ha && ha.pal); pal += fld('Paleta hlavního artiklu', '<div class="ro">' + esc(t ? t.name || t.code : (ha && ha.pal) || (r.host ? 'hlavní artikl nemá paletu' : 'zadejte hlavní položku')) + '</div>') + (t ? ptxt(t) : ''); }
+    else if (group) pal += fld('Paleta ze seznamu', palSel) + ptxt(pt(r.pal));
+    else pal += '<div class="cf2">' + fld('Délka balíku, mm', num('pl', 'mm')) + fld('Šířka balíku, mm', num('pw', 'mm')) + '</div>';
     const pocty = main
       ? fld('Max ks na 1 hlavní položku', num('per', 'bez limitu'), 'Kolik kusů smí jet na jedné paletě hlavní položky. Co se nevejde, čeká vpravo.')
-      : fld('Ověřeno ks', num('per', '–'), 'Tolik kusů už na této paletě jelo. Víc jich pojede také, paleta jen svítí oranžově.') + fld('Max ks', num('cap', 'bez limitu'), 'Když je v zakázce víc kusů, na paletu balení nepůjde žádný – všechny čekají vpravo.');
-    return '<tr class="' + (r.on === false ? 'off ' : '') + 'kind-' + (main ? 1 : 2) + '"' + (r.note ? ' title="' + esc(r.note) + '"' : '') + '>' +
+      : group ? fld('Ověřeno ks', num('per', '–'), 'Tolik kusů už na této paletě jelo. Víc jich pojede také, paleta jen svítí oranžově.') + fld('Max ks', num('cap', 'bez limitu'), 'Když je v zakázce víc kusů, na paletu balení nepůjde žádný – všechny čekají vpravo.')
+      : fld('Ks v balíku', num('per', '1'));
+    return '<tr class="' + (r.on === false ? 'off ' : '') + 'kind-' + kn + '"' + (r.note ? ' title="' + esc(r.note) + '"' : '') + '>' +
       '<td><input type="checkbox" data-i="' + i + '" data-f="on"' + (r.on !== false ? ' checked' : '') + ' aria-label="Aktivní"></td>' +
       '<td class="c-bal">' + fld('Číslo balení', codeIn) + fld('Typ', kindSel) + '</td>' +
       '<td class="c-art">' + fld('Artikl', inp('code', 'artikl', ' class="code-in"')) + (nm ? '<small class="c-name">' + esc(nm) + '</small>' : '') + (main ? fld('Hlavní položka', inp('host', 'artikl hlavní položky')) : '') + '</td>' +

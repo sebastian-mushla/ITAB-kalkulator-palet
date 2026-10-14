@@ -1502,12 +1502,12 @@ $('#comboBody').addEventListener('change', e => {
   if (f === 'palkind' && r) { const v = r.palkind; delete r.palkind; if (v) r.pal = v; r.kind = v ? 'mix' : 'main'; }
   if ((f === 'kind' || f === 'palkind') && r) {
     const k = r.kind; delete r.kind;
-    r.mode = k === 'main' ? 'host' : k === 'mix' ? 'group' : k; r.strict = k === 'main';
+    r.mode = k === 'main' ? 'host' : k === 'mix' ? 'group' : 'parcel'; r.strict = k === 'main';
     if (k === 'main') { r.withCode = r.host || r.withCode || ''; if (!r.koli) r.koli = nextKoloCode(state.combos); }
     if (k === 'mix' && !r.group) r.group = nextKoloCode(state.combos);
     persist('combos'); recalc();
   }
-  if (f === 'kind' || f === 'palkind' || f === 'mode' || f === 'on') drawCombos();
+  if (f === 'kind' || f === 'palkind' || f === 'pal' || f === 'mode' || f === 'on') { if (f === 'pal') recalc(); drawCombos(); }
 });
 $('#comboBody').addEventListener('input', e => {
   const r = state.combos[e.target.getAttribute('data-i')];
