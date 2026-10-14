@@ -584,3 +584,12 @@ html{background:var(--bg)}
 #view-combos .kind-sel.k-1{background:#efeafd;color:#4b3cc4}#view-combos .kind-sel.k-2{background:#e6f6ec;color:#1d7a43}#view-combos .kind-sel.k-3{background:#f3f3f5;color:var(--ink2)}
 #view-combos tr.kind-1>td:first-child{box-shadow:inset 3px 0 #7866EE}#view-combos tr.kind-2>td:first-child{box-shadow:inset 3px 0 #2fa862}
 #view-combos .c-proj{min-width:120px}#view-combos .small{font-size:12px}
+
+#view-combos .c-bal{min-width:190px;width:190px}#view-combos .bal-none{margin:2px 0 4px}
+#view-combos .c-num{min-width:220px}#view-combos .c-num .cf2{grid-template-columns:1fr 1fr}
+#view-combos .c-cond .muted.small{display:block;padding-top:20px}
+#view-combos td{padding:10px 8px}#view-combos tr+tr td{border-top:1px solid var(--line,#ececf2)}
+#view-combos input,#view-combos select{height:34px}
+label.check.nowrap{white-space:nowrap}
+#view-combos .c-bal{min-width:150px;width:150px}#view-combos .c-art{min-width:170px}#view-combos .c-cond{min-width:140px}#view-combos .c-kam{min-width:170px}#view-combos .c-num{min-width:180px}#view-combos .c-proj{min-width:110px}
+#view-combos td input[type=text]{min-width:0}#view-combos .tscroll{overflow-x:visible}

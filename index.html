@@ -179,7 +179,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <button class="btn" id="comboToCat" title="Artikly ze způsobů balení, které nejsou v číselníku, se do něj přidají (název, váha 0, balení neurčeno)">Doplnit artikly do číselníku</button>
             <button class="btn" id="koloMerge" title="Najde balení se stejnými artikly (nebo podmnožinou jiného balení) na stejném typu palety a sloučí je">Sloučit duplicitní balení</button>
             <label class="btn">Nahrát CSV / Excel<input type="file" id="comboFile" accept=".csv,.txt,.tsv,.xlsx,.xls,.ods" hidden></label>
-            <label class="check"><input type="checkbox" id="comboReplace">Nahradit všechna pravidla</label>
+            <label class="check nowrap"><input type="checkbox" id="comboReplace">Nahradit všechna pravidla</label>
             <button class="btn" id="comboExport">Stáhnout CSV</button>
           </div>
           <p class="hint"><b>Typ 1 · Hlavní položka + přibal</b> – přibal jede na paletě hlavní položky (max ks na 1 hlavní položku). <b>Typ 2 · Mix</b> – všechny artikly se stejným číslem balení jedou na jedné společné paletě. <b>Typ 3</b> – ostatní pravidla. Pořadí: nejdřív typ 1, pak typ 2, pak typ 3, nakonec číselník. <b>Projekt</b>: pravidlo platí jen v zakázkách tohoto projektu (stejný artikl může mít v Action a Reve jiné balení).</p>
@@ -188,7 +188,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
           <label class="search tbl-search"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="comboSearch" type="search" placeholder="Hledat ve způsobech balení: artikl, paleta, skupina…" aria-label="Hledat"></label>
           <div class="tscroll">
             <table>
-              <thead><tr><th></th><th>Balení a typ</th><th>Artikl</th><th>Hlavní položka / podmínka</th><th>Paleta</th><th>Počty</th><th>Projekt</th><th></th></tr></thead>
+              <thead><tr><th></th><th>Balení</th><th>Artikl</th><th>Podmínka</th><th>Kam pojede</th><th>Počty</th><th>Projekt</th><th></th></tr></thead>
               <tbody id="comboBody"></tbody>
             </table>
           </div>

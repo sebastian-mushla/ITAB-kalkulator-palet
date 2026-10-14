@@ -84,35 +84,34 @@ export function renderCombos(combos, catalog, pallets, projects) {
     const main = host && r.strict;
     const kind = main ? 'main' : group ? 'mix' : r.mode;
     const kindSel = '<select class="kind-sel k-' + (main ? 1 : group ? 2 : 3) + '" data-i="' + i + '" data-f="kind" aria-label="Typ balení">' +
-      [['main', '1 · Hlavní položka + přibal'], ['mix', '2 · Mix (společná paleta)'], ['host', '3 · Na paletě artiklu'], ['pallet', '3 · Na jiné paletě'], ['parcel', '3 · Jako balík']]
+      [['main', '1 · Hlavní položka'], ['mix', '2 · Mix'], ['host', '3 · Na paletě artiklu'], ['pallet', '3 · Jiná paleta'], ['parcel', '3 · Balík']]
         .map(m => '<option value="' + m[0] + '"' + (kind === m[0] ? ' selected' : '') + '>' + m[1] + '</option>').join('') + '</select>';
     const codeF = main ? 'koli' : group ? 'group' : '';
     const codeIn = codeF ? '<input type="text" class="bal-code" data-i="' + i + '" data-f="' + codeF + '" value="' + esc(r[codeF] || '') + '" placeholder="BAL-?">' : '<span class="bal-none">bez čísla</span>';
     // the condition: main item for type 1, nothing for mix, free condition for the rest
     let cond;
-    if (main) cond = fld('Hlavní položka', inp('host', 'artikl pokladny'));
-    else if (group) cond = '<span class="muted small">jede s ostatními artikly balení ' + esc(r.group || '') + '</span>';
-    else cond = fld('Když je v zakázce', inp('withCode', 'libovolně')) + (host ? fld('Na paletě artiklu', inp('host', 'artikl')) : '');
-    if (!main) cond += '<div class="cf2">' + fld('Ks od', num('min', '–')) + fld('Ks do', num('max', '–')) + '</div>';
+    if (main) cond = '<span class="muted small">když je hlavní položka v zakázce</span>';
+    else if (group) cond = '<div class="cf2">' + fld('Ks od', num('min', '–')) + fld('Ks do', num('max', '–')) + '</div>';
+    else cond = fld('Když je v zakázce', inp('withCode', 'libovolně')) + '<div class="cf2">' + fld('Ks od', num('min', '–')) + fld('Ks do', num('max', '–')) + '</div>';
     // the pallet
     let pal;
-    if (main) pal = '<span class="muted small">paleta hlavní položky</span>';
-    else if (host) pal = '<span class="muted small">paleta artiklu ' + esc(r.host || '') + '</span>';
+    if (host) pal = fld(main ? 'Na paletě hlavní položky' : 'Na paletě artiklu', inp('host', 'artikl'));
     else pal = (parcel ? '' : fld('Typ palety', palSel)) + ((pallet && !r.pal) || parcel ? '<div class="cf2">' + fld(parcel ? 'Délka balíku, mm' : 'Délka, mm', num('pl', 'z číselníku')) + fld(parcel ? 'Šířka balíku, mm' : 'Šířka, mm', num('pw', 'z číselníku')) + '</div>' : '');
     // the numbers with plain names
     let pocty;
-    if (host) pocty = fld('Max ks na 1 ' + (main ? 'hlavní položku' : 'paletu'), num('per', 'bez limitu'), 'Kolik kusů smí jet na jedné paletě hlavní položky. Co se nevejde, čeká vpravo.');
+    if (host) pocty = fld(main ? 'Max ks na položku' : 'Max ks na paletu', num('per', 'bez limitu'), 'Kolik kusů smí jet na jedné paletě. Co se nevejde, čeká vpravo.');
     else if (group) pocty = fld('Ověřeno ks', num('per', '–'), 'Tolik kusů už na této paletě jelo. Víc jich pojede také, paleta jen svítí oranžově.') + fld('Limit ks', num('cap', 'bez limitu'), 'Když je v zakázce víc kusů, žádný na paletu balení nepůjde – všechny čekají vpravo.');
     else pocty = fld(parcel ? 'Ks v balíku' : 'Ks na paletě', num('per', 'z číselníku'));
+    pocty = '<div class="cf2">' + pocty + fld('Váha kusu, kg', num('kg', 'z číselníku', 'any')) + '</div>';
     const nm = names.get(String(r.code || '').toLowerCase()) || r.name || '';
     return '<tr class="' + (r.on === false ? 'off ' : '') + 'kind-' + (main ? 1 : group ? 2 : 3) + '"' + (r.note ? ' title="' + esc(r.note) + '"' : '') + '>' +
       '<td><input type="checkbox" data-i="' + i + '" data-f="on"' + (r.on !== false ? ' checked' : '') + ' aria-label="Aktivní"></td>' +
-      '<td class="c-bal">' + codeIn + kindSel + '</td>' +
+      '<td class="c-bal">' + fld('Číslo balení', codeIn) + fld('Typ', kindSel) + '</td>' +
       '<td class="c-art">' + inp('code', 'artikl', ' class="code-in"') + (nm ? '<small class="c-name">' + esc(nm) + '</small>' : '') + '</td>' +
       '<td class="c-cond">' + cond + '</td>' +
       '<td class="c-kam">' + (pal || '<span class="muted">–</span>') + '</td>' +
-      '<td class="c-num">' + pocty + fld('Váha kusu, kg', num('kg', 'z číselníku', 'any')) + '</td>' +
-      '<td class="c-proj">' + projSel + '</td>' +
+      '<td class="c-num">' + pocty + '</td>' +
+      '<td class="c-proj">' + fld('Projekt', projSel) + '</td>' +
       '<td class="nowrap"><button class="btn small" data-up="' + i + '" aria-label="Výš"' + (i === 0 ? ' disabled' : '') + '>↑</button> <button class="btn small" data-down="' + i + '" aria-label="Níž"' + (i === combos.length - 1 ? ' disabled' : '') + '>↓</button> <button class="btn small" data-del="' + i + '" title="Smazat" aria-label="Smazat">×</button></td></tr>';
   }).join('') || '<tr><td colspan="8" class="empty">Zatím žádná pravidla. Bez pravidel platí běžný výpočet z číselníku.</td></tr>';
 }
