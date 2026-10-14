@@ -33,6 +33,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
   }
   lines.forEach(l => {
     const idx = index.has(l.code.toLowerCase()) ? index.get(l.code.toLowerCase()) : -1;
+    let solo = null;
     if (idx < 0) {
       // not in the catalog yet: it can still ride on a host pallet if a Způsob balení rule says so
       const r0 = findRule(l.code, l.qty, present, combos);
@@ -44,16 +45,21 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
         const row = { code: l.code, name: a0.name, qty: l.qty, kg: l.qty * a0.kg, ci, rule: ruleText(r0) };
         riders.push({ a: a0, idx: ci, qty: l.qty, rule: r0, row }); rows.push(row); return;
       }
+      // solo / balík rule from Způsob balení: the article does not need to be in the catalog
+      if (r0 && (r0.mode === 'pallet' || r0.mode === 'parcel')) { solo = { code: l.code, name: r0.name || l.name || '', kg: r0.kg || 0, rot: true }; }
+      else {
       unknown.push({ code: l.code, qty: l.qty, name: l.name || '' });
       errors.push('Artikl „' + l.code + '“ není v číselníku, nebyl spočítán.'); return;
+      }
     }
-    let a = resolveArticle(catalog[idx], types);
+    const ci = idx >= 0 ? idx : catalog.length + 300 + rows.length;
+    let a = idx >= 0 ? resolveArticle(catalog[idx], types) : solo;
     const rule = findRule(a.code, l.qty, present, combos);
-    const row = { code: a.code, name: a.name, qty: l.qty, kg: l.qty * (a.kg || 0), ci: idx, rule: rule ? ruleText(rule) : null };
+    const row = { code: a.code, name: a.name, qty: l.qty, kg: l.qty * (a.kg || 0), ci: ci, rule: rule ? ruleText(rule) : null };
     if (rule && rule.mode === 'group') {
       // more pieces than the balení may carry: all of them wait on the right, labelled with the balení
       if (overCap(rule, l.qty)) { unknown.push({ code: l.code, qty: l.qty, name: a.name || l.name || '', known: true, hint: capHint(rule) }); errors.push('Artikl „' + l.code + '“: ' + l.qty + ' ks je víc než max ' + rule.cap + ' ks v ' + rule.group + ' – zařaďte ho ručně.'); return; }
-      addGroup(rule, a, idx, l); return;
+      addGroup(rule, a, ci, l); return;
     }
     // packing not decided yet (article known from a balení): rides only by a rule, otherwise waits on the right side
     // a service (freight, handling fee): counted in the order, nothing to load
@@ -62,13 +68,13 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
       unknown.push({ code: l.code, qty: l.qty, name: a.name || l.name || '', known: true, undecided: true });
       errors.push('Artikl „' + l.code + '“: balení není určeno – zařaďte ho na ploše níže.'); return;
     }
-    if (rule && rule.mode === 'host') { riders.push({ a: a.pack === 'neurceno' ? Object.assign({}, a, { unknown: true }) : a, idx, qty: l.qty, rule, row }); rows.push(row); return; }
+    if (rule && rule.mode === 'host') { riders.push({ a: a.pack === 'neurceno' ? Object.assign({}, a, { unknown: true }) : a, idx: ci, qty: l.qty, rule, row }); rows.push(row); return; }
     if (rule && rule.mode === 'pallet') a = rule.pal && typeOf(types, rule.pal)
       ? resolveArticle(Object.assign({}, a, { pack: 'paleta', pal: rule.pal, per: rule.per || a.per }), types)
       : Object.assign({}, a, { pack: 'paleta', pal: null, palName: '', tare: 0, pl: rule.pl || a.pl, pw: rule.pw || a.pw, per: rule.per || a.per });
     if (rule && rule.mode === 'parcel') a = Object.assign({}, a, { pack: 'balik', pl: rule.pl || a.pl, pw: rule.pw || a.pw, per: rule.per || a.per });
     if (!(a.per > 0) || !(a.pl > 0) || !(a.pw > 0)) { errors.push('U artiklu „' + a.code + '“ chybí rozměry nebo počet kusů.'); return; }
-    rows.push(build(a, idx, l.qty, row));
+    rows.push(build(a, ci, l.qty, row));
   });
 
   // shared pallets: every group = one pallet of its type with all its articles; per is only "verified"

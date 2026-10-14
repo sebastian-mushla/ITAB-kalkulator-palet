@@ -135,7 +135,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
           </div>
           <div class="tscroll">
             <table>
-              <thead><tr><th>Artikl</th><th>Název</th><th>Balení</th><th>Typ palety / rozměr balíku</th><th>Kusů na paletě / v balíku</th><th>Váha kusu, kg</th><th>Lze otáčet</th><th></th></tr></thead>
+              <thead><tr><th>Artikl</th><th>Název</th><th>Druh</th><th>Způsob balení</th><th>Váha kusu, kg</th><th>Lze otáčet</th><th></th></tr></thead>
               <tbody id="catBody"></tbody>
             </table>
           </div>
@@ -247,11 +247,13 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <h3>1.2 ID a zakázky</h3>
             <p><b>ID</b> = jedna adresa / zásilka. <b>SO (zakázka)</b> = prodejní objednávka. Jedno ID může mít víc SO. Palety se počítají pro každou zakázku zvlášť (zakázky se na jedné paletě nemíchají) a na paletě je číslo zakázky. Celé ID se snaží jet jedním vozidlem.</p>
             <h3>1.3 Pořadí rozhodování pro každý artikl</h3>
-            <ol><li>Je artikl v <b>balení s hlavní položkou</b> projektu (přibal pokladny) a je hlavní položka v zakázce? → jede na paletě hlavní položky (4.3).</li>
-            <li>Ne → je v <b>balení mix</b> projektu (společná paleta)? → jede na paletě balení (4.4).</li>
-            <li>Ne → jede podle <b>definice položky v Číselníku</b> (vlastní paleta, balík, služba).</li>
-            <li>Ne → čeká <b>vpravo</b> v seznamu „Neznámé artikly“ – zařadíte ho ručně (kapitola 7).</li></ol>
-            <p>Nic skrytého: rozhoduje jen to, co je v tabulkách Číselník, Palety, Způsob balení a Projekty.</p></section>
+            <p>Všechno o balení je jen v záložce <b>Způsob balení</b>. Číselník má jen kód, název, váhu a druh (zboží / služba).</p>
+            <ol><li><b>1 · Hlavní položka</b> – přibal jede na paletě hlavní položky (pokladny), když je v zakázce.</li>
+            <li><b>2 · Mix paleta</b> – jede s ostatními artikly svého balení na společné paletě.</li>
+            <li><b>3 · Solo paleta v projektu</b> zakázky (vlastní paleta ze seznamu, ks na paletu) nebo <b>4 · Balík</b> v projektu.</li>
+            <li><b>Solo / balík bez projektu.</b></li>
+            <li>Nic z toho → artikl čeká <b>vpravo</b> a zařadíte ho ručně (kapitola 7). Co se naučí v zakázce, uloží se jako solo v projektu zakázky.</li></ol>
+            <p>Balení jiného projektu se nepoužije – stejný artikl se v Action a Reve může balit jinak.</p></section>
 
           <section class="card" id="h2"><h2>2. Import zakázek</h2>
             <h3>2.1 Jak vložit</h3>
@@ -269,22 +271,18 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <h3>3.1 Typy palet (záložka Palety)</h3>
             <p>Kód PAL-xxxx, název, délka × šířka (délka jde podél korby), výška, vlastní váha, nosnost, lze otáčet. Import z CSV / Excelu.</p>
             <h3>3.2 Artikl (záložka Číselník artiklů)</h3>
-            <p>Balení artiklu:</p>
-            <ul><li><b>paleta</b> – typ palety (PAL-xxxx) a kolik kusů se na ni vejde;</li>
-            <li><b>balík</b> – rozměr balíku a kusů v balíku;</li>
-            <li><b>neurčeno</b> – artikl je známý (název, váha), ale balení se určí až při prvním zařazení;</li>
-            <li><b>služba</b> – doprava, poplatek: počítá se v zakázce, nic se neveze.</li></ul>
-            <p>Plus <b>váha kusu</b> a „lze otáčet“. Název přichází z ERP a nemění se.</p>
+            <p>Kód, název (z ERP, nemění se), <b>váha kusu</b>, „lze otáčet“ a druh: <b>zboží</b> nebo <b>služba</b> (doprava, poplatek – nic se neveze). Sloupec <b>Způsob balení</b> jen ukazuje, jaká pravidla pro artikl platí; mění se v záložce Způsob balení.</p>
             <h3>3.3 Kontrola</h3>
             <p>Tlačítko „Zkontrolovat číselník“ ukáže, co chybí: typ palety, kusy, váha 0, neurčené balení, duplicitní artikl.</p></section>
 
           <section class="card help-wide" id="h4"><h2>4. Způsob balení a balení</h2>
-            <h3>4.1 Dva typy balení</h3>
-            <p>Každý řádek má <b>číslo balení</b> (BAL-n), <b>typ</b>, artikl, paletu, počty a projekt.</p>
-            <ul><li><b>1 · Hlavní položka</b> – přibal jede na paletě hlavní položky (pokladny); paleta se bere z číselníku hlavní položky.</li>
-            <li><b>2 · Mix paleta</b> – všechny artikly se stejným číslem balení jedou spolu na vybrané paletě balení.</li></ul>
+            <h3>4.1 Typy balení</h3>
+            <ul><li><b>1 · Hlavní položka</b> – přibal jede na paletě hlavní položky (rozměr palety hlavní položky dává její solo pravidlo).</li>
+            <li><b>2 · Mix paleta</b> – artikly se stejným číslem balení jedou spolu na vybrané paletě.</li>
+            <li><b>3 · Solo paleta</b> – artikl jede sám na své paletě ze seznamu, „Ks na paletě“.</li>
+            <li><b>4 · Balík</b> – rozměr balíku a ks v balíku.</li></ul>
             <h3>4.2 Pořadí</h3>
-            <p>Nejdřív typ 1, pak typ 2, nakonec definice artiklu v Číselníku. Uvnitř typu shora dolů. Váha je vždy z Číselníku.</p>
+            <p>1 → 2 → 3/4 v projektu zakázky → 3/4 bez projektu → vpravo. Uvnitř shora dolů. Váha je vždy z Číselníku.</p>
             <h3>4.3 Balení s hlavní položkou (pokladna + přibal)</h3>
             <p>Hlavní položka (např. pokladna V12) jede <b>1 ks na své paletě</b>. Přibal (money box, plexi kit…) má <b>„Max ks na 1 hlavní položku“</b>. Kolik pokladen v zakázce, tolik palet; přibal se rozdělí na každou. Přibal více pokladen se dělí mezi všechny. Co se nevejde, čeká vpravo s poznámkou „nevešlo se na balení …“ – přetažením na paletu pokladny se maximum zvýší. <b>Jedna hlavní položka = jedno balení.</b></p>
             <h3>4.4 Balení – společná paleta (drobný materiál)</h3>

@@ -10,7 +10,7 @@ const low = s => String(s == null ? '' : s).trim().toLowerCase();
 
 // First active rule matching the article, the "together with" article and the quantity range.
 // Priority: balení with a main item (strict přibal) → balení mix (shared pallet) → other rows; table order inside each.
-const rank = r => r.mode === 'host' && r.strict ? 0 : r.mode === 'group' ? 1 : 2;
+const rank = r => r.mode === 'host' && r.strict ? 0 : r.mode === 'group' ? 1 : low(r.project) ? 2 : 3; // solo/balík: in the project first, then without project
 
 export function findRule(code, qty, present, combos) {
   return findRules(code, qty, present, combos)[0] || null;
@@ -34,8 +34,8 @@ export function ruleText(r) {
   let act;
   if (r.mode === 'group') act = 'na společné paletě ' + (r.group || '?') + ' (' + (r.pal || '?') + (r.per > 0 ? ', ověřeno ' + r.per + ' ks' : '') + ')';
   else if (r.mode === 'host') act = 'na paletě ' + r.host + (r.per > 0 ? ' (max ' + r.per + ' ks/paleta)' : '');
-  else if (r.mode === 'pallet') act = 'na paletě ' + r.pl + '×' + r.pw + ' mm, ' + r.per + ' ks';
-  else act = 'jako balík' + (r.per > 0 ? ' po ' + r.per + ' ks' : '');
+  else if (r.mode === 'pallet') act = 'solo na paletě ' + (r.pal || r.pl + '×' + r.pw + ' mm') + ', ' + r.per + ' ks' + (r.project ? ' (' + r.project + ')' : '');
+  else act = 'jako balík' + (r.per > 0 ? ' po ' + r.per + ' ks' : '') + (r.project ? ' (' + r.project + ')' : '');
   return r.code + (cond.length ? ' ' + cond.join(', ') : '') + ' → ' + act;
 }
 
@@ -194,3 +194,22 @@ export function combosFor(combos, project) {
 
 // balení number of a rule (main item + přibal rows keep it in `balení`, older ones only in the note)
 export function koliOf(r) { const m = String(r.koli || r.group || r.note || '').match(/(?:KOLI|BAL)-\d+/i); return m ? m[0].toUpperCase().replace('KOLI-', 'BAL-') : ''; }
+
+// Packing lives only in Způsob balení: an article definition with a pallet or a parcel size becomes a solo / balík row
+// (project = the order's project when learned in an order, none when migrated). The catalog keeps code, name, weight, service.
+export function defsToSolo(catalog, combos, project) {
+  let changed = false;
+  (catalog || []).forEach(a => {
+    if (a.pack !== 'paleta' && a.pack !== 'balik') return;
+    const par = a.pack === 'balik';
+    if (par ? (a.pl > 0 && a.pw > 0) : (a.pal || (a.pl > 0 && a.pw > 0))) {
+      const proj = project || '';
+      const ex = combos.find(r => (r.mode === 'pallet' || r.mode === 'parcel') && low(r.code) === low(a.code) && low(r.project) === low(proj));
+      const row = { on: true, code: a.code, withCode: '', min: 0, max: 0, mode: par ? 'parcel' : 'pallet', host: '', pal: par ? '' : (a.pal || ''), pl: a.pal && !par ? 0 : (a.pl || 0), pw: a.pal && !par ? 0 : (a.pw || 0), per: a.per || 1, kg: 0, name: a.name || '', project: proj, note: '' };
+      if (ex) Object.assign(ex, row); else combos.push(row);
+    }
+    a.pack = 'neurceno'; delete a.pal; delete a.pl; delete a.pw; a.per = 0;
+    changed = true;
+  });
+  return changed;
+}

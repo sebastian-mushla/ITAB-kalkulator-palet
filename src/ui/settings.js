@@ -12,8 +12,12 @@ export function filterCatalog(catalog, q) {
   return idx.filter(i => String(catalog[i].code).toLowerCase().includes(q) || String(catalog[i].name || '').toLowerCase().includes(q));
 }
 
-export function renderCatalog(catalog, view, pallets) {
-  pallets = pallets || [];
+export function renderCatalog(catalog, view, pallets, combos) {
+  pallets = pallets || []; combos = combos || [];
+  // how the article is packed – only from Způsob balení (the catalog holds no packing)
+  const KIND = { group: 'mix', pallet: 'solo', parcel: 'balík' };
+  const balOf = code => { const l = String(code || '').toLowerCase(), rs = combos.filter(r => r.on !== false && String(r.code || '').toLowerCase() === l);
+    return rs.length ? rs.map(r => (r.mode === 'host' ? 's ' + (r.host || '?') : (KIND[r.mode] || r.mode) + (r.mode === 'group' ? ' ' + (r.group || '') : r.pal ? ' ' + r.pal : '')) + (r.project ? ' · ' + r.project : '')).map(esc).join('<br>') : '<span class="warn">není – čeká vpravo</span>'; };
   const list = filterCatalog(catalog, view.q), pages = Math.max(1, Math.ceil(list.length / PAGE));
   view.page = Math.min(view.page, pages - 1);
   const slice = list.slice(view.page * PAGE, view.page * PAGE + PAGE);
@@ -22,14 +26,12 @@ export function renderCatalog(catalog, view, pallets) {
     const num = (f, min, step) => '<td><input type="number" min="' + (min || 0) + '" step="' + (step || 'any') + '" data-i="' + i + '" data-f="' + f + '" value="' + (a[f] == null ? '' : a[f]) + '"></td>';
     return '<tr><td><i class="sw" style="background:' + color(i) + '"></i><input type="text" data-i="' + i + '" data-f="code" value="' + esc(a.code) + '" aria-label="Artikl"></td>' +
       '<td>' + (a.name ? '<span class="ro-name" title="Název z ERP, nelze měnit">' + esc(a.name) + '</span>' : '<input type="text" data-i="' + i + '" data-f="name" value="" aria-label="Název" placeholder="doplnit">') + '</td>' +
-      '<td><select data-i="' + i + '" data-f="pack" aria-label="Balení"><option value="paleta"' + (a.pack !== 'balik' && a.pack !== 'neurceno' ? ' selected' : '') + '>paleta</option><option value="balik"' + (a.pack === 'balik' ? ' selected' : '') + '>balík</option><option value="neurceno"' + (a.pack === 'neurceno' ? ' selected' : '') + '>neurčeno</option><option value="sluzba"' + (a.pack === 'sluzba' ? ' selected' : '') + '>služba</option></select></td>' +
-      (a.pack === 'sluzba' ? '<td class="muted">nic se neveze</td>' : a.pack === 'neurceno' ? '<td class="muted">určí se při prvním zařazení</td>' : a.pack === 'balik'
-        ? '<td><span class="dims"><input type="number" min="1" data-i="' + i + '" data-f="pl" value="' + (a.pl || '') + '" aria-label="Délka balíku, mm"> × <input type="number" min="1" data-i="' + i + '" data-f="pw" value="' + (a.pw || '') + '" aria-label="Šířka balíku, mm"> mm</span></td>'
-        : '<td><select data-i="' + i + '" data-f="pal" aria-label="Typ palety">' + (a.pal ? '' : '<option value="">– vyberte –</option>') + pallets.map(p => '<option value="' + esc(p.code) + '"' + (p.code === a.pal ? ' selected' : '') + '>' + esc(p.code) + ' · ' + esc(p.name) + ' (' + Math.round(p.L / 10) + '×' + Math.round(p.W / 10) + ')</option>').join('') + '</select></td>') +
-      num('per', 1, 1) + num('kg') +
+      '<td><select data-i="' + i + '" data-f="pack" aria-label="Druh"><option value="neurceno"' + (a.pack !== 'sluzba' ? ' selected' : '') + '>zboží</option><option value="sluzba"' + (a.pack === 'sluzba' ? ' selected' : '') + '>služba</option></select></td>' +
+      '<td class="muted small">' + (a.pack === 'sluzba' ? 'nic se neveze' : balOf(a.code)) + '</td>' +
+      num('kg') +
       '<td><input type="checkbox" data-i="' + i + '" data-f="rot"' + (a.rot ? ' checked' : '') + ' aria-label="Lze otáčet"></td>' +
       '<td><button class="btn small" data-del="' + i + '">Smazat</button></td></tr>';
-  }).join('') || '<tr><td colspan="9" class="empty">Nic nenalezeno.</td></tr>';
+  }).join('') || '<tr><td colspan="7" class="empty">Nic nenalezeno.</td></tr>';
   $('#catInfo').textContent = list.length + ' ' + plural(list.length, ['artikl', 'artikly', 'artiklů']) + (list.length !== catalog.length ? ' z ' + catalog.length : '');
   $('#catPager').innerHTML = pages > 1
     ? '<button class="btn small" data-page="' + (view.page - 1) + '"' + (view.page === 0 ? ' disabled' : '') + '>‹ Předchozí</button><span class="muted">Strana ' + (view.page + 1) + ' z ' + pages + '</span><button class="btn small" data-page="' + (view.page + 1) + '"' + (view.page >= pages - 1 ? ' disabled' : '') + '>Další ›</button>'
@@ -78,13 +80,13 @@ export function renderCombos(combos, catalog, pallets, projects) {
     const inp = (f, ph, extra) => '<input type="text" list="codeList" data-i="' + i + '" data-f="' + f + '" value="' + esc(r[f] || '') + '" placeholder="' + ph + '"' + (extra || '') + '>';
     const num = (f, ph, step) => '<input type="number" min="0" step="' + (step || 1) + '" data-i="' + i + '" data-f="' + f + '" value="' + (r[f] > 0 ? r[f] : '') + '" placeholder="' + ph + '">';
     const host = r.mode === 'host', group = r.mode === 'group', pallet = r.mode === 'pallet', parcel = r.mode === 'parcel';
-    const palSel = '<select data-i="' + i + '" data-f="pal" data-lazy="' + (group ? 'g' : 'p') + '" aria-label="Typ palety">' + (r.pal ? '<option value="' + esc(r.pal) + '" selected>' + esc(r.pal) + ' · ' + esc((pallets.find(p => p.code === r.pal) || {}).name || '') + '</option>' : (group ? '<option value="">– typ palety –</option>' : '<option value="">rozměr níže</option>')) + '</select>';
+    const palSel = '<select data-i="' + i + '" data-f="pal" data-lazy="g" aria-label="Typ palety">' + (r.pal ? '<option value="' + esc(r.pal) + '" selected>' + esc(r.pal) + ' · ' + esc((pallets.find(p => p.code === r.pal) || {}).name || '') + '</option>' : (group ? '<option value="">– typ palety –</option>' : '<option value="">rozměr níže</option>')) + '</select>';
     const projSel = '<select data-i="' + i + '" data-f="project" aria-label="Projekt"><option value="">všechny projekty</option>' + projects.map(n => '<option' + (n === r.project ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + (r.project && !projects.includes(r.project) ? '<option selected>' + esc(r.project) + '</option>' : '') + '</select>';
     // kinds of packaging: 1 main item + přibal (pallet of the main item), 2 mix (pallet from the list, by balení number), balík (parcel)
-    const main = !group && !parcel;
-    const kind = main ? 'main' : group ? 'mix' : 'parcel', kn = main ? 1 : group ? 2 : 3;
+    const main = !group && !parcel && !pallet;
+    const kind = main ? 'main' : group ? 'mix' : pallet ? 'solo' : 'parcel', kn = main ? 1 : group ? 2 : pallet ? 3 : 4;
     const kindSel = '<select class="kind-sel k-' + kn + '" data-i="' + i + '" data-f="kind" aria-label="Typ balení">' +
-      [['main', '1 · Hlavní položka'], ['mix', '2 · Mix paleta'], ['parcel', '3 · Balík']].map(m => '<option value="' + m[0] + '"' + (kind === m[0] ? ' selected' : '') + '>' + m[1] + '</option>').join('') + '</select>';
+      [['main', '1 · Hlavní položka'], ['mix', '2 · Mix paleta'], ['solo', '3 · Solo paleta'], ['parcel', '4 · Balík']].map(m => '<option value="' + m[0] + '"' + (kind === m[0] ? ' selected' : '') + '>' + m[1] + '</option>').join('') + '</select>';
     const codeF = main ? 'koli' : group ? 'group' : '';
     const codeIn = codeF ? '<input type="text" class="bal-code" data-i="' + i + '" data-f="' + codeF + '" value="' + esc(r[codeF] || '') + '" placeholder="BAL-?">' : '<span class="bal-none">bez čísla</span>';
     const nm = names.get(String(r.code || '').toLowerCase()) || r.name || '';
@@ -92,15 +94,15 @@ export function renderCombos(combos, catalog, pallets, projects) {
     const ptxt = t => t ? '<small class="c-name">' + esc(t.code) + ' · ' + (t.L || 0) + ' × ' + (t.W || 0) + ' mm</small>' : '<small class="c-name warn">paleta neurčena</small>';
     // "Typ palety" first, the fields of the chosen type below
     // pallet type follows the kind of balení (fixed, change the kind in the first column)
-    const typSel = '<div class="ro">' + (main ? 'Paleta hlavního artiklu' : group ? 'Paleta ze seznamu' : 'Balík') + '</div>';
+    const typSel = '<div class="ro">' + (main ? 'Paleta hlavního artiklu' : group || pallet ? 'Paleta ze seznamu' : 'Balík') + '</div>';
     let pal = fld('Typ palety', typSel);
-    if (main) { const ha = catalog.find(x => String(x.code).toLowerCase() === String(r.host || '').toLowerCase()), t = pt(ha && ha.pal); pal += fld('Paleta hlavního artiklu', '<div class="ro">' + esc(t ? t.name || t.code : (ha && ha.pal) || (r.host ? 'hlavní artikl nemá paletu' : 'zadejte hlavní položku')) + '</div>') + (t ? ptxt(t) : ''); }
-    else if (group) pal += fld('Paleta ze seznamu', palSel) + ptxt(pt(r.pal));
+    if (main) { const hl = String(r.host || '').toLowerCase(), hs = combos.find(x => x.mode === 'pallet' && String(x.code).toLowerCase() === hl && (!x.project || x.project === r.project)) || combos.find(x => x.mode === 'pallet' && String(x.code).toLowerCase() === hl), ha = hs || catalog.find(x => String(x.code).toLowerCase() === hl), t = pt(ha && ha.pal); pal += fld('Paleta hlavního artiklu', '<div class="ro">' + esc(t ? t.name || t.code : (ha && ha.pal) || (r.host ? 'hlavní položka nemá solo paletu' : 'zadejte hlavní položku')) + '</div>') + (t ? ptxt(t) : ''); }
+    else if (group || pallet) pal += fld('Paleta ze seznamu', palSel) + ptxt(pt(r.pal));
     else pal += '<div class="cf2">' + fld('Délka balíku, mm', num('pl', 'mm')) + fld('Šířka balíku, mm', num('pw', 'mm')) + '</div>';
     const pocty = main
       ? fld('Max ks na 1 hlavní položku', num('per', 'bez limitu'), 'Kolik kusů smí jet na jedné paletě hlavní položky. Co se nevejde, čeká vpravo.')
       : group ? fld('Ověřeno ks', num('per', '–'), 'Tolik kusů už na této paletě jelo. Víc jich pojede také, paleta jen svítí oranžově.') + fld('Max ks', num('cap', 'bez limitu'), 'Když je v zakázce víc kusů, na paletu balení nepůjde žádný – všechny čekají vpravo.')
-      : fld('Ks v balíku', num('per', '1'));
+      : pallet ? fld('Ks na paletě', num('per', '1')) : fld('Ks v balíku', num('per', '1'));
     return '<tr class="' + (r.on === false ? 'off ' : '') + 'kind-' + kn + '"' + (r.note ? ' title="' + esc(r.note) + '"' : '') + '>' +
       '<td><input type="checkbox" data-i="' + i + '" data-f="on"' + (r.on !== false ? ' checked' : '') + ' aria-label="Aktivní"></td>' +
       '<td class="c-bal">' + fld('Číslo balení', codeIn) + fld('Typ', kindSel) + '</td>' +

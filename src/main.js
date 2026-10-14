@@ -5,7 +5,7 @@ import { roomFor, freezePlan, moveUnits, setPalletType, removePallet, newId, mer
 import { parseOrders, rowsToOrderText, ordersToText } from './core/parse.js';
 import { solve } from './core/solve.js';
 import { auditOrder } from './core/audit.js';
-import { ruleText, parseKolo, nextKoloCode, expandKolo, koloRow, findDuplicateGroups, mergeGroups, koloHostRows, koliOf } from './core/combos.js';
+import { ruleText, parseKolo, nextKoloCode, expandKolo, koloRow, findDuplicateGroups, mergeGroups, koloHostRows, koliOf, defsToSolo, projectOf as projOf } from './core/combos.js';
 import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle, replaceVehicle, DEPOT } from './core/manual.js';
 import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, rowsToPallets, mergeBy, toCsv } from './io/importTable.js';
 import { renderKpis, renderPriorities, renderList, renderDetail, renderDock, requestText, loadPlanHtml, palOption, setNameLookup } from './ui/orders.js';
@@ -72,11 +72,22 @@ if (isAdmin && !me.demo) {
   // older imported balení (one special entry) become normal table rows
   const ek = expandKolo(state.combos);
   if (ek.changed) { state.combos = ek.combos; if (isAdmin && !me.demo) setTimeout(() => persist('combos'), 0); }
+  // packing moved from the catalog into Způsob balení (solo / balík rows without project); a backup stays in this browser
+  if (state.catalog.some(a => a.pack === 'paleta' || a.pack === 'balik')) {
+    try { if (!localStorage.getItem('itab.backup.before-solo')) localStorage.setItem('itab.backup.before-solo', JSON.stringify({ catalog: state.catalog, combos: state.combos })); } catch (e) {}
+    if (defsToSolo(state.catalog, state.combos, '') && isAdmin && !me.demo) setTimeout(() => { persist('combos'); persist('catalog'); }, 0);
+  }
   if (m.changed) { state.catalog = m.catalog; state.pallets = m.types; if (isAdmin && !me.demo) setTimeout(() => { persist('pallets'); persist('catalog'); }, 0); }
 }
 
 // admin edits go to the shared database; plain users cannot write (RLS)
 function persist(name) {
+  // a definition learned in an order (pallet / balík) goes to Způsob balení as solo, in the order's project
+  if (name === 'catalog' && state.catalog.some(a => a.pack === 'paleta' || a.pack === 'balik')) {
+    const o = state.orders && state.orders.get(state.sel);
+    const proj = !o ? '' : state.projSel.has(state.sel) ? state.projSel.get(state.sel) : ((projOf(o, state.rules.projects) || {}).name || '');
+    if (defsToSolo(state.catalog, state.combos, proj)) { persist('combos'); try { drawCombos(); drawCatalog(); } catch (e) {} }
+  }
   if (!isAdmin || me.demo) return;
   const el = $('#saveState');
   el.textContent = 'Ukládám…'; el.className = 'save-state';
@@ -1339,7 +1350,7 @@ function bindTable(body, list, name, rerender) {
 }
 
 // ---------- catalog ----------
-const drawCatalog = () => renderCatalog(state.catalog, state.catView, state.pallets);
+const drawCatalog = () => renderCatalog(state.catalog, state.catView, state.pallets, state.combos);
 bindTable($('#catBody'), () => state.catalog, 'catalog', drawCatalog);
 $('#catBody').addEventListener('change', e => {
   if (e.target.getAttribute('data-f') !== 'pack') return;
@@ -1502,7 +1513,7 @@ $('#comboBody').addEventListener('change', e => {
   if (f === 'palkind' && r) { const v = r.palkind; delete r.palkind; if (v) r.pal = v; r.kind = v ? 'mix' : 'main'; }
   if ((f === 'kind' || f === 'palkind') && r) {
     const k = r.kind; delete r.kind;
-    r.mode = k === 'main' ? 'host' : k === 'mix' ? 'group' : 'parcel'; r.strict = k === 'main';
+    r.mode = k === 'main' ? 'host' : k === 'mix' ? 'group' : k === 'solo' ? 'pallet' : 'parcel'; r.strict = k === 'main';
     if (k === 'main') { r.withCode = r.host || r.withCode || ''; if (!r.koli) r.koli = nextKoloCode(state.combos); }
     if (k === 'mix' && !r.group) r.group = nextKoloCode(state.combos);
     persist('combos'); recalc();
