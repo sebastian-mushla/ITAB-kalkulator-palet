@@ -345,7 +345,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <h3>9.2 Jak se pozná „vejde se“</h3>
             <p>Palety se kladou od čela ke dveřím do volných obdélníků (MaxRects), smí se otočit, pokud to mají povolené. Zkouší se mnoho pořadí (největší, nejtěžší, nejužší napřed a desítky náhodných). Palety se nestohují.</p>
             <h3>9.3 Víc vozidel</h3>
-            <p>Víc zakázek v jednom ID se nakládá po zakázkách v pořadí; jedna zakázka se plní postupně s různými „hlavními“ vozidly. Vyhrává <b>nejmenší počet vozidel</b>, teprve mezi stejným počtem <b>nejnižší cena</b> (sloupec Cena na záložce Vozidla).</p>
+            <p>Víc zakázek v jednom ID, které se nevejdou do jednoho vozidla, se nakládá <b>postupně</b>: nejdřív zakázka 1, pak zakázka 2 do volného místa, co se nevejde, jede v dalším vozidle (nejmenším, které stačí). Takové rozložení se už mezi vozidly nepřehazuje. Vyhrává <b>nejmenší počet vozidel</b>, teprve mezi stejným počtem <b>nejnižší cena</b> (sloupec Cena na záložce Vozidla).</p>
             <h3>9.4 Rozložení v korbě</h3>
             <p>Palety co nejtěsněji k čelu, volné místo vcelku u dveří, mezery se zaplní paletami zezadu. Pak se zkusí vyprázdnit menší vozidlo do volného místa větších; co se nevejde, dostane levnější vozidlo.</p>
             <h3>9.5 Váha a normy</h3>
