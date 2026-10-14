@@ -573,3 +573,4 @@ html{background:var(--bg)}
 #view-combos .c-art{min-width:190px}#view-combos .c-cond{min-width:160px}#view-combos .c-kam{min-width:200px}#view-combos .c-num{min-width:120px}#view-combos .c-note{min-width:90px}
 #view-combos td select[data-f="mode"]{min-width:130px}#view-combos td.nowrap .btn{padding:4px 7px}
 #view-combos .c-art{min-width:235px}#view-combos .c-art .code-in{font-size:13px;letter-spacing:-.01em}#view-combos .c-note{min-width:80px}#view-combos .c-cond{min-width:150px}
+.steps[type="I"]{list-style:upper-roman;padding-left:30px}
