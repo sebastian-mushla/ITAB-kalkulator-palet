@@ -540,7 +540,7 @@ function endDrag(e, cancel) {
       const pso = boardPal.dataset.so, bad = pso && d.unk.find(u => u.so && u.so !== pso);
       if (bad) { flash('Artikl ' + bad.code + ' je ze zakázky ' + bad.so + ', paleta ze zakázky ' + pso + '. Zakázky se na paletě nemíchají – položte ho na paletu své zakázky nebo na volné místo.'); return; }
       // a balení pallet: the article joins that balení (learning), otherwise it rides on the article's pallet
-      if (boardPal.dataset.group) { askKoloAdd(d.unk, boardPal.dataset.group, boardPal.dataset.pal, boardPal.dataset.bid); return; }
+      if (boardPal.dataset.group) { askKoloAdd(d.unk, boardPal.dataset.group, boardPal.dataset.pal, boardPal.dataset.bid, boardPal.dataset.pi); return; }
       askCombo(d.unk, boardPal.dataset.code, boardPal.dataset.bid); return;
     }
     if (over && over.closest('.board')) { askArticles(d.unk); return; }
@@ -902,15 +902,30 @@ function addToKoli(items, group, pal) {
   return { added, skipped };
 }
 // unknown article dropped on a balení pallet
-async function askKoloAdd(list, group, pal, bid) {
-  const ok = await ask('Přidat do balení ' + group + '?', list.map(u => u.code + ' ' + u.qty + ' ks').join(', ') + ' se přidá do balení ' + group + ' (' + pal + '). Příště pojede spolu s ostatními artikly tohoto balení.', 'Přidat do balení');
-  if (!ok) { clearSel(); return; }
-  const res = addToKoli(list.map(u => ({ code: u.code, name: u.name, units: u.qty })), group, pal);
-  // pallets edited by hand: put the pieces on that pallet right away
-  const P = state.plan.get(state.sel), b = P && bid && P.find(x => x.id === bid);
-  if (b) list.filter(u => res.added.includes(u.code)).forEach(u => b.contents.push({ code: u.code, name: u.name || '', units: u.qty, per: u.qty, kg: 0, so: u.so, ride: true }));
-  clearSel(); relearn();
-  flash('Přidáno do balení ' + group + ': ' + (res.added.join(', ') || '–') + (res.skipped.length ? '. Vynecháno (hlavní položka / přibal): ' + res.skipped.join(', ') : '') + '.');
+async function askKoloAdd(list, group, pal, bid, pi) {
+  const what = list.map(u => u.code + ' ' + u.qty + ' ks').join(', ');
+  const p0 = ask('Přidat na paletu balení ' + group + '?', what + ' se položí na paletu balení ' + group + ' (' + pal + ').', 'Potvrdit',
+    'Zapamatovat – přidat do balení ' + group + ' (příště pojede spolu s ostatními artikly)');
+  $('#askChk').checked = true;
+  if (!(await p0)) { clearSel(); return; }
+  const remember = $('#askChk').checked;
+  let added = list.map(u => u.code);
+  if (remember) {
+    const res = addToKoli(list.map(u => ({ code: u.code, name: u.name, units: u.qty })), group, pal);
+    added = res.added;
+    if (res.skipped.length) flash('Vynecháno (hlavní položka / přibal): ' + res.skipped.join(', '));
+  }
+  // only this order (or pallets edited by hand): put the pieces on that pallet in the order's plan
+  const id = state.sel;
+  if (!remember || state.plan.has(id)) {
+    const wasPlan = state.plan.has(id), P = ensurePlan(id);
+    const filled = P.filter(x => x.contents.some(c => c.units > 0));
+    const b = (wasPlan && bid && P.find(x => x.id === bid)) || filled[Number(pi)] || P.find(x => x.id === bid);
+    if (b) list.filter(u => added.includes(u.code)).forEach(u => b.contents.push({ code: u.code, name: u.name || '', units: u.qty, per: u.qty, kg: 0, so: u.so, ride: !remember }));
+  }
+  clearSel();
+  if (remember) relearn(); else keepScroll(() => recalcOne());
+  flash(remember ? 'Přidáno do balení ' + group + ': ' + (added.join(', ') || '–') + '.' : 'Položeno na paletu ' + group + ' jen pro tuto zakázku (balení se nemění).');
 }
 // pallet editor: the pallet as it is now becomes a balení (or a main item + přibal)
 $('#peKoli').addEventListener('click', async () => {
