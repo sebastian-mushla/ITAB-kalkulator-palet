@@ -81,6 +81,19 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
   });
 
   // shared pallets: every group = one pallet of its type with all its articles; per is only "verified"
+  // přibal whose main item has no own pallet in this order (not ordered, or it rides in a balení): the Hl.+přibal rule
+  // cannot apply – the next rule decides (mix balení, solo), otherwise the right side
+  for (let k = riders.length - 1; k >= 0; k--) {
+    const { a, idx, qty, rule, row } = riders[k];
+    if (!rule.strict) continue;
+    const strict = findRules(a.code, qty, present, combos).filter(r => r.mode === 'host' && r.strict);
+    if (strict.some(r => pallets.some(p => low(p.code) === low(r.host)))) continue;
+    riders.splice(k, 1); rows.splice(rows.indexOf(row), 1);
+    const l0 = lines.find(l => low(l.code) === low(a.code)) || { code: a.code, qty, name: a.name };
+    const next = findRules(a.code, qty, present, combos).find(r => !(r.mode === 'host' && r.strict));
+    if (next && next.mode === 'group' && !overCap(next, qty)) { addGroup(next, a, idx, l0); continue; }
+    spill.push({ l: Object.assign({}, l0, { qty }), rules: strict, rest: qty, hint: 'hlavní položka ' + strict.map(r => r.host).join(', ') + ' nemá v zakázce vlastní paletu' });
+  }
   groups.forEach(list => {
     const r0 = list[0].rule, t = typeOf(types, r0.pal);
     if (!t) { list.forEach(g => errors.push('Artikl „' + g.code + '“: typ palety ' + r0.pal + ' pro společnou paletu ' + r0.group + ' neexistuje.')); return; }
@@ -137,10 +150,10 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
   });
   // pieces over „Max ks“ of a balení: calculated again without that row (another balení, solo, or the right side)
   if (spill.length) {
-    const skip = new Set(spill.map(x => x.rule));
-    const sub = makePallets(spill.map(x => Object.assign({}, x.l, { qty: x.l.qty - x.rule.cap })), catalog, combos.filter(r => !skip.has(r)), types, Object.assign({}, opts, { mix: false }));
+    const skip = new Set(spill.flatMap(x => x.rules || [x.rule]));
+    const sub = makePallets(spill.map(x => Object.assign({}, x.l, { qty: x.rest != null ? x.rest : x.l.qty - x.rule.cap })), catalog, combos.filter(r => !skip.has(r)), types, Object.assign({}, opts, { mix: false }));
     pallets.push(...sub.pallets); parcels.push(...sub.parcels); rows.push(...sub.rows); errors.push(...sub.errors);
-    sub.unknown.forEach(u => { const x = spill.find(y => low(y.l.code) === low(u.code)); unknown.push(Object.assign(u, x ? { hint: 'nad max ' + x.rule.cap + ' ks v ' + x.rule.group } : {})); });
+    sub.unknown.forEach(u => { const x = spill.find(y => low(y.l.code) === low(u.code)); unknown.push(Object.assign(u, x ? { hint: x.hint || 'nad max ' + x.rule.cap + ' ks v ' + x.rule.group } : {})); });
   }
   return { pallets: opts.mix === false ? pallets : mixLeftovers(pallets), parcels, errors, rows, unknown };
 }
