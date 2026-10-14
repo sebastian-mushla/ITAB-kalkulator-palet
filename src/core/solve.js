@@ -30,7 +30,7 @@ function applyPlan(mp, plan, lines, catalog, types) {
   mp.pallets = planPallets(plan, types, ci);
   const parcelCodes = new Set(mp.parcels.map(p => p.code.toLowerCase()));
   // services (freight, fees) are never on a pallet, so they are not "unplaced"
-  const service = new Set(catalog.filter(a => a.pack === 'sluzba').map(a => String(a.code).toLowerCase()));
+  const service = new Set(catalog.filter(a => a.pack === 'sluzba' || a.pack === 'kit').map(a => String(a.code).toLowerCase()));
   const left = unplaced(lines, plan).filter(u => !parcelCodes.has(u.code.toLowerCase()) && !service.has(u.code.toLowerCase()));
   mp.unknown = left.map(u => Object.assign(u, { known: idx.has(u.code.toLowerCase()) }));
   mp.errors = mp.errors.filter(e => !/není v číselníku|se nevešlo/.test(e));

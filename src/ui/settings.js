@@ -26,8 +26,8 @@ export function renderCatalog(catalog, view, pallets, combos) {
     const num = (f, min, step) => '<td><input type="number" min="' + (min || 0) + '" step="' + (step || 'any') + '" data-i="' + i + '" data-f="' + f + '" value="' + (a[f] == null ? '' : a[f]) + '"></td>';
     return '<tr><td><i class="sw" style="background:' + color(i) + '"></i><input type="text" data-i="' + i + '" data-f="code" value="' + esc(a.code) + '" aria-label="Artikl"></td>' +
       '<td>' + (a.name ? '<span class="ro-name" title="Název z ERP, nelze měnit">' + esc(a.name) + '</span>' : '<input type="text" data-i="' + i + '" data-f="name" value="" aria-label="Název" placeholder="doplnit">') + '</td>' +
-      '<td><select data-i="' + i + '" data-f="pack" aria-label="Druh"><option value="neurceno"' + (a.pack !== 'sluzba' ? ' selected' : '') + '>zboží</option><option value="sluzba"' + (a.pack === 'sluzba' ? ' selected' : '') + '>služba</option></select></td>' +
-      '<td class="muted small">' + (a.pack === 'sluzba' ? 'nic se neveze' : balOf(a.code)) + '</td>' +
+      '<td><select data-i="' + i + '" data-f="pack" aria-label="Druh"><option value="neurceno"' + (a.pack !== 'sluzba' && a.pack !== 'kit' ? ' selected' : '') + '>zboží</option><option value="sluzba"' + (a.pack === 'sluzba' ? ' selected' : '') + '>služba</option><option value="kit"' + (a.pack === 'kit' ? ' selected' : '') + '>kit item</option></select></td>' +
+      '<td class="muted small">' + (a.pack === 'sluzba' || a.pack === 'kit' ? 'nic se neveze' : balOf(a.code)) + '</td>' +
       num('kg') +
       '<td><input type="checkbox" data-i="' + i + '" data-f="rot"' + (a.rot ? ' checked' : '') + ' aria-label="Lze otáčet"></td>' +
       '<td><button class="btn small" data-del="' + i + '">Smazat</button></td></tr>';

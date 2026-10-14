@@ -271,7 +271,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <h3>3.1 Typy palet (záložka Palety)</h3>
             <p>Kód PAL-xxxx, název, délka × šířka (délka jde podél korby), výška, vlastní váha, nosnost, lze otáčet. Import z CSV / Excelu.</p>
             <h3>3.2 Artikl (záložka Číselník artiklů)</h3>
-            <p>Kód, název (z ERP, nemění se), <b>váha kusu</b>, „lze otáčet“ a druh: <b>zboží</b> nebo <b>služba</b> (doprava, poplatek – nic se neveze). Sloupec <b>Způsob balení</b> jen ukazuje, jaká pravidla pro artikl platí; mění se v záložce Způsob balení.</p>
+            <p>Kód, název (z ERP, nemění se), <b>váha kusu</b>, „lze otáčet“ a druh: <b>zboží</b>, <b>služba</b> (doprava, poplatek) nebo <b>kit item</b> (součást sady) – služba a kit item se nenakládají a v zakázce se jen ukážou jako vyřízené. Sloupec <b>Způsob balení</b> jen ukazuje, jaká pravidla pro artikl platí; mění se v záložce Způsob balení.</p>
             <h3>3.3 Kontrola</h3>
             <p>Tlačítko „Zkontrolovat číselník“ ukáže, co chybí: typ palety, kusy, váha 0, neurčené balení, duplicitní artikl.</p></section>
 
@@ -482,7 +482,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
     <h2 id="daTitle">Nový artikl</h2>
     <p>Doplňte údaje, artikl se uloží do číselníku pro všechny.</p>
     <label>Název<input type="text" id="daName"></label>
-    <label>Balení<select id="daPack"><option value="list">paleta ze seznamu</option><option value="new">nová paleta</option><option value="balik">balík</option><option value="sluzba">služba (doprava, poplatek – nic se neveze)</option></select></label>
+    <label>Balení<select id="daPack"><option value="list">paleta ze seznamu</option><option value="new">nová paleta</option><option value="balik">balík</option><option value="sluzba">služba (doprava, poplatek – nic se neveze)</option><option value="kit">kit item (jen v sadě – nic se neveze)</option></select></label>
     <div data-sec="list"><label>Typ palety<input type="search" id="daPal" list="daPalList" placeholder="Hledat: kód, název nebo rozměr (např. 1200, EURO, PAL-0013)" autocomplete="off" required><datalist id="daPalList"></datalist></label></div>
     <div data-sec="new">
       <div class="two"><label>Kód palety<input type="text" id="daPCode" placeholder="např. PAL-0010" required></label><label>Název palety<input type="text" id="daPName" placeholder="např. Paleta 120 × 100"></label></div>
