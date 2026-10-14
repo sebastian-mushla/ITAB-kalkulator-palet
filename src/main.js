@@ -353,7 +353,7 @@ onBoth('click', e => {
       return;
     }
     // an overloaded vehicle is replaced: its pallets move to the new one and the old one goes away
-    const over = view(id).overweight || (view(id).vehicles || []).filter(v => v.kg > v.maxKg + 1e-9);
+    const over = view(id).overweight || (view(id).vehicles || []).filter(v => v.kg > v.maxKg + 1e-9 && !v.items.some(i => i.noKg || !(i.kg > (i.tare || 0))));
     if (over.length) {
       const target = over[0];
       if (state.vehicles[vi] && target.kg > state.vehicles[vi].kg + 1e-9) { flash('Nové vozidlo unese jen ' + state.vehicles[vi].kg + ' kg, náklad má ' + Math.round(target.kg) + ' kg.'); return; }

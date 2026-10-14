@@ -15,7 +15,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     const full = Math.floor(qty / a.per), rem = qty % a.per;
     const parcel = a.pack === 'balik';
     const tare = parcel ? 0 : (a.tare || 0);
-    const mk = units => ({ code: a.code, units, fill: units / a.per, kg: tare + units * (a.kg || 0), tare, pl: a.pl, pw: a.pw, rot: !!a.rot, euro: !parcel && isEuro(a), ci: idx, pal: parcel ? null : (a.pal || null), palName: a.palName || '', palH: a.palH || 0, maxKg: a.maxKg || 0 });
+    const mk = units => ({ code: a.code, units, fill: units / a.per, kg: tare + units * (a.kg || 0), tare, pl: a.pl, pw: a.pw, rot: !!a.rot, euro: !parcel && isEuro(a), ci: idx, pal: parcel ? null : (a.pal || null), palName: a.palName || '', palH: a.palH || 0, maxKg: a.maxKg || 0, noKg: !(a.kg > 0) });
     const target = parcel ? parcels : pallets;
     for (let i = 0; i < full; i++) target.push(mk(a.per));
     if (rem > 0) target.push(mk(rem));
@@ -100,7 +100,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     list.sort((x, y) => y.qty - x.qty);
     const [m, ...rest] = list, tare = t.tare || 0;
     pallets.push({ code: m.code, units: m.qty, fill: 1, kg: tare + list.reduce((s, g) => s + g.qty * g.kg, 0), tare, pl: t.L, pw: t.W, rot: t.rot !== false, euro: isEuro({ pl: t.L, pw: t.W }), ci: m.ci,
-      pal: t.code, palName: t.name, palH: t.H || 0, maxKg: t.maxKg || 0, group: r0.group, over: list.some(g => g.rule.per > 0 && g.qty > g.rule.per), extra: rest.length ? rest.map(g => ({ code: g.code, units: g.qty, ci: g.ci, mixed: true })) : undefined });
+      pal: t.code, palName: t.name, palH: t.H || 0, maxKg: t.maxKg || 0, group: r0.group, noKg: list.some(g => !(g.kg > 0)), over: list.some(g => g.rule.per > 0 && g.qty > g.rule.per), extra: rest.length ? rest.map(g => ({ code: g.code, units: g.qty, ci: g.ci, mixed: true })) : undefined });
     list.forEach((g, n) => {
       const over = g.rule.per > 0 && g.qty > g.rule.per;
       if (over) errors.push('Společná paleta ' + r0.group + ': ' + g.code + ' má ' + g.qty + ' ks, ověřeno jen ' + g.rule.per + ' ks – zkontrolujte, zda se vše vejde.');
@@ -128,7 +128,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
       const x = rule.strict ? free.sort((m, n) => has(m.p) - has(n.p) || load(m.p) - load(n.p))[0] : free[0];
       const e = (x.p.extra || []).find(e => e.code === a.code && !e.mixed);
       if (e) e.units++; else x.p.extra = (x.p.extra || []).concat([{ code: a.code, units: 1, ci: idx }]);
-      x.p.kg += a.kg || 0; left--;
+      x.p.kg += a.kg || 0; if (!(a.kg > 0)) x.p.noKg = true; left--;
     }
     row.onHost = qty - left; row.host = rules.map(r => r.host).join(', ');
     // přibal of a main item (rule.strict): the max per pallet is fixed – what does not fit waits on the right side

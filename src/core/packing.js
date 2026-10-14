@@ -53,9 +53,11 @@ let norms = Object.assign({}, NORM_DEFAULTS);
 export function setNorms(r) { norms = Object.assign({}, NORM_DEFAULTS, r || {}); }
 
 // how a loaded body scores against the norms (lower = better)
+// a pallet whose goods have no weight (even one article): balance and payload cannot be judged
+export const missKg = i => !!i.noKg || !(i.kg > (i.tare || 0));
 export function evalLoad(items, L, W, maxKg) {
   // a pallet without weight: balance cannot be judged for the vehicle at all (judging only the known ones would be wrong)
-  const kg = items.some(i => !(i.kg > 0)) ? 0 : items.reduce((s, i) => s + i.kg, 0);
+  const kg = items.some(missKg) ? 0 : items.reduce((s, i) => s + i.kg, 0);
   if (!items.length) return { score: 0, gapPct: 0, leftPct: 50, cgPct: 0, latBad: 0, cgBad: 0, heavy: false };
   const usedL = Math.max(...items.map(i => i.x + i.w));
   const area = items.reduce((s, i) => s + i.w * i.h, 0);
@@ -174,7 +176,7 @@ export function balanceLoad(items, W, L, maxKg) {
   let out = items.map(i => Object.assign({}, i));
   const usedL = Math.max(...out.map(i => i.x + i.w));
   // missing weight on any pallet: keep the layout by space only
-  if (out.some(i => !(i.kg > 0))) { compactToCab(out); pullForward(out, W); compactToCab(out); return out; }
+  if (out.some(missKg)) { compactToCab(out); pullForward(out, W); compactToCab(out); return out; }
   const kg = out.reduce((s, i) => s + i.kg, 0) || 1;
   const cg = out.reduce((s, i) => s + i.kg * (i.x + i.w / 2), 0) / kg;
   // light load: heavy end to the headboard; heavy load: only if that keeps the centre of gravity in the zone

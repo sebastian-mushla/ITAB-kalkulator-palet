@@ -142,7 +142,8 @@ export function viewOf(r, manual, vehicles) {
   });
   const vs = all.filter(Boolean);
   const used = vs.filter(v => v.items.length);
-  const overweight = vs.filter(v => v.kg > v.maxKg + 1e-9);
+  // overweight only when every pallet has its weight (missing weight = payload cannot be judged)
+  const overweight = vs.filter(v => v.kg > v.maxKg + 1e-9 && !v.items.some(i => i.noKg || !(i.kg > (i.tare || 0))));
   const dn = depot ? depot.items.length : 0;
   const mode = r.mode === 'empty' ? 'empty' : (r.oversize && r.oversize.length ? 'warn' : (used.length ? 'trucks' : (dn ? 'groupage' : 'trucks')));
   const reco = [recoText(used), dn ? 'sběrná služba (' + dn + ' ' + (dn === 1 ? 'paleta' : dn <= 4 ? 'palety' : 'palet') + ')' : ''].filter(Boolean).join(' + ');

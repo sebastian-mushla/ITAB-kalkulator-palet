@@ -1,6 +1,6 @@
 import { esc, plural, fmtM, fmtKg, fmtN, color, palWord, balWord, vehWord } from '../core/util.js';
 import { groupItems } from '../core/solve.js';
-import { loadStats, evalLoad, setNorms } from '../core/packing.js';
+import { loadStats, evalLoad, setNorms, missKg } from '../core/packing.js';
 
 const $ = s => document.querySelector(s);
 const ldmText = r => r.ldm.toLocaleString('cs-CZ', { maximumFractionDigits: 1 });
@@ -246,13 +246,13 @@ export function setNameLookup(fn) { nameOf = fn; }
 function vehicleHtml(v) {
   const legend = groupItems(v.items).map(g => '<li><i class="sw" style="background:' + color(g.ci) + '"></i>' + esc(g.code) + ': ' + g.count + ' ' + palWord(g.count) + ', ' + g.units + ' ks</li>').join('') +
     extrasOf(v.items).map(e => '<li><i class="sw" style="background:' + color(e.ci) + '"></i>' + esc(e.code) + ': ' + e.units + ' ks na paletách ' + esc(e.host) + '</li>').join('');
-  const load = v.maxKg ? Math.round(v.kg / v.maxKg * 100) : 0, over = v.kg > v.maxKg;
+  const load = v.maxKg ? Math.round(v.kg / v.maxKg * 100) : 0, over = v.kg > v.maxKg && !v.items.some(missKg); // missing weight: payload not judged
   const st = loadStats(v.items, v.W), ev = st ? evalLoad(v.items, v.L, v.W, v.maxKg) : null;
   const warn = ev ? [ev.latBad ? 'strany mimo normu' : '', ev.cgBad ? 'těžiště mimo zónu ' + normsNow.cgMin + '–' + normsNow.cgMax + ' %' : ''].filter(Boolean) : [];
   let bal = st ? '<span class="bal' + (warn.length ? ' warn' : '') + '" title="Mezery = prázdná plocha v obsazené části korby. Strany v normě do ' + normsNow.lrTol + '/' + (100 - normsNow.lrTol) + '. Těžiště těžkého nákladu má být ' + normsNow.cgMin + '–' + normsNow.cgMax + ' % délky korby.">' +
     'mezery ' + Math.round(ev.gapPct) + ' % · těžiště ' + fmtM(st.cg) + ' m (' + Math.round(ev.cgPct) + ' % délky) · L ' + st.leftPct + ' % / P ' + (100 - st.leftPct) + ' %' + (warn.length ? ' – ' + warn.join(', ') : ' – v normě ✓') + '</span>' : '';
   // pallets without weight: the layout is by space only, balance and payload cannot be checked
-  const noKg = v.items.filter(i => !(i.kg > (i.tare || 0))).length;
+  const noKg = v.items.filter(missKg).length;
   if (v.items.length && noKg) bal = '<span class="bal warn" title="Artikly nemají vyplněnou váhu kusu (Číselník → Zkontrolovat číselník).">' + (noKg === v.items.length ? 'Chybí váha' : 'Chybí váha u ' + noKg + ' z ' + v.items.length + ' palet') + ' – rozloženo jen podle místa (co nejtěsněji od čela), vyvážení a nosnost nelze ověřit · mezery ' + Math.round((ev || evalLoad(v.items, v.L, v.W, v.maxKg)).gapPct) + ' %</span>';
   const rm = v.idx != null && !v.items.length ? '<button class="veh-x" data-rmveh="' + v.idx + '" aria-label="Odebrat vozidlo">×</button>' : '';
   const tools = v.idx != null ? '<span class="veh-tools"><button class="btn small" data-undo="1" title="Vrátit poslední změnu nakládky">↶ Zpět</button><button class="btn small" data-reset="1" title="Vrátit automatické rozložení všech vozidel">Vrátit vše</button></span>' : '';
