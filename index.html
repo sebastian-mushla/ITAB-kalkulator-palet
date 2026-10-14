@@ -324,7 +324,13 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <h3>7.3 Úprava palet</h3>
             <p>Klik na paletu: přesun kusů, změna typu, smazání palety (kusy se vrátí vpravo, volitelně i s definicí artiklu), <b>Uložit jako balení</b>. Paletu lze přetáhnout na jinou – nad kapacitu jen s potvrzením. Zakázky se na paletě nemíchají.</p>
             <h3>7.4 ✓ Zkontrolovat a uložit</h3>
-            <p>Na konci zakázky: porovná pravidla s paletami (smaže neplatná, doplní nová, zvýší ověřené kusy, přidá artikly do balení), zapíše změny do historie a zakázka se zase počítá automaticky z tabulek. Ruční palety zůstanou jen tehdy, když je pravidla neumí popsat.</p></section>
+            <p>Porovná palety zakázky se Způsobem balení (pravidla projektu zakázky) a ukáže změny k potvrzení:</p>
+            <ul><li>artikl <b>přidaný</b> na paletu balení → přidá se do balení;</li>
+            <li>artikl <b>odebraný</b> z palety balení (vrácený vpravo nebo jinam) → odebere se z balení;</li>
+            <li>víc kusů než ověřeno → ověřené množství se zvýší;</li>
+            <li>přibal na paletě hlavní položky bez pravidla → nové pravidlo, jinde než podle pravidla → pravidlo se smaže;</li>
+            <li>artikl sám na své paletě bez pravidla → nové <b>solo</b> v projektu zakázky; jiný typ palety → solo se upraví.</li></ul>
+            <p>Po uložení se zakázka počítá zase automaticky z tabulek; ruční palety zůstanou jen tam, kde je pravidla neumí popsat.</p></section>
 
           <section class="card" id="h8"><h2>8. Sběrná služba a balíky</h2>
             <h3>8.1 Palety</h3>

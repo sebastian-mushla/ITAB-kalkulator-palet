@@ -647,10 +647,10 @@ onBoth('click', e => {
   if (e.target.id !== 'auditBtn') return;
   const id = state.sel, o = state.orders.get(id), r = view(id); if (!o || !r) return;
   const plan = state.plan.get(id) || freezePlan(r, state.catalog);
-  const res = auditOrder(o, plan, state.combos, state.catalog);
+  const res = auditOrder(o, plan, state.combos, state.catalog, r.project || '');
   const rows = [];
-  res.drop.forEach(i => rows.push({ k: 'drop', i, t: 'Smazat neplatný způsob balení: ' + ruleText(state.combos[i]) }));
-  res.update.forEach(u => rows.push({ k: 'upd', u, t: 'Upravit způsob balení ' + ruleText(state.combos[u.i]) + ' → ' + Object.entries(u.ch).map(([k, v]) => (k === 'per' ? 'max ' + v + ' ks/paleta' : 'do ' + v + ' ks')).join(', ') }));
+  res.drop.forEach(i => { const c = state.combos[i]; rows.push({ k: 'drop', i, t: c.mode === 'group' ? 'Odebrat ' + c.code + ' z balení ' + (c.group || '') + (c.project ? ' (' + c.project + ')' : '') : 'Smazat neplatný způsob balení: ' + ruleText(c) }); });
+  res.update.forEach(u => rows.push({ k: 'upd', u, t: 'Upravit způsob balení ' + ruleText(state.combos[u.i]) + ' → ' + Object.entries(u.ch).map(([k, v]) => (k === 'per' ? 'max ' + v + ' ks/paleta' : k === 'pal' ? 'paleta ' + v : 'do ' + v + ' ks')).join(', ') }));
   res.add.forEach(a => rows.push({ k: 'add', a, t: 'Nový způsob balení: ' + ruleText(a) }));
   res.koliAdd.forEach(x => rows.push({ k: 'kadd', x, t: 'Přidat do balení ' + x.group + ': ' + x.code + ' (' + x.units + ' ks)' }));
   res.seen.forEach(x => rows.push({ k: 'seen', x, t: 'Společná paleta ' + (state.combos[x.i].group || '') + ': ' + x.code + ' ověřeno ' + x.from + ' → ' + x.to + ' ks' }));

@@ -1,7 +1,7 @@
 // "Zkontrolovat a uložit": compares how the order really goes (its pallet plan) with the saved rules.
 // Rules that applied to this order but are not true any more are dropped, rides without a rule get one,
 // and article definitions are aligned with the pallets actually used.
-import { findRule } from './combos.js';
+import { findRules } from './combos.js';
 
 const low = s => String(s == null ? '' : s).trim().toLowerCase();
 
@@ -28,7 +28,9 @@ function ridesOf(plan) {
   return out;
 }
 
-export function auditOrder(order, plan, combos, catalog) {
+export function auditOrder(order, plan, combos, catalog, project) {
+  // rules of this order's project (and rules without project), in priority order
+  const findRule = (code, qty, present, list) => findRules(code, qty, present, list).find(r => !low(r.project) || low(r.project) === low(project)) || null;
   const lines = [...order.lines.values()];
   const rides = ridesOf(plan);
   const verdict = new Map(); // combo index → 'keep' | 'drop'
@@ -88,6 +90,29 @@ export function auditOrder(order, plan, combos, catalog) {
     (b.contents || []).forEach(c => {
       if (c.units > 0 && !have.has(low(c.code)) && !koliAdd.some(x => low(x.code) === low(c.code) && x.group === b.group)) koliAdd.push({ group: b.group, pal: b.pal, code: c.code, name: c.name || '', units: c.units });
     });
+  });
+
+  // mix (balení): an article of the balení that is no longer on that balení's pallet was taken out → remove it from the balení
+  lines.forEach(l => {
+    const rule = findRule(l.code, l.qty, bySo.get(l.so || order.id), combos);
+    if (!rule || rule.mode !== 'group') return;
+    const on = plan.some(b => low(b.group) === low(rule.group) && (b.contents || []).some(c => c.units > 0 && low(c.code) === low(l.code)));
+    if (!on) verdict.set(combos.indexOf(rule), 'drop');
+  });
+
+  // solo: an article alone on its own pallets (not a balení pallet) without a rule → new solo rule in the order's project;
+  // with a solo rule on another pallet type → change the pallet type
+  const soloSeen = new Set();
+  lines.forEach(l => {
+    const k = low(l.code); if (soloSeen.has(k)) return; soloSeen.add(k);
+    const a = catalog.find(x => low(x.code) === k); if (a && (a.pack === 'sluzba' || a.pack === 'kit')) return;
+    const own = plan.filter(b => !b.group && (b.contents || []).some(c => c.units > 0 && !c.ride && low(c.code) === k) && (b.contents || []).filter(c => c.units > 0 && !c.ride).length === 1);
+    if (!own.length) return;
+    const types = [...new Set(own.map(b => b.pal).filter(Boolean))]; if (types.length !== 1) return;
+    const rule = findRule(l.code, l.qty, bySo.get(l.so || order.id), combos);
+    const per = Math.max(...own.map(b => b.contents.find(c => low(c.code) === k).units));
+    if (!rule) add.set(k + '|solo', { on: true, code: l.code, withCode: '', min: 0, max: 0, mode: 'pallet', host: '', pal: types[0], pl: 0, pw: 0, per: own.length > 1 ? per : 0, kg: 0, name: l.name || (a && a.name) || '', project: project || '', note: 'Uloženo ze zakázky ' + order.id });
+    else if (rule.mode === 'pallet' && low(rule.pal) !== low(types[0])) { const i = combos.indexOf(rule); update.set(i, Object.assign(update.get(i) || {}, { pal: types[0] })); }
   });
 
   return {
