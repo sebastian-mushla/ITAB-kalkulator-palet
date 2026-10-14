@@ -575,3 +575,5 @@ html{background:var(--bg)}
 #view-combos .c-art{min-width:235px}#view-combos .c-art .code-in{font-size:13px;letter-spacing:-.01em}#view-combos .c-note{min-width:80px}#view-combos .c-cond{min-width:150px}
 .steps[type="I"]{list-style:upper-roman;padding-left:30px}
 .help .help-wide{grid-column:1/-1;column-span:all}
+.help-doc h3{font-size:14.5px;margin:14px 0 4px;color:#5b4bd1}.help-doc h2{margin-bottom:4px}.help-doc ul,.help-doc ol{margin:4px 0 8px 20px;padding:0}.help-doc li{margin:3px 0}
+.help-toc{font-size:13.5px;line-height:1.9}.help-toc a{color:#5b4bd1;text-decoration:none}.help-toc a:hover{text-decoration:underline}
