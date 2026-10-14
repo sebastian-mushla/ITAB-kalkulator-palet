@@ -422,6 +422,7 @@ export function renderDock(r, { rules, vehicles }) {
     if (r.vehicles.length || r.depot) h += '<p class="hint drag-hint">Paletu chyťte myší a přetáhněte jinam nebo do jiného vozidla. Dvojklik paletu otočí. Prázdné vozidlo odeberete křížkem.</p>';
     // pallets of every zakázka in the whole ID: the vehicle header shows which share of each zakázka it carries
     const soTot = new Map(); r.vehicles.concat(r.depot ? [r.depot] : []).forEach(v => v.items.forEach(i => soTot.set(i.so, (soTot.get(i.so) || 0) + 1)));
+    if (r.variants) h += '<div class="variants"><span class="muted">Varianta nakládky:</span>' + r.variants.map(x => '<button type="button" class="btn small' + (x.key === r.variant ? ' primary' : '') + '" data-variant="' + x.key + '">' + esc(x.label) + ' · ' + x.n + ' ' + vehWord(x.n) + '</button>').join('') + '<span class="muted small">' + (r.variant === 'sep' ? 'každá zakázka jede ve svých vozidlech' : 'méně vozidel, zakázky se ve vozidlech míchají') + '</span></div>';
     h += r.vehicles.map((v, i) => vehicleHtml(Object.assign({ idx: i }, v, { lift: vehicles[v.vi] && vehicles[v.vi].lift, soTot }))).join('');
     if (r.depot) h += depotHtml(r.depot, rules);
     h += '<p class="note">Rozložení je orientační: pohled shora, palety nestohujeme, váha je bez vlastních palet. Nakládku a konečné rozhodnutí určuje dopravce.</p>';

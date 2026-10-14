@@ -92,16 +92,24 @@ function addBoardPallets(mp, added, types, ci0) {
 
 // Pure: order + catalog + vehicles + rules -> result. `forced` = vehicle index chosen by the user.
 // `added` = pallets the operator put on the calculator board for this order: [{ id, pal, contents: [{ code, name, units, per, kg }] }]
-export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], forced = null, added = [], plan = null, project }) {
+export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], forced = null, added = [], plan = null, project, variant = null }) {
   const lines = [...o.lines.values()];
   // project of the order: chosen by hand, otherwise recognised by its key articles; balení of other projects do not apply
-  const proj = project !== undefined ? project : ((projectOf(o, rules.projects) || {}).name || '');
-  combos = combosFor(combos, proj);
   // each zakázka is calculated on its own pallets (pallets do not mix zakázky); everything is tagged with its zakázka
   const sos = o.sos && o.sos.length ? o.sos : [o.id];
+  // project per zakázka (an ID can carry an Action order and a small order without project); chosen by hand = for all
+  const allCombos = combos, soProj = new Map(), soCombos = new Map();
+  sos.forEach(so => {
+    const sl = new Map([...o.lines].filter(([, l]) => (l.so || o.id) === so));
+    const pj = project !== undefined ? project : ((projectOf({ lines: sl }, rules.projects) || {}).name || '');
+    soProj.set(so, pj); soCombos.set(so, combosFor(allCombos, pj));
+  });
+  const projList = [...new Set([...soProj.values()].filter(Boolean))];
+  const proj = project !== undefined ? project : projList.join(', ');
+  combos = soCombos.get(sos[0]);
   const mp = { pallets: [], parcels: [], errors: [], rows: [], unknown: [] };
   sos.forEach(so => {
-    const part = makePallets(lines.filter(l => (l.so || o.id) === so), catalog, combos, pallets, { mix: rules.mix !== false });
+    const part = makePallets(lines.filter(l => (l.so || o.id) === so), catalog, soCombos.get(so), pallets, { mix: rules.mix !== false });
     const tag = x => Object.assign(x, { so });
     mp.pallets.push(...part.pallets.map(tag)); mp.parcels.push(...part.parcels.map(tag));
     mp.rows.push(...part.rows.map(tag)); mp.unknown.push(...part.unknown.map(tag));
@@ -114,7 +122,7 @@ export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], 
   const lowc = s => String(s).toLowerCase(), seenHost = new Map();
   mp.pallets.forEach(p => {
     if (p.group) { p.tag = p.group; return; }
-    const ks = [...new Set(combos.filter(r => r.mode === 'host' && r.strict && lowc(r.host) === lowc(p.code)).map(koliOf).filter(Boolean))].sort((a, b) => Number(a.replace(/\D/g, '')) - Number(b.replace(/\D/g, '')));
+    const ks = [...new Set((soCombos.get(p.so) || combos).filter(r => r.mode === 'host' && r.strict && lowc(r.host) === lowc(p.code)).map(koliOf).filter(Boolean))].sort((a, b) => Number(a.replace(/\D/g, '')) - Number(b.replace(/\D/g, '')));
     if (!ks.length) return;
     const n = seenHost.get(lowc(p.code)) || 0; seenHost.set(lowc(p.code), n + 1);
     p.tag = ks[n % ks.length];
@@ -122,14 +130,14 @@ export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], 
   // what waits on the right says which balení it belongs to
   mp.unknown.forEach(u => {
     if (u.hint) return;
-    const own = combos.filter(r => lowc(r.code) === lowc(u.code));
+    const own = (soCombos.get(u.so) || combos).filter(r => lowc(r.code) === lowc(u.code));
     const host = [...new Set(own.filter(r => r.mode === 'host' && r.strict).map(koliOf).filter(Boolean))].map(k => k.replace(/^(KOLI|BAL)-/, ''));
     const grp = [...new Set(own.filter(r => r.mode === 'group').map(r => r.group))];
     if (host.length) u.hint = 'přibal pro balení ' + host.join(', ');
     else if (grp.length) u.hint = 'patří do ' + grp.join(', ');
   });
   const r = {
-    id: o.id, sos, project: proj, planOn: !!plan, plan, pallets: mp.pallets, parcels: mp.parcels, errors: mp.errors, rows: mp.rows, unknown: mp.unknown,
+    id: o.id, sos, project: proj, soProj, planOn: !!plan, plan, pallets: mp.pallets, parcels: mp.parcels, errors: mp.errors, rows: mp.rows, unknown: mp.unknown,
     kg: 0, units: 0, groupage: null, parcelInfo: null, vehicles: [], oversize: [], mode: 'empty', reco: '', forced
   };
   // goods + own weight of the pallets
@@ -166,7 +174,9 @@ export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], 
   if (r.groupage.ok && forced == null) { r.mode = 'groupage'; r.stat = 'Sběrná služba'; }
   else {
     if (sos.length > 1) mp.pallets.forEach(p => { p.showSo = true; });
-    const pk = packAll(mp.pallets, vehicles, forced, rules.oneVeh !== false, sos, rules);
+    let pk = packAll(mp.pallets, vehicles, forced, rules.oneVeh !== false, sos, rules);
+    // a second variant (every zakázka in its own vehicles) when it needs more vehicles: the dispatcher decides
+    if (pk.alt) { r.variants = [{ key: 'min', label: 'Méně vozidel', n: pk.vehicles.length }, { key: 'sep', label: pk.alt.label, n: pk.alt.vehicles.length }]; r.variant = variant === 'sep' ? 'sep' : 'min'; if (variant === 'sep') pk = pk.alt; }
     r.vehicles = pk.vehicles; r.oversize = pk.oversize;
     r.reco = recoText(pk.vehicles);
     if (pk.oversize.length) { r.mode = 'warn'; r.stat = 'Zkontrolovat'; }

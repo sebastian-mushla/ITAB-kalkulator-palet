@@ -51,6 +51,7 @@ const state = {
   orders: new Map(), results: new Map(), forced: new Map(), manual: new Map(), board: new Map(), plan: new Map(Object.entries(load('itab.plans.v1', {})).map(([k, v]) => [k, v.plan])),
 
   projSel: new Map(Object.entries(load('itab.projsel.v1', {}))),
+  variant: new Map(), // loading variant per ID: 'min' (fewest vehicles) or 'sep' (every zakázka on its own)
   saved: new Map(Object.entries(load('itab.plans.v1', {})).map(([k, v]) => [k, v.at])),
   ordered: new Set(load('itab.ordered.v1', [])), listUi: Object.assign({ sort: { key: null, dir: 'asc' }, filters: {} }, load('itab.listui.v1', {}), { open: null }), oneOff: new Map(), done: new Set(load('itab.done.v1', [])), isAdmin, sel: null, prioHidden: false,
   catView: { q: '', page: 0 }
@@ -100,7 +101,7 @@ function persist(name) {
 // ---------- calculation ----------
 function ctx(id) {
   // one-off moves (not remembered) apply only to that order and win over saved rules
-  return { catalog: state.catalog, vehicles: state.vehicles, pallets: state.pallets, rules: state.rules, combos: (state.oneOff.get(id) || []).concat(state.combos), forced: state.forced.has(id) ? state.forced.get(id) : null, added: state.board.get(id) || [], plan: state.plan.get(id) || null, project: state.projSel.has(id) ? state.projSel.get(id) : undefined };
+  return { catalog: state.catalog, vehicles: state.vehicles, pallets: state.pallets, rules: state.rules, combos: (state.oneOff.get(id) || []).concat(state.combos), forced: state.forced.has(id) ? state.forced.get(id) : null, added: state.board.get(id) || [], plan: state.plan.get(id) || null, project: state.projSel.has(id) ? state.projSel.get(id) : undefined, variant: state.variant.get(id) || null };
 }
 // Full recalculation (catalog, vehicles, rules … changed): the open order first, the rest in small
 // chunks in the background so the page never freezes.
@@ -644,6 +645,10 @@ function drawLog() {
   const log = load('itab.log.v1', []);
   el.innerHTML = log.length ? log.slice(0, 50).map(e => '<li><b>' + esc(e.at) + '</b> · zakázka ' + esc(e.id) + (e.who ? ' · ' + esc(e.who) : '') + '<ul>' + e.items.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul></li>').join('') : '<li class="muted">Zatím žádné změny.</li>';
 }
+onBoth('click', e => {
+  const vk = e.target.closest('[data-variant]'); if (!vk) return;
+  state.variant.set(state.sel, vk.dataset.variant); state.manual.delete(state.sel); keepScroll(() => recalcOne());
+});
 onBoth('click', e => {
   if (e.target.id !== 'auditBtn') return;
   const id = state.sel, o = state.orders.get(id), r = view(id); if (!o || !r) return;

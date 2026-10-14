@@ -352,18 +352,24 @@ export function packAll(pallets, vehicles, forced, oneVehicle, seq, rules) {
   const hit = packCache.get(key);
   if (hit) return JSON.parse(hit);
   let res = packAllRaw(pallets, vehicles, forced, oneVehicle, seq, rules);
-  // several zakázky over more vehicles: if every zakázka in its own vehicles needs no more vehicles, do not mix them
-  const mixed = res.vehicles.some(v => new Set(v.items.map(i => i.so)).size > 1);
-  if (mixed && forced == null && seq && seq.length > 1 && res.vehicles.length > 1) {
+  // several zakázky over more vehicles: three candidates –
+  //  opt = the optimizer (fewest vehicles, zakázky may mix), seq = zakázka after zakázka, sep = every zakázka in its own vehicles.
+  // Fewest vehicles wins; with the same number: sep (no mixing) > seq > opt. If sep needs more vehicles it is offered as a variant.
+  if (forced == null && seq && seq.length > 1 && res.vehicles.length > 1) {
     const all = pallets.map((p, i) => Object.assign({}, p, { id: i }));
-    const sep = { vehicles: [], oversize: [] };
-    seq.forEach(so => { const part = all.filter(p => p.so === so); if (!part.length) return; const r2 = packAllRaw(part, vehicles, null, oneVehicle, null, rules); sep.vehicles.push(...r2.vehicles); sep.oversize.push(...r2.oversize); });
-    const rest = all.filter(p => !seq.includes(p.so));
-    if (!rest.length && sep.vehicles.length <= res.vehicles.length) {
-      const cnt = new Map();
-      sep.vehicles.forEach(v => { const n = (cnt.get(v.vi) || 0) + 1; cnt.set(v.vi, n); v.n = n; v.title = v.name + ' ' + n; });
-      res = sep;
+    const renum = r => { const cnt = new Map(); r.vehicles.forEach(v => { const n = (cnt.get(v.vi) || 0) + 1; cnt.set(v.vi, n); v.n = n; v.title = v.name + ' ' + n; }); return r; };
+    const opt = packAllRaw(all, vehicles, null, oneVehicle, null, rules);
+    let sep = null;
+    if (all.every(p => seq.includes(p.so))) {
+      sep = { vehicles: [], oversize: [] };
+      seq.forEach(so => { const part = all.filter(p => p.so === so); if (!part.length) return; const r2 = packAllRaw(part, vehicles, null, oneVehicle, null, rules); sep.vehicles.push(...r2.vehicles); sep.oversize.push(...r2.oversize); });
+      renum(sep);
     }
+    const cands = [sep, res, opt].filter(Boolean);
+    const min = Math.min(...cands.map(c => c.vehicles.length));
+    const pick = cands.find(c => c.vehicles.length === min);
+    if (sep && sep !== pick) pick.alt = { vehicles: sep.vehicles, oversize: sep.oversize, label: 'Po zakázkách' };
+    res = pick;
   }
   packCache.set(key, JSON.stringify(res));
   if (packCache.size > 300) packCache.delete(packCache.keys().next().value);
