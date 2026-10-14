@@ -342,10 +342,10 @@ cases.push(['Koli: import z ERP – duplicity sečtené, PAL řádek = paleta', 
 }]);
 cases.push(['Koli: artikly zakázky jedou spolu na jedné paletě, víc než ověřeno = upozornění', () => {
   const k = parseKolo(KOLI_TEXT);
-  const rows = k.items.map(it => koloRow(it, 'KOLI-1', 'PAL-0001'));
+  const rows = k.items.map(it => koloRow(it, 'BAL-1', 'PAL-0001'));
   const o = parseOrders('SO 9\nr10 DRO-0988 kit 1\nr20 DRO-0987 kit 8\nr30 V-POL police 156').orders.get('9');
   const r = solve(o, Object.assign({}, ctx, { combos: rows }));
-  const kp = r.pallets.filter(p => p.group === 'KOLI-1');
+  const kp = r.pallets.filter(p => p.group === 'BAL-1');
   assert(kp.length === 1, 'jedna koli paleta: ' + kp.length);
   const codes = [kp[0].code].concat((kp[0].extra || []).map(e => e.code));
   assert(codes.length === 2 && codes.includes('DRO-0988') && codes.includes('DRO-0987'), codes.join(','));
@@ -360,22 +360,22 @@ cases.push(['Společná paleta: pořadí pravidel – když první nesedí, plat
   const r = solve(o, Object.assign({}, ctx, { combos: [r1, r2], rules: Object.assign({}, DEFAULT_RULES, { koloMin: 1 }) }));
   const g = r.pallets.find(p => p.code === 'DRO-0988');
   assert(g && g.group === 'B' && g.pal === 'PAL-0001', JSON.stringify(g && [g.group, g.pal]));
-  const old = expandKolo([{ mode: 'kolo', code: 'KOLI-1', pal: 'PAL-0001', items: [{ code: 'X', seen: 2 }, { code: 'Y', seen: 3 }] }]);
-  assert(old.changed && old.combos.length === 2 && old.combos[1].per === 3 && old.combos[0].group === 'KOLI-1', 'migrace');
+  const old = expandKolo([{ mode: 'kolo', code: 'BAL-1', pal: 'PAL-0001', items: [{ code: 'X', seen: 2 }, { code: 'Y', seen: 3 }] }]);
+  assert(old.changed && old.combos.length === 2 && old.combos[1].per === 3 && old.combos[0].group === 'BAL-1', 'migrace');
 }]);
 cases.push(['Koli: sloučení – koli se společným artiklem se spojí, osamělé koli zmizí', () => {
   const row = (g, c, per, pal) => koloRow({ code: c, seen: per }, g, pal || 'PAL-0001');
-  const combos = [row('KOLI-1', '1', 1), row('KOLI-1', '2', 1), row('KOLI-1', '3', 1), row('KOLI-2', '3', 4), row('KOLI-2', '6', 1), row('KOLI-3', '3', 1, 'PAL-0002'), row('KOLI-4', '9', 1, 'PAL-0002'), row('KOLI-4', '8', 1, 'PAL-0002')];
+  const combos = [row('BAL-1', '1', 1), row('BAL-1', '2', 1), row('BAL-1', '3', 1), row('BAL-2', '3', 4), row('BAL-2', '6', 1), row('BAL-3', '3', 1, 'PAL-0002'), row('BAL-4', '9', 1, 'PAL-0002'), row('BAL-4', '8', 1, 'PAL-0002')];
   const f = findDuplicateGroups(combos);
-  assert(f.some(a => a.kind === 'merge' && a.keep === 'KOLI-1' && a.drop.join() === 'KOLI-2'), JSON.stringify(f));
-  assert(f.some(a => a.kind === 'solo' && a.drop === 'KOLI-3'), 'solo');
+  assert(f.some(a => a.kind === 'merge' && a.keep === 'BAL-1' && a.drop.join() === 'BAL-2'), JSON.stringify(f));
+  assert(f.some(a => a.kind === 'solo' && a.drop === 'BAL-3'), 'solo');
   const res = mergeGroups(combos, f);
-  const k1 = res.filter(r => r.group === 'KOLI-1').map(r => r.code + ':' + r.per).sort().join();
+  const k1 = res.filter(r => r.group === 'BAL-1').map(r => r.code + ':' + r.per).sort().join();
   assert(k1 === '1:1,2:1,3:4,6:1', k1);
-  assert(!res.some(r => r.group === 'KOLI-3' || r.group === 'KOLI-2') && res.some(r => r.group === 'KOLI-4'), 'zbytek');
+  assert(!res.some(r => r.group === 'BAL-3' || r.group === 'BAL-2') && res.some(r => r.group === 'BAL-4'), 'zbytek');
 }]);
 cases.push(['Koli stroje: příslušenství jede na paletě stroje, jen když je stroj v zakázce', () => {
-  const rows = koloHostRows([{ code: 'V06', seen: 1 }, { code: 'PLX', seen: 1 }, { code: 'DAM', seen: 3 }], 'V06', 'KOLI-9');
+  const rows = koloHostRows([{ code: 'V06', seen: 1 }, { code: 'PLX', seen: 1 }, { code: 'DAM', seen: 3 }], 'V06', 'BAL-9');
   assert(rows.length === 2 && rows.every(r => r.mode === 'host' && r.host === 'V06' && r.withCode === 'V06'), 'rows');
   const o = parseOrders('SO 9\nr10 V06 kabina 2\nr20 PLX p 2\nr30 DAM d 6').orders.get('9');
   const r = solve(o, Object.assign({}, ctx, { combos: rows }));
@@ -387,16 +387,16 @@ cases.push(['Koli: artikl s balením „neurčeno“ – v koli jede, sám ček�
   const o = parseOrders('SO 9\nr10 NEU-1 x 3\nr20 V-POL police 10').orders.get('9');
   const alone = solve(o, Object.assign({}, ctx, { catalog: cat }));
   assert(alone.unknown.some(u => u.code === 'NEU-1' && u.undecided), 'čeká vpravo');
-  const inKoli = solve(o, Object.assign({}, ctx, { catalog: cat, combos: [koloRow({ code: 'NEU-1', seen: 3 }, 'KOLI-1', 'PAL-0001')], rules: Object.assign({}, DEFAULT_RULES, { koloMin: 1 }) }));
-  assert(!inKoli.unknown.length && inKoli.pallets.some(p => p.group === 'KOLI-1'), 'v koli');
+  const inKoli = solve(o, Object.assign({}, ctx, { catalog: cat, combos: [koloRow({ code: 'NEU-1', seen: 3 }, 'BAL-1', 'PAL-0001')], rules: Object.assign({}, DEFAULT_RULES, { koloMin: 1 }) }));
+  assert(!inKoli.unknown.length && inKoli.pallets.some(p => p.group === 'BAL-1'), 'v koli');
 }]);
 cases.push(['Hlavní položka: přibal má pevné max na paletu, zbytek čeká vpravo; duplicity se nesčítají', () => {
-  const rows = koloHostRows([{ code: 'V06', seen: 1 }, { code: 'PLX', seen: 1 }], 'V06', 'KOLI-9');
+  const rows = koloHostRows([{ code: 'V06', seen: 1 }, { code: 'PLX', seen: 1 }], 'V06', 'BAL-9');
   const o = parseOrders('SO 9\nr10 V06 kabina 2\nr20 PLX p 5').orders.get('9');
   const r = solve(o, Object.assign({}, ctx, { combos: rows }));
   const on = r.pallets.filter(p => p.code === 'V06').reduce((s, p) => s + (p.extra || []).reduce((a, e) => a + e.units, 0), 0);
   assert(on === 2 && r.unknown.some(u => u.code === 'PLX' && u.qty === 3), 'na kabinách ' + on + ', vpravo ' + JSON.stringify(r.unknown));
-  const dup = rows.concat(koloHostRows([{ code: 'V06', seen: 1 }, { code: 'PLX', seen: 2 }], 'V06', 'KOLI-10'));
+  const dup = rows.concat(koloHostRows([{ code: 'V06', seen: 1 }, { code: 'PLX', seen: 2 }], 'V06', 'BAL-10'));
   const f = findDuplicateGroups(dup).filter(a => a.kind === 'hostdup');
   const res = mergeGroups(dup, f);
   assert(res.length === 1 && res[0].per === 2, JSON.stringify(res.map(x => x.per)));
@@ -408,17 +408,17 @@ cases.push(['Přibal více hlavních položek: každá dostane svůj díl, rozpr
   assert(per.length === 4 && per.every(n => n === 1) && !r.unknown.length, JSON.stringify(per) + JSON.stringify(r.unknown));
 }]);
 cases.push(['Koli bez skrytých pravidel: artikl jede na paletě svého koli i sám; Max ks → vpravo; jiný projekt neplatí', () => {
-  const rows = ['A', 'B'].map(c => koloRow({ code: c, seen: 2 }, 'KOLI-1', 'PAL-0001', '', true, 'Action'));
+  const rows = ['A', 'B'].map(c => koloRow({ code: c, seen: 2 }, 'BAL-1', 'PAL-0001', '', true, 'Action'));
   const rules = Object.assign({}, DEFAULT_RULES, { projects: [{ name: 'Action', keys: ['V06'] }] });
   const one = solve(parseOrders('SO 1\nr10 V06 k 1\nr20 A a 1').orders.get('1'), Object.assign({}, ctx, { combos: rows, rules }));
-  assert(one.pallets.some(p => p.group === 'KOLI-1') && !one.unknown.length, 'sám na koli');
+  assert(one.pallets.some(p => p.group === 'BAL-1') && !one.unknown.length, 'sám na koli');
   const capped = rows.map(r => Object.assign({}, r, { cap: 3 }));
   const many = solve(parseOrders('SO 1\nr10 V06 k 1\nr20 A a 5\nr30 B b 1').orders.get('1'), Object.assign({}, ctx, { combos: capped, rules }));
-  assert(many.unknown.some(u => u.code === 'A' && u.qty === 5 && /nevešlo se do KOLI-1/.test(u.hint)), 'A nad max vpravo');
+  assert(many.unknown.some(u => u.code === 'A' && u.qty === 5 && /nevešlo se do BAL-1/.test(u.hint)), 'A nad max vpravo');
   const over = solve(parseOrders('SO 1\nr10 V06 k 1\nr20 A a 5').orders.get('1'), Object.assign({}, ctx, { combos: rows, rules }));
-  assert(over.pallets.some(p => p.group === 'KOLI-1' && p.over), 'víc než ověřeno = oranžová');
+  assert(over.pallets.some(p => p.group === 'BAL-1' && p.over), 'víc než ověřeno = oranžová');
   const other = solve(parseOrders('SO 1\nr10 A a 1').orders.get('1'), Object.assign({}, ctx, { combos: rows, rules }));
-  assert(!other.pallets.some(p => p.group === 'KOLI-1'), 'jiný projekt');
+  assert(!other.pallets.some(p => p.group === 'BAL-1'), 'jiný projekt');
 }]);
 cases.push(['Služba (doprava, poplatek): započítá se, nejede na paletě, není vpravo', () => {
   const cat = DEFAULT_CATALOG.concat([{ code: '7777', name: 'DOPRAVA', pack: 'sluzba', per: 0, kg: 0 }]);
@@ -426,9 +426,9 @@ cases.push(['Služba (doprava, poplatek): započítá se, nejede na paletě, nen
   assert(!r.unknown.length && r.pallets.length === 1 && r.rows.some(x => x.code === '7777' && x.pack === 'sluzba'), JSON.stringify(r.unknown));
 }]);
 cases.push(['Jedna hlavní položka = jedno koli: sloučení koli stejné položky, přibal se nesčítá', () => {
-  const rows = koloHostRows([{ code: 'V06', seen: 1 }, { code: 'MB', seen: 1 }, { code: 'L3', seen: 1 }], 'V06', 'KOLI-9')
-    .concat(koloHostRows([{ code: 'V06', seen: 1 }, { code: 'MB', seen: 1 }, { code: 'L5', seen: 1 }], 'V06', 'KOLI-10'));
+  const rows = koloHostRows([{ code: 'V06', seen: 1 }, { code: 'MB', seen: 1 }, { code: 'L3', seen: 1 }], 'V06', 'BAL-9')
+    .concat(koloHostRows([{ code: 'V06', seen: 1 }, { code: 'MB', seen: 1 }, { code: 'L5', seen: 1 }], 'V06', 'BAL-10'));
   const f = findDuplicateGroups(rows), res = mergeGroups(rows, f);
-  assert(f.some(a => a.kind === 'hostmerge' && a.keep === 'KOLI-9'), JSON.stringify(f));
-  assert(res.length === 3 && res.every(r => r.koli === 'KOLI-9') && res.find(r => r.code === 'MB').per === 1, JSON.stringify(res.map(r => r.code + r.koli + r.per)));
+  assert(f.some(a => a.kind === 'hostmerge' && a.keep === 'BAL-9'), JSON.stringify(f));
+  assert(res.length === 3 && res.every(r => r.koli === 'BAL-9') && res.find(r => r.code === 'MB').per === 1, JSON.stringify(res.map(r => r.code + r.koli + r.per)));
 }]);

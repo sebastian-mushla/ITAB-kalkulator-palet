@@ -929,7 +929,7 @@ $('#peKoli').addEventListener('click', async () => {
   flash('Uloženo jako balení ' + (b.group || group) + '.');
 });
 
-// hint „z balení KOLI-8“ on an unknown article: show the balení and offer to use it in this order anyway
+// hint „z balení BAL-8“ on an unknown article: show the balení and offer to use it in this order anyway
 onBoth('click', async e => {
   const h = e.target.closest('.unk-hint'); if (!h) return;
   e.stopPropagation();

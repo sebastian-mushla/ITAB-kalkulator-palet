@@ -111,7 +111,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     row.onHost = qty - left; row.host = rules.map(r => r.host).join(', ');
     // přibal of a main item (rule.strict): the max per pallet is fixed – what does not fit waits on the right side
     if (left > 0 && (a.unknown || rule.strict)) {
-      const ks = [...new Set(rules.map(koliOf).filter(Boolean))].map(k => k.replace('KOLI-', '')).join(', ');
+      const ks = [...new Set(rules.map(koliOf).filter(Boolean))].map(k => k.replace(/^(KOLI|BAL)-/, '')).join(', ');
       unknown.push({ code: a.code, qty: left, name: a.name || '', known: !a.unknown, hint: rule.strict ? 'nevešlo se na balení ' + (ks || '?') + ' (max ' + rule.per + ' ks na ' + (rules.length > 1 ? 'hlavní položku' : rule.host) + ')' : undefined });
       errors.push('Artikl „' + a.code + '“: ' + left + ' ks se nevešlo na palety ' + rule.host + (rule.strict ? ' (max ' + rule.per + ' ks na paletu) – přetáhněte ho na paletu, pravidlo se zvýší.' : ' a není v číselníku.'));
       Object.assign(row, { pack: 'paleta', full: 0, rem: 0, per: 0, fillRem: 0, count: 0 });
@@ -124,7 +124,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
   pallets.forEach(p => {
     if (p.group) { p.tag = p.group; return; }
     const ks = [...new Set((combos || []).filter(r => r.mode === 'host' && r.strict && low(r.host) === low(p.code)).map(koliOf).filter(Boolean))];
-    if (ks.length) p.tag = ks.length > 1 ? 'KOLI ' + ks.map(k => k.replace('KOLI-', '')).join('·') : ks[0];
+    if (ks.length) p.tag = ks.length > 1 ? 'BAL ' + ks.map(k => k.replace(/^(KOLI|BAL)-/, '')).join('·') : ks[0];
   });
   return { pallets: opts.mix === false ? pallets : mixLeftovers(pallets), parcels, errors, rows, unknown };
 }

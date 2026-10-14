@@ -83,7 +83,7 @@ export function renderCombos(combos, catalog, pallets, projects) {
     // where it goes – only the fields this kind of rule needs
     let kam;
     if (host) kam = fld('Na paletě artiklu (hlavní položka)', inp('host', 'artikl'));
-    else if (group) kam = fld('Typ palety', palSel) + '<div class="cf2">' + fld('Balení', '<input type="text" data-i="' + i + '" data-f="group" value="' + esc(r.group || '') + '" placeholder="KOLI-1">') + fld('Projekt', projSel) + '</div>';
+    else if (group) kam = fld('Typ palety', palSel) + '<div class="cf2">' + fld('Balení', '<input type="text" data-i="' + i + '" data-f="group" value="' + esc(r.group || '') + '" placeholder="BAL-1">') + fld('Projekt', projSel) + '</div>';
     else kam = (pallet ? fld('Typ palety', palSel) : '') + ((pallet && !r.pal) || parcel ? '<div class="cf2">' + fld(parcel ? 'Délka balíku, mm' : 'Délka, mm', num('pl', 'z číselníku')) + fld(parcel ? 'Šířka balíku, mm' : 'Šířka, mm', num('pw', 'z číselníku')) + '</div>' : '');
     // the numbers with plain names
     let pocty;

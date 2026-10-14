@@ -123,7 +123,7 @@ export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], 
   mp.unknown.forEach(u => {
     if (u.hint) return;
     const own = combos.filter(r => lowc(r.code) === lowc(u.code));
-    const host = [...new Set(own.filter(r => r.mode === 'host' && r.strict).map(koliOf).filter(Boolean))].map(k => k.replace('KOLI-', ''));
+    const host = [...new Set(own.filter(r => r.mode === 'host' && r.strict).map(koliOf).filter(Boolean))].map(k => k.replace(/^(KOLI|BAL)-/, ''));
     const grp = [...new Set(own.filter(r => r.mode === 'group').map(r => r.group))];
     if (host.length) u.hint = 'přibal pro balení ' + host.join(', ');
     else if (grp.length) u.hint = 'patří do ' + grp.join(', ');

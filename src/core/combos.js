@@ -65,9 +65,9 @@ export function parseKolo(text) {
   return { items: [...items.values()], pals, problems };
 }
 export function nextKoloCode(combos) {
-  // KOLI-n from shared pallets and from machine balení (their note says „Balení KOLI-n – hlavní položka …“)
-  const n = (combos || []).map(r => { const m = String((r.mode === 'group' && r.group) || r.note || '').match(/KOLI-(\d+)/i); return m ? Number(m[1]) : 0; });
-  return 'KOLI-' + ((n.length ? Math.max(...n) : 0) + 1);
+  // BAL-n (formerly KOLI-n) from shared pallets and from machine balení (their note says „Balení KOLI-n – hlavní položka …“)
+  const n = (combos || []).map(r => { const m = String((r.mode === 'group' && r.group) || r.note || '').match(/(?:KOLI|BAL)-(\d+)/i); return m ? Number(m[1]) : 0; });
+  return 'BAL-' + ((n.length ? Math.max(...n) : 0) + 1);
 }
 
 // older imported balení (one special entry) → normal table rows, one per article
@@ -79,6 +79,9 @@ export function expandKolo(combos) {
     changed = true;
     (r.items || []).forEach(it => out.push(koloRow(it, r.code, r.pal, r.name, r.on)));
   });
+  // codes KOLI-n were renamed to BAL-n
+  const ren = v => typeof v === 'string' && /KOLI-\d/i.test(v) ? (changed = true, v.replace(/KOLI-(\d)/gi, 'BAL-$1')) : v;
+  out.forEach(r => ['group', 'koli', 'note'].forEach(f => { if (r[f] != null) r[f] = ren(r[f]); }));
   return { combos: out, changed };
 }
 export function koloRow(it, group, pal, name, on, project) {
@@ -188,4 +191,4 @@ export function combosFor(combos, project) {
 }
 
 // balení number of a rule (main item + přibal rows keep it in `balení`, older ones only in the note)
-export function koliOf(r) { const m = String(r.koli || r.group || r.note || '').match(/KOLI-\d+/i); return m ? m[0].toUpperCase() : ''; }
+export function koliOf(r) { const m = String(r.koli || r.group || r.note || '').match(/(?:KOLI|BAL)-\d+/i); return m ? m[0].toUpperCase().replace('KOLI-', 'BAL-') : ''; }
