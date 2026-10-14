@@ -599,3 +599,5 @@ label.check.nowrap{white-space:nowrap}
 #view-combos .c-kam .ro{margin-top:6px}
 #view-combos tr.kind-3>td:first-child{box-shadow:inset 3px 0 #e0942f}
 #view-combos .kind-sel.k-3{background:#e8f1fb;color:#2563a8}#view-combos tr.kind-3>td:first-child{box-shadow:inset 3px 0 #3b82c4}#view-combos .kind-sel.k-4{background:#fff4e5;color:#b0640f}#view-combos tr.kind-4>td:first-child{box-shadow:inset 3px 0 #e0942f}
+.otable .proj-chip2{display:inline-block;margin:4px 0 0 0;background:var(--primary-t,#eeeafe);color:#5b4bd1}
+.otable .c-id .sos{display:block}

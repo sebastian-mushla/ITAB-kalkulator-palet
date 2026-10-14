@@ -36,10 +36,10 @@ const COLS = [
 function ring(known, total) {
   const p = total ? known / total : 1, C = 2 * Math.PI * 14;
   const col = p >= 1 ? 'var(--green)' : p >= 0.5 ? 'var(--amber)' : 'var(--red)';
-  return '<svg class="ring" viewBox="0 0 36 36" width="32" height="32" role="img" aria-label="Zařazeno ' + known + ' z ' + total + '"><title>Zařazeno ' + known + ' z ' + total + ' artiklů</title>' +
+  return '<svg class="ring" viewBox="0 0 36 36" width="52" height="52" role="img" aria-label="Zařazeno ' + known + ' z ' + total + '"><title>Zařazeno ' + known + ' z ' + total + ' artiklů</title>' +
     '<circle cx="18" cy="18" r="14" style="fill:none;stroke:var(--line);stroke-width:4"/>' +
     '<circle cx="18" cy="18" r="14" transform="rotate(-90 18 18)" style="fill:none;stroke:' + col + ';stroke-width:4;stroke-linecap:round;stroke-dasharray:' + (C * p).toFixed(1) + ' ' + C.toFixed(1) + '"/>' +
-    '<text x="18" y="21.5" style="fill:var(--ink);font-size:' + (total >= 10 ? 8 : 10) + 'px;font-weight:700;text-anchor:middle">' + known + '/' + total + '</text></svg>';
+    '<text x="18" y="21.5" style="fill:var(--ink);font-size:' + (total >= 100 ? 7 : total >= 10 ? 8.5 : 10) + 'px;font-weight:700;text-anchor:middle">' + known + '/' + total + '</text></svg>';
 }
 
 // rows: [{ id, r, status, total, known }]
@@ -83,7 +83,7 @@ export function renderOrderTable(el, countEl, rows, ui, sel) {
     const st = ST[row.status], full = row.known === row.total;
     return '<tr class="orow' + (row.status === 'vyrizena' ? ' done' : '') + '" data-id="' + esc(row.id) + '"' + (row.id === sel ? ' aria-current="true"' : '') + '>' +
       '<td class="c-done"><input type="checkbox" data-done="' + esc(row.id) + '"' + (row.status === 'vyrizena' ? ' checked' : '') + (full ? '' : ' disabled') + ' title="' + (full ? 'Označit jako vyřízenou' : 'Nejdřív zařaďte všechny artikly') + '"></td>' +
-      '<td class="c-id"><b>' + esc(row.id) + '</b>' + (row.sos && (row.sos.length > 1 || row.sos[0] !== row.id) ? '<small class="sos" title="' + esc(row.sos.join(', ')) + '">' + row.sos.length + ' ' + plural(row.sos.length, ['zakázka', 'zakázky', 'zakázek']) + '</small>' : '') + (row.project ? '<small class="proj-tag">' + esc(row.project) + '</small>' : '') + '</td>' +
+      '<td class="c-id"><b>' + esc(row.id) + '</b>' + (row.sos && (row.sos.length > 1 || row.sos[0] !== row.id) ? '<small class="sos" title="' + esc(row.sos.join(', ')) + '">' + row.sos.length + ' ' + plural(row.sos.length, ['zakázka', 'zakázky', 'zakázek']) + '</small>' : '') + (row.project ? '<span class="chip proj-chip2">' + esc(row.project) + '</span>' : '') + '</td>' +
       '<td><span class="st st-' + st.color + '">' + st.label + '</span></td>' +
       '<td class="num">' + ring(row.known, row.total) + '</td>' +
       '<td class="num">' + row.pallets + (row.parcels ? '<small> +' + row.parcels + ' bal.</small>' : '') + '</td>' +
