@@ -5,7 +5,7 @@ import { roomFor, freezePlan, moveUnits, setPalletType, removePallet, newId, mer
 import { parseOrders, rowsToOrderText, ordersToText } from './core/parse.js';
 import { solve } from './core/solve.js';
 import { auditOrder } from './core/audit.js';
-import { ruleText, parseKolo, nextKoloCode, expandKolo, koloRow, findDuplicateGroups, mergeGroups, koloHostRows, koliOf, defsToSolo, projectOf as projOf } from './core/combos.js';
+import { ruleText, parseKolo, nextKoloCode, expandKolo, koloRow, findDuplicateGroups, mergeGroups, koloHostRows, koliOf, defsToSolo, projectOf as projOf, findRules } from './core/combos.js';
 import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle, replaceVehicle, DEPOT } from './core/manual.js';
 import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, rowsToPallets, mergeBy, toCsv } from './io/importTable.js';
 import { renderKpis, renderPriorities, renderList, renderDetail, renderDock, requestText, loadPlanHtml, palOption, setNameLookup } from './ui/orders.js';
@@ -1120,16 +1120,23 @@ $('#peDelete').addEventListener('click', async () => {
   if (!full.length) { removePallet(P, pid); state.manual.delete(id); $('#dlgPalEdit').close(); keepScroll(() => recalcOne()); return; }
   const codes = [...new Set(full.map(c => c.code))];
   const inCat = codes.filter(c => state.catalog.some(a => String(a.code).toLowerCase() === c.toLowerCase()));
+  // the Způsob balení row that applies now (order's project, priority order) for each article
+  const o = state.orders.get(id), proj = (view(id) || {}).project || '';
+  const present = new Set(o ? [...o.lines.values()].map(l => l.code.toLowerCase()) : []);
+  const qtyOf = c => o ? [...o.lines.values()].filter(l => l.code.toLowerCase() === c.toLowerCase()).reduce((t, l) => t + l.qty, 0) : 0;
+  const rules = codes.map(c => findRules(c, qtyOf(c), present, state.combos).find(r => !r.project || String(r.project).toLowerCase() === proj.toLowerCase())).filter(Boolean);
+  const label = r => r.mode === 'group' ? 'balení ' + (r.group || '') : r.mode === 'host' ? 'přibal na ' + r.host : r.mode === 'pallet' ? 'solo ' + (r.pal || '') : 'balík';
+  const what = [rules.length ? 'aktuální způsob balení (' + rules.map(r => r.code + ': ' + label(r) + (r.project ? ' · ' + r.project : '')).join(', ') + ')' : '', inCat.length ? 'definici artiklu ' + inCat.join(', ') : ''].filter(Boolean).join(' a ');
   const ok = await ask('Smazat paletu?', 'Kusy (' + full.map(c => c.code + ' ' + c.units + ' ks').join(', ') + ') se vrátí vpravo mezi nezařazené.', 'Smazat paletu',
-    inCat.length ? 'Smazat i definici artiklu ' + inCat.join(', ') + ' z číselníku (pro všechny zakázky)' : '');
+    what ? 'Smazat i ' + what + ' (pro všechny zakázky)' : '');
   if (!ok) return;
   P.splice(P.indexOf(b), 1);
-  if (inCat.length && $('#askChk').checked) {
+  if (what && $('#askChk').checked) {
     const del = new Set(inCat.map(c => c.toLowerCase()));
-    state.catalog = state.catalog.filter(a => !del.has(String(a.code).toLowerCase()));
-    persist('catalog'); drawCatalog();
+    if (del.size) { state.catalog = state.catalog.filter(a => !del.has(String(a.code).toLowerCase())); persist('catalog'); drawCatalog(); }
+    if (rules.length) { state.combos = state.combos.filter(r => !rules.includes(r)); persist('combos'); drawCombos(); }
     $('#dlgPalEdit').close(); state.manual.delete(id); recalc();
-    flash('Paleta smazána, ' + inCat.join(', ') + ' odstraněn z číselníku.');
+    flash('Paleta smazána, smazáno: ' + what + '.');
     return;
   }
   $('#dlgPalEdit').close(); state.manual.delete(id); keepScroll(() => recalcOne());
