@@ -723,8 +723,8 @@ function koPalCode() {
 function koUpdate() {
   koParsed = parseKolo($('#koText').value);
   const it = koParsed.items;
-  $('#koPreview').innerHTML = it.length ? '<p><b>' + it.length + '</b> artiklů' + (koParsed.pals.length ? ', palety v koli: ' + koParsed.pals.map(p => esc(p.code)).join(', ') : '') + '</p><div class="tscroll"><table><thead><tr><th>Artikl</th><th>Název</th><th class="num">Ověřeno ks</th></tr></thead><tbody>' +
-    it.map(x => '<tr><td>' + esc(x.code) + '</td><td>' + esc(x.name) + '</td><td class="num">' + x.seen + '</td></tr>').join('') + '</tbody></table></div>' : '';
+  $('#koPreview').innerHTML = it.length ? '<p><b>' + it.length + '</b> artiklů' + (koParsed.pals.length ? ', palety v balení: ' + koParsed.pals.map(p => esc(p.code)).join(', ') : '') + '</p><div class="tscroll"><table><thead><tr><th>Artikl</th><th>Název</th><th class="num">Ověřeno ks</th><th class="num">kg / ks</th></tr></thead><tbody>' +
+    it.map(x => '<tr><td>' + esc(x.code) + '</td><td>' + esc(x.name) + '</td><td class="num">' + x.seen + '</td><td class="num">' + (x.kg > 0 ? String(x.kg).replace('.', ',') : '–') + '</td></tr>').join('') + '</tbody></table></div>' : '';
   koPalCheck();
 }
 function koPalCheck() {
@@ -801,12 +801,15 @@ $('#koForm').onsubmit = ev => {
   if (mainRows.length) rows = rows.filter(n => { const old = mainRows.find(r => lowm(r.code) === lowm(n.code)); if (!old) return true; old.per = Math.max(old.per || 0, n.per || 0); return false; });
   // missing articles get a catalog entry: name, weight 0 to fill in, packing decided later (alone it may be a parcel)
   let addedArt = 0;
+  // weight from the „netto hmotnost“ column fills articles that have no weight yet
+  let kgSet = 0;
+  koParsed.items.forEach(it => { const a = it.kg > 0 && state.catalog.find(x => String(x.code).toLowerCase() === it.code.toLowerCase()); if (a && !(a.kg > 0)) { a.kg = it.kg; kgSet++; } });
   if ($('#koCat').checked) koParsed.items.forEach(it => {
     if (state.catalog.some(a => String(a.code).toLowerCase() === it.code.toLowerCase())) return;
     // the machine goes on the balení's pallet type; accessories get their packing later
-    state.catalog.push(it.code === main ? { code: it.code, name: it.name || '', pack: 'paleta', pal: code, per: 1, kg: 0, rot: true } : { code: it.code, name: it.name || '', pack: 'neurceno', per: 0, kg: 0, rot: true }); addedArt++;
+    state.catalog.push(it.code === main ? { code: it.code, name: it.name || '', pack: 'paleta', pal: code, per: 1, kg: it.kg || 0, rot: true } : { code: it.code, name: it.name || '', pack: 'neurceno', per: 0, kg: it.kg || 0, rot: true }); addedArt++;
   });
-  if (addedArt) { persist('catalog'); drawCatalog(); }
+  if (addedArt || kgSet) { persist('catalog'); drawCatalog(); }
   state.combos = rows.concat(state.combos); persist('combos'); drawCombos();
   logChanges('–', ['Import balení ' + group + ': ' + rows.length + ' řádků způsobů balení, společná paleta ' + code]);
   recalc();

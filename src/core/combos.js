@@ -50,17 +50,25 @@ export function parseKolo(text) {
     // a number at the end counts as quantity only in the ERP form „1,00“ – „IMPULSE ISLAND 1096“ is a name, quantity 1
     if (cells.length < 2) {
       const w = line.split(/\s+/), last = w[w.length - 1];
-      cells = w.length >= 2 && /^\d+[.,]\d+$/.test(last) ? [w[0], w.slice(1, -1).join(' '), last] : [w[0], w.slice(1).join(' '), '1'];
+      const dec = t => /^\d+[.,]\d+$/.test(t || '');
+      cells = w.length >= 3 && dec(last) && dec(w[w.length - 2]) ? [w[0], w.slice(1, -2).join(' '), w[w.length - 2], last]
+        : w.length >= 2 && dec(last) ? [w[0], w.slice(1, -1).join(' '), last] : [w[0], w.slice(1).join(' '), '1'];
     }
     while (cells.length > 2 && cells[cells.length - 1] === '') cells.pop();
     if (cells.length >= 4 && /^\d{1,4}$/.test(cells[0])) cells = cells.slice(1);
     if (cells.length < 2) { problems.push('řádek ' + (i + 1) + ': chybí množství'); return; }
+    // optional next column „netto hmotnost“ (kg for the line): two numbers at the end = quantity + net weight
+    const num = t => Number(String(t).replace(/\s/g, '').replace(',', '.'));
+    let netto = 0;
+    if (cells.length >= 4 && /^[\d\s]+([.,]\d+)?$/.test(cells[cells.length - 1]) && /^[\d\s]+([.,]\d+)?$/.test(cells[cells.length - 2])) netto = num(cells.pop());
     const qty = Number(String(cells[cells.length - 1]).replace(/\s/g, '').replace(',', '.'));
     const code = cells[0], name = cells.slice(1, -1).join(' ').replace(/\s+/g, ' ').trim();
     if (!code || !isFinite(qty) || qty <= 0) { problems.push('řádek ' + (i + 1) + ': nerozpoznáno'); return; }
     if (/^PAL-[0-9][0-9A-Z-]*$/i.test(code)) { if (!pals.some(p => low(p.code) === low(code))) pals.push({ code: code.toUpperCase(), name }); return; }
-    const k = low(code), g = items.get(k) || { code, name, seen: 0 };
-    g.seen += Math.round(qty); items.set(k, g);
+    const k = low(code), g = items.get(k) || { code, name, seen: 0, netto: 0 };
+    g.seen += Math.round(qty); g.netto += netto > 0 ? netto : 0;
+    g.kg = g.netto > 0 ? Math.round(g.netto / g.seen * 1000) / 1000 : 0; // weight of one piece
+    items.set(k, g);
   });
   return { items: [...items.values()], pals, problems };
 }
