@@ -593,3 +593,6 @@ html{background:var(--bg)}
 label.check.nowrap{white-space:nowrap}
 #view-combos .c-bal{min-width:150px;width:150px}#view-combos .c-art{min-width:170px}#view-combos .c-cond{min-width:140px}#view-combos .c-kam{min-width:170px}#view-combos .c-num{min-width:180px}#view-combos .c-proj{min-width:110px}
 #view-combos td input[type=text]{min-width:0}#view-combos .tscroll{overflow-x:visible}
+
+#view-combos .ro{height:34px;line-height:34px;padding:0 10px;border-radius:8px;background:var(--bg2,#f6f6f9);color:var(--ink2);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#view-combos .c-name.warn{color:#d9822b}#view-combos .c-kam{min-width:200px}#view-combos .c-art{min-width:220px}

@@ -80,40 +80,31 @@ export function renderCombos(combos, catalog, pallets, projects) {
     const host = r.mode === 'host', group = r.mode === 'group', pallet = r.mode === 'pallet', parcel = r.mode === 'parcel';
     const palSel = '<select data-i="' + i + '" data-f="pal" data-lazy="' + (group ? 'g' : 'p') + '" aria-label="Typ palety">' + (r.pal ? '<option value="' + esc(r.pal) + '" selected>' + esc(r.pal) + ' · ' + esc((pallets.find(p => p.code === r.pal) || {}).name || '') + '</option>' : (group ? '<option value="">– typ palety –</option>' : '<option value="">rozměr níže</option>')) + '</select>';
     const projSel = '<select data-i="' + i + '" data-f="project" aria-label="Projekt"><option value="">všechny projekty</option>' + projects.map(n => '<option' + (n === r.project ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + (r.project && !projects.includes(r.project) ? '<option selected>' + esc(r.project) + '</option>' : '') + '</select>';
-    // kind of packaging: 1 main item + přibal, 2 mix (shared pallet, by balení number), 3 other rules
-    const main = host && r.strict;
-    const kind = main ? 'main' : group ? 'mix' : r.mode;
-    const kindSel = '<select class="kind-sel k-' + (main ? 1 : group ? 2 : 3) + '" data-i="' + i + '" data-f="kind" aria-label="Typ balení">' +
-      [['main', '1 · Hlavní položka'], ['mix', '2 · Mix'], ['host', '3 · Na paletě artiklu'], ['pallet', '3 · Jiná paleta'], ['parcel', '3 · Balík']]
-        .map(m => '<option value="' + m[0] + '"' + (kind === m[0] ? ' selected' : '') + '>' + m[1] + '</option>').join('') + '</select>';
-    const codeF = main ? 'koli' : group ? 'group' : '';
-    const codeIn = codeF ? '<input type="text" class="bal-code" data-i="' + i + '" data-f="' + codeF + '" value="' + esc(r[codeF] || '') + '" placeholder="BAL-?">' : '<span class="bal-none">bez čísla</span>';
-    // the condition: main item for type 1, nothing for mix, free condition for the rest
-    let cond;
-    if (main) cond = '<span class="muted small">když je hlavní položka v zakázce</span>';
-    else if (group) cond = '<div class="cf2">' + fld('Ks od', num('min', '–')) + fld('Ks do', num('max', '–')) + '</div>';
-    else cond = fld('Když je v zakázce', inp('withCode', 'libovolně')) + '<div class="cf2">' + fld('Ks od', num('min', '–')) + fld('Ks do', num('max', '–')) + '</div>';
-    // the pallet
-    let pal;
-    if (host) pal = fld(main ? 'Na paletě hlavní položky' : 'Na paletě artiklu', inp('host', 'artikl'));
-    else pal = (parcel ? '' : fld('Typ palety', palSel)) + ((pallet && !r.pal) || parcel ? '<div class="cf2">' + fld(parcel ? 'Délka balíku, mm' : 'Délka, mm', num('pl', 'z číselníku')) + fld(parcel ? 'Šířka balíku, mm' : 'Šířka, mm', num('pw', 'z číselníku')) + '</div>' : '');
-    // the numbers with plain names
-    let pocty;
-    if (host) pocty = fld(main ? 'Max ks na položku' : 'Max ks na paletu', num('per', 'bez limitu'), 'Kolik kusů smí jet na jedné paletě. Co se nevejde, čeká vpravo.');
-    else if (group) pocty = fld('Ověřeno ks', num('per', '–'), 'Tolik kusů už na této paletě jelo. Víc jich pojede také, paleta jen svítí oranžově.') + fld('Limit ks', num('cap', 'bez limitu'), 'Když je v zakázce víc kusů, žádný na paletu balení nepůjde – všechny čekají vpravo.');
-    else pocty = fld(parcel ? 'Ks v balíku' : 'Ks na paletě', num('per', 'z číselníku'));
-    pocty = '<div class="cf2">' + pocty + fld('Váha kusu, kg', num('kg', 'z číselníku', 'any')) + '</div>';
+    // two kinds of packaging: 1 main item + přibal (rides on the main item's pallet), 2 mix (shared pallet by balení number)
+    const main = !group;
+    const kindSel = '<select class="kind-sel k-' + (main ? 1 : 2) + '" data-i="' + i + '" data-f="kind" aria-label="Typ balení">' +
+      [['main', '1 · Hlavní položka'], ['mix', '2 · Mix paleta']].map(m => '<option value="' + m[0] + '"' + ((main ? 'main' : 'mix') === m[0] ? ' selected' : '') + '>' + m[1] + '</option>').join('') + '</select>';
+    const codeF = main ? 'koli' : 'group';
+    const codeIn = '<input type="text" class="bal-code" data-i="' + i + '" data-f="' + codeF + '" value="' + esc(r[codeF] || '') + '" placeholder="BAL-?">';
     const nm = names.get(String(r.code || '').toLowerCase()) || r.name || '';
-    return '<tr class="' + (r.on === false ? 'off ' : '') + 'kind-' + (main ? 1 : group ? 2 : 3) + '"' + (r.note ? ' title="' + esc(r.note) + '"' : '') + '>' +
+    // pallet: main item → its pallet from the catalog (read only); mix → chosen pallet type
+    const pt = c => pallets.find(p => String(p.code).toLowerCase() === String(c || '').toLowerCase());
+    const ptxt = t => t ? '<small class="c-name">' + esc(t.code) + ' · ' + (t.L || 0) + ' × ' + (t.W || 0) + ' mm</small>' : '<small class="c-name warn">paleta neurčena</small>';
+    let pal;
+    if (main) { const ha = catalog.find(x => String(x.code).toLowerCase() === String(r.host || '').toLowerCase()); pal = fld('Paleta hlavní položky', '<div class="ro">' + esc(ha && ha.pal ? ((pt(ha.pal) || {}).name || ha.pal) : '–') + '</div>' + ptxt(ha && pt(ha.pal))); }
+    else pal = fld('Paleta balení', palSel) + ptxt(pt(r.pal));
+    const pocty = main
+      ? fld('Max ks na 1 hlavní položku', num('per', 'bez limitu'), 'Kolik kusů smí jet na jedné paletě hlavní položky. Co se nevejde, čeká vpravo.')
+      : fld('Ověřeno ks', num('per', '–'), 'Tolik kusů už na této paletě jelo. Víc jich pojede také, paleta jen svítí oranžově.') + fld('Max ks', num('cap', 'bez limitu'), 'Když je v zakázce víc kusů, na paletu balení nepůjde žádný – všechny čekají vpravo.');
+    return '<tr class="' + (r.on === false ? 'off ' : '') + 'kind-' + (main ? 1 : 2) + '"' + (r.note ? ' title="' + esc(r.note) + '"' : '') + '>' +
       '<td><input type="checkbox" data-i="' + i + '" data-f="on"' + (r.on !== false ? ' checked' : '') + ' aria-label="Aktivní"></td>' +
       '<td class="c-bal">' + fld('Číslo balení', codeIn) + fld('Typ', kindSel) + '</td>' +
-      '<td class="c-art">' + inp('code', 'artikl', ' class="code-in"') + (nm ? '<small class="c-name">' + esc(nm) + '</small>' : '') + '</td>' +
-      '<td class="c-cond">' + cond + '</td>' +
-      '<td class="c-kam">' + (pal || '<span class="muted">–</span>') + '</td>' +
+      '<td class="c-art">' + fld('Artikl', inp('code', 'artikl', ' class="code-in"')) + (nm ? '<small class="c-name">' + esc(nm) + '</small>' : '') + (main ? fld('Hlavní položka', inp('host', 'artikl hlavní položky')) : '') + '</td>' +
+      '<td class="c-kam">' + pal + '</td>' +
       '<td class="c-num">' + pocty + '</td>' +
       '<td class="c-proj">' + fld('Projekt', projSel) + '</td>' +
       '<td class="nowrap"><button class="btn small" data-up="' + i + '" aria-label="Výš"' + (i === 0 ? ' disabled' : '') + '>↑</button> <button class="btn small" data-down="' + i + '" aria-label="Níž"' + (i === combos.length - 1 ? ' disabled' : '') + '>↓</button> <button class="btn small" data-del="' + i + '" title="Smazat" aria-label="Smazat">×</button></td></tr>';
-  }).join('') || '<tr><td colspan="8" class="empty">Zatím žádná pravidla. Bez pravidel platí běžný výpočet z číselníku.</td></tr>';
+  }).join('') || '<tr><td colspan="7" class="empty">Zatím žádná pravidla. Bez pravidel platí běžný výpočet z číselníku.</td></tr>';
 }
 
 export function renderRules(rules) {

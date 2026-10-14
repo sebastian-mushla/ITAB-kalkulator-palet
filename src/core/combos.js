@@ -82,6 +82,8 @@ export function expandKolo(combos) {
   // codes KOLI-n were renamed to BAL-n
   const ren = v => typeof v === 'string' && /KOLI-\d/i.test(v) ? (changed = true, v.replace(/KOLI-(\d)/gi, 'BAL-$1')) : v;
   out.forEach(r => ['group', 'koli', 'note'].forEach(f => { if (r[f] != null) r[f] = ren(r[f]); }));
+  // only two kinds now: a rule riding on another article is always a main item + přibal
+  out.forEach(r => { if (r.mode === 'host' && !r.strict && r.host) { r.strict = true; changed = true; } });
   return { combos: out, changed };
 }
 export function koloRow(it, group, pal, name, on, project) {

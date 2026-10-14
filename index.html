@@ -171,7 +171,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
       </section>
 
       <section id="view-combos" hidden>
-        <div class="pagehead"><div><h1>Způsob balení artiklů</h1><p>Výjimky z běžného výpočtu: kdy artikl pojede na paletě jiného artiklu, na jiné paletě nebo jako balík.</p></div></div>
+        <div class="pagehead"><div><h1>Způsob balení artiklů</h1><p>Jak se artikly balí: na paletě hlavní položky (typ 1) nebo spolu na mix paletě (typ 2).</p></div></div>
         <div class="card cat">
           <div class="toolbar">
             <button class="btn primary" id="comboAdd">Přidat pravidlo</button>
@@ -182,13 +182,13 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <label class="check nowrap"><input type="checkbox" id="comboReplace">Nahradit všechna pravidla</label>
             <button class="btn" id="comboExport">Stáhnout CSV</button>
           </div>
-          <p class="hint"><b>Typ 1 · Hlavní položka + přibal</b> – přibal jede na paletě hlavní položky (max ks na 1 hlavní položku). <b>Typ 2 · Mix</b> – všechny artikly se stejným číslem balení jedou na jedné společné paletě. <b>Typ 3</b> – ostatní pravidla. Pořadí: nejdřív typ 1, pak typ 2, pak typ 3, nakonec číselník. <b>Projekt</b>: pravidlo platí jen v zakázkách tohoto projektu (stejný artikl může mít v Action a Reve jiné balení).</p>
+          <p class="hint"><b>1 · Hlavní položka</b> – artikl (přibal) jede na paletě hlavní položky, nejvýš „Max ks na 1 hlavní položku“. <b>2 · Mix paleta</b> – všechny artikly se stejným číslem balení jedou spolu na paletě balení; „Ověřeno ks“ = tolik už jelo (víc = oranžová kontrola), „Max ks“ = víc už ne (artikl čeká vpravo). Nejdřív platí typ 1, pak typ 2, nakonec číselník. <b>Projekt</b>: balení platí jen v zakázkách projektu – stejný artikl se v Action a Reve může balit jinak. Váha je vždy z číselníku.</p>
           <div id="comboReport"></div>
           <details class="howto"><summary>Historie změn (Zkontrolovat a uložit)</summary><ul id="comboLog" class="log"></ul></details>
           <label class="search tbl-search"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="comboSearch" type="search" placeholder="Hledat ve způsobech balení: artikl, paleta, skupina…" aria-label="Hledat"></label>
           <div class="tscroll">
             <table>
-              <thead><tr><th></th><th>Balení</th><th>Artikl</th><th>Podmínka</th><th>Kam pojede</th><th>Počty</th><th>Projekt</th><th></th></tr></thead>
+              <thead><tr><th></th><th>Balení</th><th>Artikl</th><th>Paleta</th><th>Počty</th><th>Projekt</th><th></th></tr></thead>
               <tbody id="comboBody"></tbody>
             </table>
           </div>
@@ -279,13 +279,12 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <p>Tlačítko „Zkontrolovat číselník“ ukáže, co chybí: typ palety, kusy, váha 0, neurčené balení, duplicitní artikl.</p></section>
 
           <section class="card help-wide" id="h4"><h2>4. Způsob balení a balení</h2>
-            <h3>4.1 Pořadí pravidel</h3>
-            <p>Nejdřív platí <b>balení s hlavní položkou</b>, potom <b>balení mix</b>, potom ostatní řádky; uvnitř skupiny shora dolů, platí první, který sedí. Až nakonec definice položky v Číselníku. <b>Když je v zakázce</b> = podmínka (ve stejné zakázce je i uvedený artikl), „libovolně“ = bez podmínky. „Ks od / do“ omezí množství v zakázce.</p>
-            <h3>4.2 Druhy pravidel (sloupec Pojede)</h3>
-            <ul><li><b>na paletě artiklu</b> – kusy jedou na paletách jiného artiklu (rozměr palety se nemění, přičte se váha);</li>
-            <li><b>na jiné paletě</b> – v této situaci jiný typ palety a počet kusů;</li>
-            <li><b>na společné paletě</b> – koli: všechny artikly téhož balení jedou spolu na jedné paletě;</li>
-            <li><b>jako balík</b>.</li></ul>
+            <h3>4.1 Dva typy balení</h3>
+            <p>Každý řádek má <b>číslo balení</b> (BAL-n), <b>typ</b>, artikl, paletu, počty a projekt.</p>
+            <ul><li><b>1 · Hlavní položka</b> – přibal jede na paletě hlavní položky (pokladny); paleta se bere z číselníku hlavní položky.</li>
+            <li><b>2 · Mix paleta</b> – všechny artikly se stejným číslem balení jedou spolu na vybrané paletě balení.</li></ul>
+            <h3>4.2 Pořadí</h3>
+            <p>Nejdřív typ 1, pak typ 2, nakonec definice artiklu v Číselníku. Uvnitř typu shora dolů. Váha je vždy z Číselníku.</p>
             <h3>4.3 Balení s hlavní položkou (pokladna + přibal)</h3>
             <p>Hlavní položka (např. pokladna V12) jede <b>1 ks na své paletě</b>. Přibal (money box, plexi kit…) má <b>„Max ks na 1 hlavní položku“</b>. Kolik pokladen v zakázce, tolik palet; přibal se rozdělí na každou. Přibal více pokladen se dělí mezi všechny. Co se nevejde, čeká vpravo s poznámkou „nevešlo se na balení …“ – přetažením na paletu pokladny se maximum zvýší. <b>Jedna hlavní položka = jedno balení.</b></p>
             <h3>4.4 Balení – společná paleta (drobný materiál)</h3>

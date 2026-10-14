@@ -1509,7 +1509,7 @@ $('#comboBody').addEventListener('change', e => {
 });
 $('#comboBody').addEventListener('input', e => {
   const r = state.combos[e.target.getAttribute('data-i')];
-  if (r && e.target.getAttribute('data-f') === 'host' && r.mode === 'host' && r.strict) { r.withCode = r.host; persist('combos'); }
+  if (r && e.target.getAttribute('data-f') === 'host' && r.mode === 'host') { r.strict = true; r.withCode = r.host; persist('combos'); }
 });
 $('#comboBody').addEventListener('click', e => {
   const up = e.target.getAttribute('data-up'), down = e.target.getAttribute('data-down');
@@ -1520,7 +1520,7 @@ $('#comboBody').addEventListener('click', e => {
   persist('combos'); drawCombos(); recalc();
 });
 $('#comboAdd').addEventListener('click', () => {
-  state.combos.push({ on: true, code: '', withCode: '', min: 0, max: 0, mode: 'host', host: '', pl: 0, pw: 0, per: 0, note: '' });
+  state.combos.push({ on: true, code: '', withCode: '', min: 0, max: 0, mode: 'group', group: nextKoloCode(state.combos), pal: '', host: '', pl: 0, pw: 0, per: 0, note: '' });
   persist('combos'); drawCombos();
 });
 const MODE_NAMES = { host: 'na palete artiklu', pallet: 'na jine palete', group: 'na spolecne palete', parcel: 'jako balik' };
