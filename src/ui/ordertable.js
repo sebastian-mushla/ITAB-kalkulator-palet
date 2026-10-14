@@ -34,12 +34,15 @@ const COLS = [
 ];
 
 function ring(known, total) {
-  const p = total ? known / total : 1, C = 2 * Math.PI * 14;
+  const p = total ? known / total : 1, C = 2 * Math.PI * 15.5;
   const col = p >= 1 ? 'var(--green)' : p >= 0.5 ? 'var(--amber)' : 'var(--red)';
+  // two lines inside a thin ring so that even 153/166 fits
+  const big = String(known).length >= 3 ? 9 : 11, small = String(total).length >= 3 ? 7 : 8;
   return '<svg class="ring" viewBox="0 0 36 36" width="52" height="52" role="img" aria-label="Zařazeno ' + known + ' z ' + total + '"><title>Zařazeno ' + known + ' z ' + total + ' artiklů</title>' +
-    '<circle cx="18" cy="18" r="14" style="fill:none;stroke:var(--line);stroke-width:4"/>' +
-    '<circle cx="18" cy="18" r="14" transform="rotate(-90 18 18)" style="fill:none;stroke:' + col + ';stroke-width:4;stroke-linecap:round;stroke-dasharray:' + (C * p).toFixed(1) + ' ' + C.toFixed(1) + '"/>' +
-    '<text x="18" y="21.5" style="fill:var(--ink);font-size:' + (total >= 100 ? 7 : total >= 10 ? 8.5 : 10) + 'px;font-weight:700;text-anchor:middle">' + known + '/' + total + '</text></svg>';
+    '<circle cx="18" cy="18" r="15.5" style="fill:none;stroke:var(--line);stroke-width:2.5"/>' +
+    '<circle cx="18" cy="18" r="15.5" transform="rotate(-90 18 18)" style="fill:none;stroke:' + col + ';stroke-width:2.5;stroke-linecap:round;stroke-dasharray:' + (C * p).toFixed(1) + ' ' + C.toFixed(1) + '"/>' +
+    '<text x="18" y="18" style="fill:var(--ink);font-size:' + big + 'px;font-weight:800;text-anchor:middle">' + known + '</text>' +
+    '<text x="18" y="26.5" style="fill:var(--ink2);font-size:' + small + 'px;font-weight:600;text-anchor:middle">/' + total + '</text></svg>';
 }
 
 // rows: [{ id, r, status, total, known }]
