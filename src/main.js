@@ -709,9 +709,10 @@ function hostCodes() {
   return set;
 }
 // articles that become a main item / přibal leave their balení rows
-function dropFromKoli(codes) {
-  const set = new Set(codes.map(c => String(c).toLowerCase()));
-  state.combos = state.combos.filter(r => !(r.mode === 'group' && set.has(String(r.code).toLowerCase())));
+function dropFromKoli(codes, project) {
+  // only balení of the same project are changed (project undefined = all, used by the pallet editor)
+  const set = new Set(codes.map(c => String(c).toLowerCase())), lp = String(project || '').toLowerCase();
+  state.combos = state.combos.filter(r => !(r.mode === 'group' && set.has(String(r.code).toLowerCase()) && (project === undefined || String(r.project || '').toLowerCase() === lp)));
 }
 // weights from the pasted balení (netto column, kg of one piece) for catalog articles without weight
 function kgSetPre() {
@@ -795,7 +796,11 @@ $('#koForm').onsubmit = ev => {
     return;
   }
   // one normal table row per article (mode „na společné paletě“), new rows go first
-  const main = $('#koMain').value, lowm = x => String(x).toLowerCase();
+  const lowm = x => String(x || '').toLowerCase(), projSel = $('#koProj').value;
+  // main item not chosen: an article that is already a main item (has přibal) in this project is recognised automatically
+  const auto = $('#koMain').value ? '' : (koParsed.items.find(it => state.combos.some(r => r.mode === 'host' && r.strict && lowm(r.host) === lowm(it.code) && (!r.project || lowm(r.project) === lowm(projSel)))) || {}).code || '';
+  const main = $('#koMain').value || auto;
+  if (auto) flash('Rozpoznána hlavní položka ' + auto + ' – ostatní artikly se připojí jako přibal.');
   // one main item = one koli: a main item that already has a balení is completed, no second balení number
   const mainRows = main ? state.combos.filter(r => r.mode === 'host' && r.strict && lowm(r.host) === lowm(main)) : [];
   const group = mainRows.length ? (koliOf(mainRows[0]) || nextKoloCode(state.combos)) : nextKoloCode(state.combos);
@@ -803,7 +808,7 @@ $('#koForm').onsubmit = ev => {
   const inHost = hostCodes(), lowc = c => String(c).toLowerCase();
   let skipped = [], items = koParsed.items;
   if (!main) { skipped = items.filter(it => inHost.has(lowc(it.code))).map(it => it.code); items = items.filter(it => !inHost.has(lowc(it.code))); }
-  else dropFromKoli(items.map(it => it.code));
+  else dropFromKoli(items.map(it => it.code), projSel);
   // with a main item: přibal rides on its pallet (fixed max per pallet); without: one shared pallet
   const proj = $('#koProj').value;
   // the same balení imported again (all its articles already in one balení of this project and pallet): no duplicate, only weights and verified counts
@@ -970,7 +975,7 @@ $('#peKoli').addEventListener('click', async () => {
   if (!ok) return;
   const group = nextKoloCode(state.combos), project = (view(id) || {}).project || '';
   if ($('#askChk').checked) {
-    dropFromKoli(items.map(x => x.code));
+    dropFromKoli(items.map(x => x.code), project);
     state.combos = koloHostRows(items, main.code, group, '').concat(state.combos);
     const a = state.catalog.find(x => String(x.code).toLowerCase() === main.code.toLowerCase());
     if (a && (a.pack === 'neurceno' || !a.pal)) { Object.assign(a, { pack: 'paleta', pal: b.pal, per: 1 }); persist('catalog'); drawCatalog(); }
