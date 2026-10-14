@@ -90,9 +90,13 @@ export function renderCombos(combos, catalog, pallets, projects) {
     // pallet: main item → its pallet from the catalog (read only); mix → chosen pallet type
     const pt = c => pallets.find(p => String(p.code).toLowerCase() === String(c || '').toLowerCase());
     const ptxt = t => t ? '<small class="c-name">' + esc(t.code) + ' · ' + (t.L || 0) + ' × ' + (t.W || 0) + ' mm</small>' : '<small class="c-name warn">paleta neurčena</small>';
-    let pal;
-    if (main) { const ha = catalog.find(x => String(x.code).toLowerCase() === String(r.host || '').toLowerCase()); pal = fld('Paleta hlavní položky', '<div class="ro">' + esc(ha && ha.pal ? ((pt(ha.pal) || {}).name || ha.pal) : '–') + '</div>' + ptxt(ha && pt(ha.pal))); }
-    else pal = fld('Paleta balení', palSel) + ptxt(pt(r.pal));
+    // one pallet field: "Paleta hlavní položky" (type 1, pallet from the catalog of the main item) or a pallet from the list (mix)
+    const ha = main ? catalog.find(x => String(x.code).toLowerCase() === String(r.host || '').toLowerCase()) : null;
+    const shown = main ? pt(ha && ha.pal) : pt(r.pal);
+    const pkSel = '<select data-i="' + i + '" data-f="palkind" data-lazy="m"' + (main ? '' : ' data-mix="1"') + ' aria-label="Paleta">' + (main
+      ? '<option value="" selected>Paleta hlavní položky</option>'
+      : '<option value="">Paleta hlavní položky</option>' + (r.pal ? '<option value="' + esc(r.pal) + '" selected>' + esc(r.pal) + ' · ' + esc((shown || {}).name || '') + '</option>' : '<option value="" selected disabled>– vyberte paletu –</option>')) + '</select>';
+    const pal = fld('Paleta', pkSel) + (main ? '<div class="ro">' + esc(shown ? shown.name || shown.code : (ha && ha.pal) || 'hlavní položka nemá paletu') + '</div>' : '') + ptxt(shown);
     const pocty = main
       ? fld('Max ks na 1 hlavní položku', num('per', 'bez limitu'), 'Kolik kusů smí jet na jedné paletě hlavní položky. Co se nevejde, čeká vpravo.')
       : fld('Ověřeno ks', num('per', '–'), 'Tolik kusů už na této paletě jelo. Víc jich pojede také, paleta jen svítí oranžově.') + fld('Max ks', num('cap', 'bez limitu'), 'Když je v zakázce víc kusů, na paletu balení nepůjde žádný – všechny čekají vpravo.');

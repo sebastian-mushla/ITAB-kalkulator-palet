@@ -1490,22 +1490,24 @@ $('#comboSearch').addEventListener('input', e => filterTable($('#comboBody'), e.
 // lazy pallet list in the Způsob balení table: filled the first time the select is used
 $('#comboBody').addEventListener('focusin', e => {
   const sel = e.target.closest('select[data-lazy]'); if (!sel || sel.dataset.filled) return;
-  const cur = sel.value, first = sel.dataset.lazy === 'g' ? '– typ palety –' : 'rozměr vpravo';
-  sel.innerHTML = '<option value="">' + first + '</option>' + state.pallets.map(p => '<option value="' + esc(p.code) + '"' + (p.code === cur ? ' selected' : '') + '>' + esc(p.code) + ' · ' + esc(p.name) + '</option>').join('');
+  const cur = sel.value, first = sel.dataset.lazy === 'm' ? 'Paleta hlavní položky' : sel.dataset.lazy === 'g' ? '– typ palety –' : 'rozměr vpravo';
+  sel.innerHTML = (sel.dataset.mix && !cur ? '<option value="-" selected disabled>– vyberte paletu –</option>' : '') + '<option value="">' + first + '</option>' + state.pallets.map(p => '<option value="' + esc(p.code) + '"' + (p.code === cur ? ' selected' : '') + '>' + esc(p.code) + ' · ' + esc(p.name) + '</option>').join('');
   sel.dataset.filled = '1';
 });
 bindTable($('#comboBody'), () => state.combos, 'combos', drawCombos);
 $('#comboBody').addEventListener('change', e => {
   const f = e.target.getAttribute('data-f'), r = state.combos[e.target.getAttribute('data-i')];
   // type of packaging → mode (+ strict for a main item); a main item row keeps withCode = host
-  if (f === 'kind' && r) {
+  // pallet choice: "pallet of the main item" = type 1, a pallet from the list = mix (type 2)
+  if (f === 'palkind' && r) { const v = r.palkind; delete r.palkind; if (v) r.pal = v; r.kind = v ? 'mix' : 'main'; }
+  if ((f === 'kind' || f === 'palkind') && r) {
     const k = r.kind; delete r.kind;
     r.mode = k === 'main' ? 'host' : k === 'mix' ? 'group' : k; r.strict = k === 'main';
     if (k === 'main') { r.withCode = r.host || r.withCode || ''; if (!r.koli) r.koli = nextKoloCode(state.combos); }
     if (k === 'mix' && !r.group) r.group = nextKoloCode(state.combos);
     persist('combos'); recalc();
   }
-  if (f === 'kind' || f === 'mode' || f === 'on') drawCombos();
+  if (f === 'kind' || f === 'palkind' || f === 'mode' || f === 'on') drawCombos();
 });
 $('#comboBody').addEventListener('input', e => {
   const r = state.combos[e.target.getAttribute('data-i')];
