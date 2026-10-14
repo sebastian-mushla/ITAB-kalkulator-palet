@@ -57,7 +57,7 @@ export function parseKolo(text) {
     while (cells.length > 2 && cells[cells.length - 1] === '') cells.pop();
     if (cells.length >= 4 && /^\d{1,4}$/.test(cells[0])) cells = cells.slice(1);
     if (cells.length < 2) { problems.push('řádek ' + (i + 1) + ': chybí množství'); return; }
-    // optional next column „netto hmotnost“ (kg for the line): two numbers at the end = quantity + net weight
+    // optional next column „netto hmotnost“ (kg of one piece): two numbers at the end = quantity + net weight
     const num = t => Number(String(t).replace(/\s/g, '').replace(',', '.'));
     let netto = 0;
     if (cells.length >= 4 && /^[\d\s]+([.,]\d+)?$/.test(cells[cells.length - 1]) && /^[\d\s]+([.,]\d+)?$/.test(cells[cells.length - 2])) netto = num(cells.pop());
@@ -65,9 +65,9 @@ export function parseKolo(text) {
     const code = cells[0], name = cells.slice(1, -1).join(' ').replace(/\s+/g, ' ').trim();
     if (!code || !isFinite(qty) || qty <= 0) { problems.push('řádek ' + (i + 1) + ': nerozpoznáno'); return; }
     if (/^PAL-[0-9][0-9A-Z-]*$/i.test(code)) { if (!pals.some(p => low(p.code) === low(code))) pals.push({ code: code.toUpperCase(), name }); return; }
-    const k = low(code), g = items.get(k) || { code, name, seen: 0, netto: 0 };
-    g.seen += Math.round(qty); g.netto += netto > 0 ? netto : 0;
-    g.kg = g.netto > 0 ? Math.round(g.netto / g.seen * 1000) / 1000 : 0; // weight of one piece
+    const k = low(code), g = items.get(k) || { code, name, seen: 0, kg: 0 };
+    g.seen += Math.round(qty);
+    if (netto > 0 && !(g.kg > 0)) g.kg = netto; // netto column = weight of ONE piece (not of the line)
     items.set(k, g);
   });
   return { items: [...items.values()], pals, problems };
