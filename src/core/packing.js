@@ -351,7 +351,20 @@ export function packAll(pallets, vehicles, forced, oneVehicle, seq, rules) {
   const key = JSON.stringify([pallets, vehicles, forced, oneVehicle, seq, rules && [rules.lrTol, rules.cgMin, rules.cgMax, rules.heavyShare, rules.minVeh, rules.vehExtra]]);
   const hit = packCache.get(key);
   if (hit) return JSON.parse(hit);
-  const res = packAllRaw(pallets, vehicles, forced, oneVehicle, seq, rules);
+  let res = packAllRaw(pallets, vehicles, forced, oneVehicle, seq, rules);
+  // several zakázky over more vehicles: if every zakázka in its own vehicles needs no more vehicles, do not mix them
+  const mixed = res.vehicles.some(v => new Set(v.items.map(i => i.so)).size > 1);
+  if (mixed && forced == null && seq && seq.length > 1 && res.vehicles.length > 1) {
+    const all = pallets.map((p, i) => Object.assign({}, p, { id: i }));
+    const sep = { vehicles: [], oversize: [] };
+    seq.forEach(so => { const part = all.filter(p => p.so === so); if (!part.length) return; const r2 = packAllRaw(part, vehicles, null, oneVehicle, null, rules); sep.vehicles.push(...r2.vehicles); sep.oversize.push(...r2.oversize); });
+    const rest = all.filter(p => !seq.includes(p.so));
+    if (!rest.length && sep.vehicles.length <= res.vehicles.length) {
+      const cnt = new Map();
+      sep.vehicles.forEach(v => { const n = (cnt.get(v.vi) || 0) + 1; cnt.set(v.vi, n); v.n = n; v.title = v.name + ' ' + n; });
+      res = sep;
+    }
+  }
   packCache.set(key, JSON.stringify(res));
   if (packCache.size > 300) packCache.delete(packCache.keys().next().value);
   return res;
@@ -362,7 +375,7 @@ function packAllRaw(pallets, vehicles, forced, oneVehicle, seq, rules) {
   if (forced != null) pool = pool.filter(v => v.vi === forced);
   const oversize = [], items = [];
   pallets.forEach((p, i) => {
-    const it = Object.assign({}, p, { id: i });
+    const it = Object.assign({}, p, { id: p.id != null ? p.id : i });
     if (pool.some(v => fitsVehicle(it, v))) items.push(it); else oversize.push(it);
   });
   if (!items.length) return { vehicles: [], oversize };
