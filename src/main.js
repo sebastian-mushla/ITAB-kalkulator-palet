@@ -587,7 +587,7 @@ function askMerge(id, P, srcs, dst, dstNo) {
       persist('combos'); drawCombos();
     }
     clearSel(); state.manual.delete(id); keepScroll(() => recalcOne());
-    flash(!moved ? 'Cílová paleta je plná – nic se nepřesunulo.' : 'Přeloženo ' + moved + ' ks' + (rest ? ', ' + rest + ' ks zůstalo na původní paletě.' : '.') + ($('#mgRemember').checked && riders.length ? ' Kombinace uložena.' : ''));
+    flash(!moved ? 'Cílová paleta je plná – nic se nepřesunulo.' : 'Přeloženo ' + moved + ' ks' + (rest ? ', ' + rest + ' ks zůstalo na původní paletě.' : '.') + ($('#mgRemember').checked && riders.length ? ' Způsob balení uložena.' : ''));
   };
   $('#dlgMerge').showModal();
 }
@@ -638,15 +638,15 @@ onBoth('click', e => {
   const plan = state.plan.get(id) || freezePlan(r, state.catalog);
   const res = auditOrder(o, plan, state.combos, state.catalog);
   const rows = [];
-  res.drop.forEach(i => rows.push({ k: 'drop', i, t: 'Smazat neplatnou kombinaci: ' + ruleText(state.combos[i]) }));
-  res.update.forEach(u => rows.push({ k: 'upd', u, t: 'Upravit kombinaci ' + ruleText(state.combos[u.i]) + ' → ' + Object.entries(u.ch).map(([k, v]) => (k === 'per' ? 'max ' + v + ' ks/paleta' : 'do ' + v + ' ks')).join(', ') }));
-  res.add.forEach(a => rows.push({ k: 'add', a, t: 'Nová kombinace: ' + ruleText(a) }));
+  res.drop.forEach(i => rows.push({ k: 'drop', i, t: 'Smazat neplatný způsob balení: ' + ruleText(state.combos[i]) }));
+  res.update.forEach(u => rows.push({ k: 'upd', u, t: 'Upravit způsob balení ' + ruleText(state.combos[u.i]) + ' → ' + Object.entries(u.ch).map(([k, v]) => (k === 'per' ? 'max ' + v + ' ks/paleta' : 'do ' + v + ' ks')).join(', ') }));
+  res.add.forEach(a => rows.push({ k: 'add', a, t: 'Nový způsob balení: ' + ruleText(a) }));
   res.koliAdd.forEach(x => rows.push({ k: 'kadd', x, t: 'Přidat do balení ' + x.group + ': ' + x.code + ' (' + x.units + ' ks)' }));
   res.seen.forEach(x => rows.push({ k: 'seen', x, t: 'Společná paleta ' + (state.combos[x.i].group || '') + ': ' + x.code + ' ověřeno ' + x.from + ' → ' + x.to + ' ks' }));
   res.defs.forEach(d => rows.push({ k: 'def', d, t: 'Artikl ' + d.code + ': typ palety ' + (d.was || '–') + ' → ' + d.pal }));
   const unk = (r.unknown || []).length;
   $('#auTitle').textContent = 'Zkontrolovat a uložit – zakázka ' + id;
-  $('#auRows').innerHTML = (rows.length ? rows.map((x, n) => '<label class="inline au-' + x.k + '"><input type="checkbox" data-au="' + n + '" checked>' + esc(x.t) + '</label>').join('') : '<p class="ok">Kombinace i definice artiklů odpovídají paletám ✓</p>') +
+  $('#auRows').innerHTML = (rows.length ? rows.map((x, n) => '<label class="inline au-' + x.k + '"><input type="checkbox" data-au="' + n + '" checked>' + esc(x.t) + '</label>').join('') : '<p class="ok">Způsob balení i definice artiklů odpovídají paletám ✓</p>') +
     (unk ? '<p class="problems">Pozor: ' + unk + ' ' + (unk === 1 ? 'artikl ještě není' : 'artiklů ještě není') + ' zařazeno.</p>' : '');
   $('#dlgAudit').querySelector('form').onsubmit = ev => {
     if (!ev.submitter || ev.submitter.value !== 'yes') return;
@@ -796,9 +796,9 @@ $('#koForm').onsubmit = ev => {
   });
   if (addedArt) { persist('catalog'); drawCatalog(); }
   state.combos = rows.concat(state.combos); persist('combos'); drawCombos();
-  logChanges('–', ['Import balení ' + group + ': ' + rows.length + ' řádků kombinací, společná paleta ' + code]);
+  logChanges('–', ['Import balení ' + group + ': ' + rows.length + ' řádků způsobů balení, společná paleta ' + code]);
   recalc();
-  flash('Balení ' + group + ': přidáno ' + rows.length + ' řádků do kombinací (' + code + ')' + (addedArt ? ', ' + addedArt + ' artiklů do číselníku' : '') + (skipped.length ? '. Vynecháno ' + skipped.length + ' (už jsou jako hlavní položka / přibal): ' + skipped.join(', ') : '') + '.');
+  flash('Balení ' + group + ': přidáno ' + rows.length + ' řádků do způsobů balení (' + code + ')' + (addedArt ? ', ' + addedArt + ' artiklů do číselníku' : '') + (skipped.length ? '. Vynecháno ' + skipped.length + ' (už jsou jako hlavní položka / přibal): ' + skipped.join(', ') : '') + '.');
 };
 // ---------- articles used in combinations but missing in the catalog → catalog (packing decided later) ----------
 $('#comboToCat').addEventListener('click', async () => {
@@ -807,10 +807,10 @@ $('#comboToCat').addEventListener('click', async () => {
     const k = String(r.code || '').trim().toLowerCase();
     if (k && !have.has(k) && !add.has(k)) add.set(k, { code: String(r.code).trim(), name: r.name || '', pack: 'neurceno', per: 0, kg: r.kg > 0 ? r.kg : 0, rot: true });
   });
-  if (!add.size) { flash('Všechny artikly z kombinací už v číselníku jsou.'); return; }
-  if (!await ask('Doplnit artikly do číselníku?', add.size + ' artiklů z kombinací v číselníku chybí. Přidají se s názvem, váhou 0 a balením „neurčeno“ (určíte ho při prvním zařazení).', 'Přidat ' + add.size)) return;
+  if (!add.size) { flash('Všechny artikly ze způsobů balení už v číselníku jsou.'); return; }
+  if (!await ask('Doplnit artikly do číselníku?', add.size + ' artiklů ze způsobů balení v číselníku chybí. Přidají se s názvem, váhou 0 a balením „neurčeno“ (určíte ho při prvním zařazení).', 'Přidat ' + add.size)) return;
   state.catalog.push(...add.values()); persist('catalog'); drawCatalog();
-  logChanges('–', ['Do číselníku přidáno ' + add.size + ' artiklů z kombinací (balení neurčeno)']);
+  logChanges('–', ['Do číselníku přidáno ' + add.size + ' artiklů ze způsobů balení (balení neurčeno)']);
   recalc();
   flash('Přidáno do číselníku: ' + add.size + ' artiklů.');
 });
@@ -940,7 +940,7 @@ onBoth('click', async e => {
   const t = typeOf(state.pallets, rows[0].pal);
   const list = rows.map(r => r.code + (inOrder.has(low(r.code)) ? ' ✓' : '')).join(', ');
   const ok = await ask('Balení ' + rows[0].group + ' – ' + rows[0].pal + (t ? ' ' + t.name : ''),
-    'Artikly balení (✓ = jsou v této zakázce): ' + list + '. Tento artikl má v zakázce víc kusů, než balení dovoluje (Max ks). Přetáhněte ho na jinou paletu nebo na volné místo; nebo zvyšte Max ks v Kombinacích.', 'Rozumím');
+    'Artikly balení (✓ = jsou v této zakázce): ' + list + '. Tento artikl má v zakázce víc kusů, než balení dovoluje (Max ks). Přetáhněte ho na jinou paletu nebo na volné místo; nebo zvyšte Max ks v Způsobech balení.', 'Rozumím');
   void ok;
 });
 function relearn() { state.manual.delete(state.sel); recalc(); }
@@ -973,7 +973,7 @@ function askCombo(list, host, bid) {
   dlg.querySelector('form').onsubmit = ev => {
     if (!ev.submitter || ev.submitter.value !== 'yes') return;
     const rules = list.map((u, i) => ({ on: true, code: u.code, withCode: host, min: 0, max: u.qty, mode: 'host', host, pl: 0, pw: 0, per: Math.max(0, Math.floor(toNum($('#dcRows [data-cp="' + i + '"]').value) || 0)), kg: toNum($('#dcRows [data-ck="' + i + '"]').value) || 0, name: u.name || '', note: 'Uloženo z nakládky' }));
-    if ($('#dcRemember').checked) { addCombos(rules); persist('combos'); drawCombos(); flash('Přesunuto ' + rules.length + '× a kombinace uloženy.'); }
+    if ($('#dcRemember').checked) { addCombos(rules); persist('combos'); drawCombos(); flash('Přesunuto ' + rules.length + '× a způsoby balení uloženy.'); }
     else { const id = state.sel; state.oneOff.set(id, (state.oneOff.get(id) || []).concat(rules)); flash('Přesunuto jen pro tuto zakázku.'); }
     // pallets edited by hand: rules do not change them, so the pieces are put on the host pallets right away
     const P = state.plan.get(state.sel);
@@ -1487,7 +1487,7 @@ $('#vehFile').addEventListener('change', async e => {
 // ---------- combos ----------
 const drawCombos = () => { renderCombos(state.combos, state.catalog, state.pallets, projNames()); filterTable($('#comboBody'), $('#comboSearch').value); };
 $('#comboSearch').addEventListener('input', e => filterTable($('#comboBody'), e.target.value));
-// lazy pallet list in the Kombinace table: filled the first time the select is used
+// lazy pallet list in the Způsob balení table: filled the first time the select is used
 $('#comboBody').addEventListener('focusin', e => {
   const sel = e.target.closest('select[data-lazy]'); if (!sel || sel.dataset.filled) return;
   const cur = sel.value, first = sel.dataset.lazy === 'g' ? '– typ palety –' : 'rozměr vpravo';
@@ -1509,7 +1509,7 @@ $('#comboAdd').addEventListener('click', () => {
   persist('combos'); drawCombos();
 });
 const MODE_NAMES = { host: 'na palete artiklu', pallet: 'na jine palete', group: 'na spolecne palete', parcel: 'jako balik' };
-$('#comboExport').addEventListener('click', () => download('kombinace.csv',
+$('#comboExport').addEventListener('click', () => download('zpusob-baleni.csv',
   [['aktivni', 'artikl', 'kdyz_je_v_zakazce', 'mnozstvi_od', 'mnozstvi_do', 'pojede', 'cil', 'delka_mm', 'sirka_mm', 'max_ks_na_paletu', 'vaha_kusu_kg', 'poznamka', 'typ_palety', 'spolecna_paleta']]
     .concat(state.combos.map(r => [r.on !== false ? 'ano' : 'ne', r.code, r.withCode, r.min || '', r.max || '', MODE_NAMES[r.mode], r.host, r.pl || '', r.pw || '', r.per || '', r.kg ? String(r.kg).replace('.', ',') : '', r.note, r.pal || '', r.group || '']))));
 $('#comboFile').addEventListener('change', async e => {

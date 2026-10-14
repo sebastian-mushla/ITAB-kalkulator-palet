@@ -3,7 +3,7 @@ import { findRule, findRules, ruleText, koliOf } from './combos.js';
 import { resolveArticle, typeOf } from './palletTypes.js';
 
 // Splits order lines into full pallets + one partial pallet per article, or into parcels for pack = 'balik'.
-// combos (Kombinace tab) can override this per order; see combos.js.
+// combos (Způsob balení tab) can override this per order; see combos.js.
 // types = pallet types (level 2); opts.mix = put leftovers of different articles on one pallet of the same type
 export function makePallets(lines, catalog, combos = [], types = [], opts = {}) {
   const pallets = [], parcels = [], errors = [], rows = [], unknown = [];
@@ -34,7 +34,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
   lines.forEach(l => {
     const idx = index.has(l.code.toLowerCase()) ? index.get(l.code.toLowerCase()) : -1;
     if (idx < 0) {
-      // not in the catalog yet: it can still ride on a host pallet if a Kombinace rule says so
+      // not in the catalog yet: it can still ride on a host pallet if a Způsob balení rule says so
       const r0 = findRule(l.code, l.qty, present, combos);
       if (r0 && r0.mode === 'group' && overCap(r0, l.qty)) { unknown.push({ code: l.code, qty: l.qty, name: l.name || '', hint: capHint(r0) }); errors.push('Artikl „' + l.code + '“: ' + l.qty + ' ks je víc než max ' + r0.cap + ' ks v ' + r0.group + ' – zařaďte ho ručně.'); return; }
       if (r0 && r0.mode === 'group') { addGroup(r0, { code: l.code, name: r0.name || l.name || '', kg: r0.kg || 0 }, -1, l); return; }

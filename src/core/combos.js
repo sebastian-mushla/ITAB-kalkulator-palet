@@ -1,4 +1,4 @@
-// Operator-defined exceptions to the normal pallet logic ("Kombinace" tab).
+// Operator-defined exceptions to the normal pallet logic ("Způsob balení" tab).
 // rule: { on, code, withCode, min, max, mode: 'host'|'pallet'|'parcel', host, pl, pw, per, note }
 //  host   - ride on the pallets of article `host`, at most `per` pcs per host pallet (0 = no limit); size unchanged, weight added
 //  pallet - use pallet pl × pw with `per` pcs instead of the catalog values

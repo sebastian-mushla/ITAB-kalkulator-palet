@@ -36,7 +36,7 @@ document.documentElement.setAttribute('data-theme',t);})();
       <button class="tab" role="tab" id="tab-dock" aria-selected="false" data-view="dock"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h12v10H2z"/><path d="M14 9h4l4 4v3h-8z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>Nakládka</button>
       <button class="tab" role="tab" id="tab-catalog" aria-selected="false" data-view="catalog"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>Číselník artiklů</button>
       <button class="tab" role="tab" id="tab-pallets" aria-selected="false" data-view="pallets"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="6" rx="1"/><path d="M5 13v4M12 13v4M19 13v4M3 17h18"/></svg>Palety</button>
-      <button class="tab" role="tab" id="tab-combos" aria-selected="false" data-view="combos"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="13" width="18" height="8" rx="1.5"/><rect x="6" y="5" width="7" height="8" rx="1.5"/><path d="M16 5v6M13 8h6"/></svg>Kombinace</button>
+      <button class="tab" role="tab" id="tab-combos" aria-selected="false" data-view="combos"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="13" width="18" height="8" rx="1.5"/><rect x="6" y="5" width="7" height="8" rx="1.5"/><path d="M16 5v6M13 8h6"/></svg>Způsob balení</button>
       <button class="tab" role="tab" id="tab-projects" aria-selected="false" data-view="projects"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l2-3h5l2 3h9v12H3z"/></svg>Projekty</button>
       <button class="tab" role="tab" id="tab-vehicles" aria-selected="false" data-view="vehicles"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h12v10H2z"/><path d="M14 9h4l4 4v3h-8z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>Vozidla</button>
       <button class="tab" role="tab" id="tab-users" aria-selected="false" data-view="users"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/></svg>Uživatelé</button>
@@ -171,12 +171,12 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
       </section>
 
       <section id="view-combos" hidden>
-        <div class="pagehead"><div><h1>Kombinace artiklů</h1><p>Výjimky z běžného výpočtu: kdy artikl pojede na paletě jiného artiklu, na jiné paletě nebo jako balík.</p></div></div>
+        <div class="pagehead"><div><h1>Způsob balení artiklů</h1><p>Výjimky z běžného výpočtu: kdy artikl pojede na paletě jiného artiklu, na jiné paletě nebo jako balík.</p></div></div>
         <div class="card cat">
           <div class="toolbar">
             <button class="btn primary" id="comboAdd">Přidat pravidlo</button>
             <button class="btn" id="koloBtn">Importovat balení</button>
-            <button class="btn" id="comboToCat" title="Artikly z kombinací, které nejsou v číselníku, se do něj přidají (název, váha 0, balení neurčeno)">Doplnit artikly do číselníku</button>
+            <button class="btn" id="comboToCat" title="Artikly ze způsobů balení, které nejsou v číselníku, se do něj přidají (název, váha 0, balení neurčeno)">Doplnit artikly do číselníku</button>
             <button class="btn" id="koloMerge" title="Najde balení se stejnými artikly (nebo podmnožinou jiného balení) na stejném typu palety a sloučí je">Sloučit duplicitní balení</button>
             <label class="btn">Nahrát CSV / Excel<input type="file" id="comboFile" accept=".csv,.txt,.tsv,.xlsx,.xls,.ods" hidden></label>
             <label class="check"><input type="checkbox" id="comboReplace">Nahradit všechna pravidla</label>
@@ -185,7 +185,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
           <p class="hint">Pravidla se zkoušejí shora dolů, použije se první, které sedí. Příklad: <b>V04</b>, když je v zakázce <b>V06</b>, množství do <b>10</b> → pojede <b>na paletě artiklu V06</b>. Rozměr palety se nemění, přičte se jen váha. Co se na hostitelské palety nevejde (max ks na paletu), jede normálně. Prázdné pole = bez podmínky.</p>
           <div id="comboReport"></div>
           <details class="howto"><summary>Historie změn (Zkontrolovat a uložit)</summary><ul id="comboLog" class="log"></ul></details>
-          <label class="search tbl-search"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="comboSearch" type="search" placeholder="Hledat v kombinacích: artikl, paleta, skupina…" aria-label="Hledat"></label>
+          <label class="search tbl-search"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="comboSearch" type="search" placeholder="Hledat ve způsobech balení: artikl, paleta, skupina…" aria-label="Hledat"></label>
           <div class="tscroll">
             <table>
               <thead><tr><th></th><th>Artikl</th><th>Podmínka</th><th>Pojede</th><th>Kam</th><th>Počty</th><th>Poznámka</th><th></th></tr></thead>
@@ -238,7 +238,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
         <div class="pagehead"><div><h1>Jak to funguje</h1><p>Podle čeho kalkulátor počítá palety, vybírá vozidla a skládá nakládku.</p></div></div>
         <div class="help help-doc">
           <nav class="card help-wide help-toc"><b>Obsah:</b>
-            <a href="#h1">1. Jak kalkulátor pracuje</a> · <a href="#h2">2. Import zakázek</a> · <a href="#h3">3. Číselník a palety</a> · <a href="#h4">4. Kombinace a balení</a> · <a href="#h5">5. Projekty</a> · <a href="#h6">6. Výpočet palet</a> · <a href="#h7">7. Učení v zakázce</a> · <a href="#h8">8. Sběrná služba a balíky</a> · <a href="#h9">9. Výběr vozidel a nakládka</a> · <a href="#h10">10. Ringil, tisk, stavy</a> · <a href="#h11">11. Uživatelé a data</a></nav>
+            <a href="#h1">1. Jak kalkulátor pracuje</a> · <a href="#h2">2. Import zakázek</a> · <a href="#h3">3. Číselník a palety</a> · <a href="#h4">4. Způsob balení a balení</a> · <a href="#h5">5. Projekty</a> · <a href="#h6">6. Výpočet palet</a> · <a href="#h7">7. Učení v zakázce</a> · <a href="#h8">8. Sběrná služba a balíky</a> · <a href="#h9">9. Výběr vozidel a nakládka</a> · <a href="#h10">10. Ringil, tisk, stavy</a> · <a href="#h11">11. Uživatelé a data</a></nav>
 
           <section class="card help-wide" id="h1"><h2>1. Jak kalkulátor pracuje</h2>
             <p>Dispečer vloží zakázku (jen artikly a množství) a hned vidí: kolik palet, váhu, LDM, nadrozměr, zda stačí sběrná služba, nebo kolik a jakých vozidel objednat – a hotové údaje pro Ringil.</p>
@@ -251,7 +251,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <li>Ne → je v <b>balení mix</b> projektu (společná paleta)? → jede na paletě balení (4.4).</li>
             <li>Ne → jede podle <b>definice položky v Číselníku</b> (vlastní paleta, balík, služba).</li>
             <li>Ne → čeká <b>vpravo</b> v seznamu „Neznámé artikly“ – zařadíte ho ručně (kapitola 7).</li></ol>
-            <p>Nic skrytého: rozhoduje jen to, co je v tabulkách Číselník, Palety, Kombinace a Projekty.</p></section>
+            <p>Nic skrytého: rozhoduje jen to, co je v tabulkách Číselník, Palety, Způsob balení a Projekty.</p></section>
 
           <section class="card" id="h2"><h2>2. Import zakázek</h2>
             <h3>2.1 Jak vložit</h3>
@@ -278,7 +278,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <h3>3.3 Kontrola</h3>
             <p>Tlačítko „Zkontrolovat číselník“ ukáže, co chybí: typ palety, kusy, váha 0, neurčené balení, duplicitní artikl.</p></section>
 
-          <section class="card help-wide" id="h4"><h2>4. Kombinace a balení</h2>
+          <section class="card help-wide" id="h4"><h2>4. Způsob balení a balení</h2>
             <h3>4.1 Pořadí pravidel</h3>
             <p>Nejdřív platí <b>balení s hlavní položkou</b>, potom <b>balení mix</b>, potom ostatní řádky; uvnitř skupiny shora dolů, platí první, který sedí. Až nakonec definice položky v Číselníku. <b>Když je v zakázce</b> = podmínka (ve stejné zakázce je i uvedený artikl), „libovolně“ = bez podmínky. „Ks od / do“ omezí množství v zakázce.</p>
             <h3>4.2 Druhy pravidel (sloupec Pojede)</h3>
@@ -298,7 +298,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <h3>4.6 Sloučit balení</h3>
             <p>Balení stejného projektu na stejné paletě se společným artiklem jsou jedno balení viděné po částech – spojí se do nejstaršího (1 2 3 4 5 + 3 4 5 6 → 1 2 3 4 5 6). Balení s jediným artiklem, který je ve větším balení, zmizí. Balení téže hlavní položky se spojí; stejný přibal se nesčítá, platí vyšší maximum.</p>
             <h3>4.7 Další tlačítka</h3>
-            <p>„Doplnit artikly do číselníku“ přidá artikly z kombinací, které v Číselníku chybí. „Historie změn“ ukazuje, co kdy kdo uložil.</p></section>
+            <p>„Doplnit artikly do číselníku“ přidá artikly ze způsobů balení, které v Číselníku chybí. „Historie změn“ ukazuje, co kdy kdo uložil.</p></section>
 
           <section class="card" id="h5"><h2>5. Projekty</h2>
             <h3>5.1 Rozpoznání</h3>
@@ -318,7 +318,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <h3>7.1 Neznámé artikly vpravo</h3>
             <p>Seznam má vyhledávání. Poznámka u artiklu říká, proč tam je (např. „přibal pro balení 6, 9“, „nevešlo se do BAL-8“). Výběr více artiklů se Shiftem jen z jedné zakázky.</p>
             <h3>7.2 Kam artikl přetáhnout</h3>
-            <ul><li><b>na paletu s materiálem</b> – pojede na ní (s „Max ks na paletu“, zapamatovat jako kombinaci);</li>
+            <ul><li><b>na paletu s materiálem</b> – pojede na ní (s „Max ks na paletu“, zapamatovat jako způsob balení);</li>
             <li><b>na paletu balení</b> – přidá se do balení;</li>
             <li><b>na paletu pokladny</b> – přibal, maximum se zvýší;</li>
             <li><b>na prázdnou paletu</b> – určíte, kolik kusů se na tento typ vejde;</li>
@@ -356,9 +356,9 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
 
           <section class="card" id="h11"><h2>11. Uživatelé a data</h2>
             <h3>11.1 Role</h3>
-            <p>Administrátor mění vše (číselník, palety, kombinace, projekty, vozidla, pravidla, uživatele) a učí kalkulátor. Uživatel vidí zakázky a výpočet.</p>
+            <p>Administrátor mění vše (číselník, palety, způsob balení, projekty, vozidla, pravidla, uživatele) a učí kalkulátor. Uživatel vidí zakázky a výpočet.</p>
             <h3>11.2 Kde jsou data</h3>
-            <p>Číselník, palety, kombinace, projekty, vozidla a pravidla jsou společné pro všechny (databáze). Seznam zakázek a uložené palety zakázek jsou v tomto prohlížeči. Výpočet dělá běžný program v prohlížeči – bez umělé inteligence.</p></section>
+            <p>Číselník, palety, způsob balení, projekty, vozidla a pravidla jsou společné pro všechny (databáze). Seznam zakázek a uložené palety zakázek jsou v tomto prohlížeči. Výpočet dělá běžný program v prohlížeči – bez umělé inteligence.</p></section>
         </div>
       </section>
 
@@ -441,7 +441,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
 <dialog class="dlg" id="dlgAudit">
   <form method="dialog">
     <h2 id="auTitle">Zkontrolovat a uložit</h2>
-    <p class="hint" id="auHint">Porovná uložené kombinace a definice artiklů s paletami této zakázky. Zaškrtnuté změny se provedou, palety zakázky se uloží a změny se zapíšou do historie (záložka Kombinace).</p>
+    <p class="hint" id="auHint">Porovná uložené způsoby balení a definice artiklů s paletami této zakázky. Zaškrtnuté změny se provedou, palety zakázky se uloží a změny se zapíšou do historie (záložka Způsob balení).</p>
     <div id="auRows" class="au-rows"></div>
     <div class="acts"><button class="btn" value="no">Zrušit</button><button class="btn primary" value="yes">Uložit</button></div>
   </form>
@@ -464,7 +464,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
       <label class="inline"><input type="radio" name="mgMode" value="fit" checked>Jen co se vejde (zbytek zůstane na původní paletě)</label>
       <label class="inline"><input type="radio" name="mgMode" value="all">Přeložit vše – přes kapacitu palety</label>
     </div>
-    <label class="inline" id="mgRemWrap"><input type="checkbox" id="mgRemember">Zapamatovat kombinaci pro další zakázky</label>
+    <label class="inline" id="mgRemWrap"><input type="checkbox" id="mgRemember">Zapamatovat způsob balení pro další zakázky</label>
     <p class="hint" id="mgRule"></p>
     <div class="acts"><button class="btn" value="no">Zrušit</button><button class="btn primary" value="yes">Přeložit</button></div>
   </form>
@@ -474,7 +474,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
     <h2 id="dcTitle">Přesunout artikl na paletu</h2>
     <p id="dcText"></p>
     <div id="dcRows" class="lr-rows"></div>
-    <label class="inline"><input type="checkbox" id="dcRemember" checked>Zapamatovat kombinaci pro další zakázky</label>
+    <label class="inline"><input type="checkbox" id="dcRemember" checked>Zapamatovat způsob balení pro další zakázky</label>
     <p class="hint" id="dcRule"></p>
     <div class="acts"><button class="btn" value="no">Zrušit</button><button class="btn primary" value="yes" id="dcYes">Přesunout na paletu</button></div>
   </form>
