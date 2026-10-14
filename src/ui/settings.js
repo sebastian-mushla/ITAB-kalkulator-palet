@@ -102,7 +102,7 @@ export function renderCombos(combos, catalog, pallets, projects) {
     const pocty = main
       ? fld('Max ks na 1 hlavní položku', num('per', 'bez limitu'), 'Kolik kusů smí jet na jedné paletě hlavní položky. Co se nevejde, čeká vpravo.')
       : group ? fld('Ověřeno ks', num('per', '–'), 'Tolik kusů už na této paletě jelo. Víc jich pojede také, paleta jen svítí oranžově.') + fld('Max ks', num('cap', 'bez limitu'), 'Když je v zakázce víc kusů, na paletu balení nepůjde žádný – všechny čekají vpravo.')
-      : (pallet ? fld('Ks na paletě', num('per', '1')) : fld('Ks v balíku', num('per', '1'))) +
+      : (r.per > 0 ? '<small class="c-name">' + r.per + ' ks na ' + (pallet ? 'paletu' : 'balík') + ' <a href="#" data-clrper="' + i + '">zrušit</a></small>' : '') +
         // solo / balík can depend on the quantity in the order (e.g. from 150 ks on a pallet, up to 149 ks as balík)
         '<div class="cf2">' + fld('Od ks v zakázce', num('min', '–'), 'Platí, když je v zakázce aspoň tolik kusů.') + fld('Do ks v zakázce', num('max', '–'), 'Platí, když je v zakázce nejvýš tolik kusů.') + '</div>';
     return '<tr class="' + (r.on === false ? 'off ' : '') + 'kind-' + kn + '"' + (r.note ? ' title="' + esc(r.note) + '"' : '') + '>' +

@@ -70,9 +70,9 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     }
     if (rule && rule.mode === 'host') { riders.push({ a: a.pack === 'neurceno' ? Object.assign({}, a, { unknown: true }) : a, idx: ci, qty: l.qty, rule, row }); rows.push(row); return; }
     if (rule && rule.mode === 'pallet') a = rule.pal && typeOf(types, rule.pal)
-      ? resolveArticle(Object.assign({}, a, { pack: 'paleta', pal: rule.pal, per: rule.per || a.per }), types)
-      : Object.assign({}, a, { pack: 'paleta', pal: null, palName: '', tare: 0, pl: rule.pl || a.pl, pw: rule.pw || a.pw, per: rule.per || a.per });
-    if (rule && rule.mode === 'parcel') a = Object.assign({}, a, { pack: 'balik', pl: rule.pl || a.pl, pw: rule.pw || a.pw, per: rule.per || a.per });
+      ? resolveArticle(Object.assign({}, a, { pack: 'paleta', pal: rule.pal, per: rule.per || l.qty }), types)
+      : Object.assign({}, a, { pack: 'paleta', pal: null, palName: '', tare: 0, pl: rule.pl || a.pl, pw: rule.pw || a.pw, per: rule.per || l.qty });
+    if (rule && rule.mode === 'parcel') a = Object.assign({}, a, { pack: 'balik', pl: rule.pl || a.pl, pw: rule.pw || a.pw, per: rule.per || l.qty });
     if (!(a.per > 0) || !(a.pl > 0) || !(a.pw > 0)) { errors.push('U artiklu „' + a.code + '“ chybí rozměry nebo počet kusů.'); return; }
     rows.push(build(a, ci, l.qty, row));
   });

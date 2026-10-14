@@ -1520,6 +1520,10 @@ $('#comboBody').addEventListener('change', e => {
   }
   if (f === 'kind' || f === 'palkind' || f === 'pal' || f === 'mode' || f === 'on') { if (f === 'pal') recalc(); drawCombos(); }
 });
+$('#comboBody').addEventListener('click', e => {
+  const i = e.target.getAttribute('data-clrper'); if (i == null) return;
+  e.preventDefault(); state.combos[i].per = 0; persist('combos'); drawCombos(); recalc();
+});
 $('#comboBody').addEventListener('input', e => {
   const r = state.combos[e.target.getAttribute('data-i')];
   if (r && e.target.getAttribute('data-f') === 'host' && r.mode === 'host') { r.strict = true; r.withCode = r.host; persist('combos'); }
