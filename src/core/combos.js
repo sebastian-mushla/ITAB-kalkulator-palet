@@ -55,7 +55,10 @@ export function parseKolo(text) {
         : w.length >= 2 && dec(last) ? [w[0], w.slice(1, -1).join(' '), last] : [w[0], w.slice(1).join(' '), '1'];
     }
     while (cells.length > 2 && cells[cells.length - 1] === '') cells.pop();
-    if (cells.length >= 4 && /^\d{1,4}$/.test(cells[0])) cells = cells.slice(1);
+    // leading position number (10, 20…) only when the line is long enough to have one: with a netto column it has 5 cells
+    const isNum = t => /^[\d\s]+([.,]\d+)?$/.test(t || '');
+    const hasNetto = cells.length >= 4 && /[.,]/.test(cells[cells.length - 1]) && isNum(cells[cells.length - 1]) && isNum(cells[cells.length - 2]);
+    if (cells.length >= (hasNetto ? 5 : 4) && /^\d{1,4}$/.test(cells[0])) cells = cells.slice(1);
     if (cells.length < 2) { problems.push('řádek ' + (i + 1) + ': chybí množství'); return; }
     // optional next column „netto hmotnost“ (kg of one piece): two numbers at the end = quantity + net weight
     const num = t => Number(String(t).replace(/\s/g, '').replace(',', '.'));

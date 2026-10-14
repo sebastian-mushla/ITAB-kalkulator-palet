@@ -713,6 +713,12 @@ function dropFromKoli(codes) {
   const set = new Set(codes.map(c => String(c).toLowerCase()));
   state.combos = state.combos.filter(r => !(r.mode === 'group' && set.has(String(r.code).toLowerCase())));
 }
+// weights from the pasted balení (netto column, kg of one piece) for catalog articles without weight
+function kgSetPre() {
+  let n = 0;
+  (koParsed ? koParsed.items : []).forEach(it => { const a = it.kg > 0 && state.catalog.find(x => String(x.code).toLowerCase() === it.code.toLowerCase()); if (a && !(a.kg > 0)) { a.kg = it.kg; n++; } });
+  return n;
+}
 // ---------- import balení (articles that travelled together on one pallet) ----------
 let koParsed = { items: [], pals: [] };
 function koPalCode() {
@@ -797,13 +803,26 @@ $('#koForm').onsubmit = ev => {
   else dropFromKoli(items.map(it => it.code));
   // with a main item: přibal rides on its pallet (fixed max per pallet); without: one shared pallet
   const proj = $('#koProj').value;
+  // the same balení imported again (all its articles already in one balení of this project and pallet): no duplicate, only weights and verified counts
+  if (!main && items.length) {
+    const lw = c => String(c || '').toLowerCase();
+    const groups = new Map();
+    state.combos.forEach(r => { if (r.mode === 'group' && lw(r.pal) === lw(code) && lw(r.project) === lw(proj)) { const g = groups.get(r.group) || []; g.push(r); groups.set(r.group, g); } });
+    const same = [...groups.entries()].find(([, rs]) => items.every(it => rs.some(r => lw(r.code) === lw(it.code))));
+    if (same) {
+      items.forEach(it => { const r = same[1].find(x => lw(x.code) === lw(it.code)); if (r && it.seen > (r.per || 0)) r.per = it.seen; });
+      if (kgSetPre()) { persist('catalog'); drawCatalog(); }
+      persist('combos'); drawCombos(); recalc();
+      $('#dlgKolo').close(); flash('Balení už existuje (' + same[0] + ') – nic nového se nepřidalo, doplněny váhy a ověřené kusy.');
+      return;
+    }
+  }
   let rows = main ? koloHostRows(items, main, group, $('#koName').value.trim()) : items.map(it => koloRow(it, group, code, $('#koName').value.trim(), true, proj));
   if (mainRows.length) rows = rows.filter(n => { const old = mainRows.find(r => lowm(r.code) === lowm(n.code)); if (!old) return true; old.per = Math.max(old.per || 0, n.per || 0); return false; });
   // missing articles get a catalog entry: name, weight 0 to fill in, packing decided later (alone it may be a parcel)
   let addedArt = 0;
   // weight from the „netto hmotnost“ column fills articles that have no weight yet
-  let kgSet = 0;
-  koParsed.items.forEach(it => { const a = it.kg > 0 && state.catalog.find(x => String(x.code).toLowerCase() === it.code.toLowerCase()); if (a && !(a.kg > 0)) { a.kg = it.kg; kgSet++; } });
+  const kgSet = kgSetPre();
   if ($('#koCat').checked) koParsed.items.forEach(it => {
     if (state.catalog.some(a => String(a.code).toLowerCase() === it.code.toLowerCase())) return;
     // the machine goes on the balení's pallet type; accessories get their packing later
