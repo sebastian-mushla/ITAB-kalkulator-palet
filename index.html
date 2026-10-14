@@ -247,8 +247,9 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <h3>1.2 ID a zakázky</h3>
             <p><b>ID</b> = jedna adresa / zásilka. <b>SO (zakázka)</b> = prodejní objednávka. Jedno ID může mít víc SO. Palety se počítají pro každou zakázku zvlášť (zakázky se na jedné paletě nemíchají) a na paletě je číslo zakázky. Celé ID se snaží jet jedním vozidlem.</p>
             <h3>1.3 Pořadí rozhodování pro každý artikl</h3>
-            <ol><li>Je artikl v <b>koli projektu</b> zakázky? → jede podle koli (kapitola 4).</li>
-            <li>Ne → jede podle <b>řádku v Číselníku</b> (vlastní paleta, balík, služba).</li>
+            <ol><li>Je artikl v <b>koli s hlavní položkou</b> projektu (přibal pokladny) a je hlavní položka v zakázce? → jede na paletě hlavní položky (4.3).</li>
+            <li>Ne → je v <b>koli mix</b> projektu (společná paleta)? → jede na paletě koli (4.4).</li>
+            <li>Ne → jede podle <b>definice položky v Číselníku</b> (vlastní paleta, balík, služba).</li>
             <li>Ne → čeká <b>vpravo</b> v seznamu „Neznámé artikly“ – zařadíte ho ručně (kapitola 7).</li></ol>
             <p>Nic skrytého: rozhoduje jen to, co je v tabulkách Číselník, Palety, Kombinace a Projekty.</p></section>
 
@@ -279,7 +280,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
 
           <section class="card help-wide" id="h4"><h2>4. Kombinace a koli</h2>
             <h3>4.1 Pořadí pravidel</h3>
-            <p>Řádky se zkoušejí <b>shora dolů</b>, pro artikl platí první, který sedí. <b>Když je v zakázce</b> = podmínka (ve stejné zakázce je i uvedený artikl), „libovolně“ = bez podmínky. „Ks od / do“ omezí množství v zakázce.</p>
+            <p>Nejdřív platí <b>koli s hlavní položkou</b>, potom <b>koli mix</b>, potom ostatní řádky; uvnitř skupiny shora dolů, platí první, který sedí. Až nakonec definice položky v Číselníku. <b>Když je v zakázce</b> = podmínka (ve stejné zakázce je i uvedený artikl), „libovolně“ = bez podmínky. „Ks od / do“ omezí množství v zakázce.</p>
             <h3>4.2 Druhy pravidel (sloupec Pojede)</h3>
             <ul><li><b>na paletě artiklu</b> – kusy jedou na paletách jiného artiklu (rozměr palety se nemění, přičte se váha);</li>
             <li><b>na jiné paletě</b> – v této situaci jiný typ palety a počet kusů;</li>

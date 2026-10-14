@@ -9,21 +9,21 @@ export const COMBO_MODES = [['host', 'na paletě artiklu'], ['pallet', 'na jiné
 const low = s => String(s == null ? '' : s).trim().toLowerCase();
 
 // First active rule matching the article, the "together with" article and the quantity range.
+// Priority: koli with a main item (strict přibal) → koli mix (shared pallet) → other rows; table order inside each.
+const rank = r => r.mode === 'host' && r.strict ? 0 : r.mode === 'group' ? 1 : 2;
+
 export function findRule(code, qty, present, combos) {
-  return (combos || []).find(r => r.on !== false && r.mode !== 'kolo'
-    && low(r.code) === low(code)
-    && (!low(r.withCode) || present.has(low(r.withCode)))
-    && (!(r.min > 0) || qty >= r.min)
-    && (!(r.max > 0) || qty <= r.max)) || null;
+  return findRules(code, qty, present, combos)[0] || null;
 }
 
-// All active rules matching the article (in table order).
+// All active rules matching the article, in priority order (stable by table order).
 export function findRules(code, qty, present, combos) {
   return (combos || []).filter(r => r.on !== false && r.mode !== 'kolo'
     && low(r.code) === low(code)
     && (!low(r.withCode) || present.has(low(r.withCode)))
     && (!(r.min > 0) || qty >= r.min)
-    && (!(r.max > 0) || qty <= r.max));
+    && (!(r.max > 0) || qty <= r.max))
+    .map((r, i) => [r, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map(x => x[0]);
 }
 
 export function ruleText(r) {
