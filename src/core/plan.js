@@ -9,18 +9,18 @@ let seq = 0;
 export const newId = () => 'p' + Date.now().toString(36) + (seq++);
 
 function unitInfo(code, catalog, rows) {
+  // capacity comes from Způsob balení (the calculated row), the catalog holds no packing any more; 0 = not known
   const a = catalog.find(x => low(x.code) === low(code));
-  if (a) return { per: a.per || 1, kg: a.kg || 0, name: a.name || '' };
   const row = rows.find(x => low(x.code) === low(code));
-  return { per: row && row.per ? row.per : 1, kg: row && row.qty ? row.kg / row.qty : 0, name: row ? row.name || '' : '' };
+  return { per: (row && row.per) || (a && a.per) || 0, kg: a ? a.kg || 0 : row && row.qty ? row.kg / row.qty : 0, name: (a && a.name) || (row ? row.name || '' : '') };
 }
 
 // Current calculated pallets → editable plan.
 export function freezePlan(r, catalog) {
   return r.pallets.map(p => {
     const main = Object.assign({ code: p.code, units: p.units, so: p.so }, unitInfo(p.code, catalog, r.rows));
-    if (p.board) { main.per = p.units / (p.fill || 1); }
-    const extra = (p.extra || []).map(e => Object.assign({ code: e.code, units: e.units, ride: !e.mixed, so: e.so || p.so }, unitInfo(e.code, catalog, r.rows)));
+    if (p.board || !main.per) { main.per = p.units / (p.fill || 1); }
+    const extra = (p.extra || []).map(e => { const c = Object.assign({ code: e.code, units: e.units, ride: !e.mixed, so: e.so || p.so }, unitInfo(e.code, catalog, r.rows)); if (!c.per) c.per = c.units; return c; });
     // shared pallet (koli): the pieces are "verified", not a capacity – each article counts as an equal share of a full pallet
     if (p.group) [main].concat(extra).forEach((c, k, all) => { c.per = c.units * all.length; });
     const pl = { id: newId(), pal: p.pal || null, group: p.group, contents: [main].concat(extra) };
