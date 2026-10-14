@@ -309,20 +309,30 @@ function palletBoardHtml(r, isAdmin, board, types) {
     return '<div class="board-pal' + (cls || '') + '" ' + attrs + ' style="width:' + w.toFixed(0) + 'px;height:' + hh.toFixed(0) + 'px;--c:' + color(p.ci) + ';--f:' + Math.min(100, Math.round(p.fill * 100)) + '%">' + inner + '</div>';
   };
   const multi = (r.sos || []).length > 1;
-  const label = p => (multi && p.so ? '<small class="so-tag">Z ' + esc(p.so) + '</small>' : '') + '<b>' + esc(p.code) + '</b><span>' + fmtN(p.units) + ' ks' + (p.fill < 0.999 ? ' · ' + Math.round(p.fill * 100) + ' %' : '') + '</span>' +
+  const label = p =>  '<b>' + esc(p.code) + '</b><span>' + fmtN(p.units) + ' ks' + (p.fill < 0.999 ? ' · ' + Math.round(p.fill * 100) + ' %' : '') + '</span>' +
     // second article written out, the rest only counted (+3) – the full list is in the pallet editor
     (p.extra ? '<em class="ex"><span class="ex-t">+ ' + esc(p.extra[0].code + ' ' + p.extra[0].units + ' ks') + '</span>' + (p.extra.length > 1 ? '<b class="more">+' + (p.extra.length - 1) + '</b>' : '') + '</em>' : '');
   const num = new Map(r.pallets.map((p, i) => [p, i + 1]));
   const groups = new Map();
   // grouped by pallet type (not by article): same pallets side by side, the same article next to each other
-  r.pallets.filter(p => r.planOn || p.board == null).forEach(p => { const k = p.pal || (p.pl + '×' + p.pw); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); });
+  // several zakázky in one ID: first by zakázka (in import order), inside by pallet type
+  const soRank = new Map((r.sos || []).map((so, i) => [String(so), i]));
+  r.pallets.filter(p => r.planOn || p.board == null).slice().sort((a, b) => multi ? (soRank.get(String(a.so)) ?? 99) - (soRank.get(String(b.so)) ?? 99) : 0)
+    .forEach(p => { const k = (multi ? (p.so || '') + '|' : '') + (p.pal || (p.pl + '×' + p.pw)); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); });
   groups.forEach(list => list.sort((a, b) => String(a.code).localeCompare(String(b.code)) || num.get(a) - num.get(b)));
   let h = '', shown = 0; // numbers follow the order on the board
+  let curSo = null;
   groups.forEach(list => {
     const p0 = list[0];
+    if (multi && p0.so !== curSo) {
+      curSo = p0.so;
+      const n = r.pallets.filter(x => (r.planOn || x.board == null) && x.so === curSo).length;
+      h += (h ? '</div>' : '') + '<div class="so-block"><h3 class="so-head">Zakázka ' + esc(curSo || '–') + ' <span class="muted">' + n + ' ' + palWord(n) + '</span></h3>';
+    }
     h += '<div class="bgroup"><div class="bgroup-h"><b>' + esc(p0.pal || 'Jiná paleta') + '</b> <span class="muted">' + (p0.palName ? esc(p0.palName) + ' · ' : '') + Math.round(p0.pl / 10) + ' × ' + Math.round(p0.pw / 10) + ' cm · ' + list.length + ' ' + palWord(list.length) + '</span></div><div class="bgroup-p">' +
       list.map(p => { const n = ++shown; return block(p, 'data-code="' + esc(p.code) + '" data-so="' + esc(p.so || '') + '"' + (p.group ? ' data-group="' + esc(p.group) + '" data-pal="' + esc(p.pal || '') + '"' : '') + (p.over ? ' data-over="1"' : '') + (p.tag ? ' data-tag="' + esc(p.tag) + '"' : '') + (r.planOn ? ' data-bid="' + esc(p.board) + '"' : '') + ' data-pi="' + (num.get(p) - 1) + '" title="Paleta č. ' + n + ' – kliknutím upravíte obsah"', '<i class="pnum">' + n + '</i>' + label(p)); }).join('') + '</div></div>';
   });
+  if (multi && curSo !== null) h += '</div>';
   // pallets the operator added by hand
   // in plan mode the hand-made list is the plan itself: show only its empty pallets here
   if (r.planOn) board = (r.plan || []).filter(b => !b.contents.some(c => c.units > 0));
