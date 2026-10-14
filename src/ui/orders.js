@@ -177,7 +177,7 @@ function compositionHtml(r) {
     else if (x.pack === 'sluzba') parts.push('služba – nic se neveze ✓');
     else if (x.onHost) parts.push(x.onHost + ' ks na paletách ' + x.host);
     if (x.planDist == null && x.board) parts.push(x.qty + ' ks na ručně přidané paletě');
-    if (x.planDist != null || !x.count || x.group || x.pack === 'sluzba') { /* everything rides on host pallets / one koli pallet */ }
+    if (x.planDist != null || !x.count || x.group || x.pack === 'sluzba') { /* everything rides on host pallets / one balení pallet */ }
     else if (x.pack === 'balik') parts.push(x.count + ' ' + balWord(x.count) + ' po ' + x.per + ' ks' + (x.rem ? ' (poslední ' + x.rem + ' ks)' : ''));
     else if (x.per === 1) parts.push(x.full + ' ' + palWord(x.full));
     else {
@@ -292,7 +292,7 @@ function unknownTray(r, isAdmin) {
   return unk.length ? '<aside class="tray" aria-label="Neznámé artikly"><h3>Neznámé artikly</h3><p class="hint">' +
     (isAdmin ? 'Přetáhněte na paletu (artikl pojede s ní) nebo na volné místo (nový artikl do číselníku).' : 'Tyto artikly nejsou v číselníku. Požádejte administrátora o doplnění.') + '</p>' +
     (unk.length > 3 ? '<input type="search" class="unk-search" placeholder="Hledat artikl nebo název…" aria-label="Hledat neznámý artikl">' : '') +
-    unk.map(u => '<div class="unk' + (isAdmin ? '' : ' ro') + '" data-code="' + esc(u.code) + '" data-so="' + esc(u.so || '') + '" data-qty="' + u.qty + '" data-name="' + esc(u.name || '') + '"' + (isAdmin ? ' title="Přetáhněte na paletu nebo na volné místo"' : '') + '><div class="unk-top"><b>' + esc(u.code) + '</b><span>' + fmtN(u.qty) + ' ks</span></div>' + ((r.sos || []).length > 1 && u.so ? '<div class="unk-so">zakázka ' + esc(u.so) + '</div>' : '') + '<div class="unk-name' + (u.name ? '' : ' none') + '" title="' + esc(u.name || '') + '">' + esc(u.name || 'bez názvu v zakázce') + '</div>' + (u.hint ? '<button type="button" class="unk-hint linkbtn" data-koli="' + esc(u.hint.replace(/^.*koli /, '')) + '" title="Sám nemá určené balení – přetáhněte ho na volné místo (Nový artikl). Kliknutím ukážete koli.">' + esc(u.hint) + ' ›</button>' : '') + '</div>').join('') + '</aside>' : '';
+    unk.map(u => '<div class="unk' + (isAdmin ? '' : ' ro') + '" data-code="' + esc(u.code) + '" data-so="' + esc(u.so || '') + '" data-qty="' + u.qty + '" data-name="' + esc(u.name || '') + '"' + (isAdmin ? ' title="Přetáhněte na paletu nebo na volné místo"' : '') + '><div class="unk-top"><b>' + esc(u.code) + '</b><span>' + fmtN(u.qty) + ' ks</span></div>' + ((r.sos || []).length > 1 && u.so ? '<div class="unk-so">zakázka ' + esc(u.so) + '</div>' : '') + '<div class="unk-name' + (u.name ? '' : ' none') + '" title="' + esc(u.name || '') + '">' + esc(u.name || 'bez názvu v zakázce') + '</div>' + (u.hint ? '<button type="button" class="unk-hint linkbtn" data-koli="' + esc(u.hint.replace(/^.*balení /, '')) + '" title="Sám nemá určené balení – přetáhněte ho na volné místo (Nový artikl). Kliknutím ukážete balení.">' + esc(u.hint) + ' ›</button>' : '') + '</div>').join('') + '</aside>' : '';
 }
 
 // All pallets of the order as blocks (size to scale), grouped by article; drop target for learning.
@@ -348,7 +348,7 @@ export function renderDetail(r, { rules, isAdmin, board, pallets, saved }) {
   const el = $('#detail');
   if (!r) { el.innerHTML = '<div class="empty">Vložte zakázky do importu a klikněte na „Spočítat“.</div>'; return; }
   const projs = (rules.projects || []).map(p => p.name).filter(Boolean);
-  const chip = projs.length ? '<label class="proj-chip" title="Projekt zakázky – určuje, která koli platí">Projekt: <select id="projSel"' + (isAdmin ? '' : ' disabled') + '><option value="">bez projektu</option>' + projs.map(n => '<option' + (n === r.project ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '</select></label>' : '';
+  const chip = projs.length ? '<label class="proj-chip" title="Projekt zakázky – určuje, která balení platí">Projekt: <select id="projSel"' + (isAdmin ? '' : ' disabled') + '><option value="">bez projektu</option>' + projs.map(n => '<option' + (n === r.project ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '</select></label>' : '';
   let h = '<div class="sec-head"><h2>' + idTitle(r) + '</h2>' + chip + '</div>' + decisionHtml(r, rules, false);
   if (r.pallets.length || r.parcels.length) {
     h += '<div class="stats">';

@@ -83,12 +83,12 @@ export function renderCombos(combos, catalog, pallets, projects) {
     // where it goes – only the fields this kind of rule needs
     let kam;
     if (host) kam = fld('Na paletě artiklu (hlavní položka)', inp('host', 'artikl'));
-    else if (group) kam = fld('Typ palety', palSel) + '<div class="cf2">' + fld('Koli', '<input type="text" data-i="' + i + '" data-f="group" value="' + esc(r.group || '') + '" placeholder="KOLI-1">') + fld('Projekt', projSel) + '</div>';
+    else if (group) kam = fld('Typ palety', palSel) + '<div class="cf2">' + fld('Balení', '<input type="text" data-i="' + i + '" data-f="group" value="' + esc(r.group || '') + '" placeholder="KOLI-1">') + fld('Projekt', projSel) + '</div>';
     else kam = (pallet ? fld('Typ palety', palSel) : '') + ((pallet && !r.pal) || parcel ? '<div class="cf2">' + fld(parcel ? 'Délka balíku, mm' : 'Délka, mm', num('pl', 'z číselníku')) + fld(parcel ? 'Šířka balíku, mm' : 'Šířka, mm', num('pw', 'z číselníku')) + '</div>' : '');
     // the numbers with plain names
     let pocty;
     if (host) pocty = fld('Max ks na 1 ' + (r.strict ? 'hlavní položku' : 'paletu'), num('per', 'bez limitu'), 'Kolik kusů smí jet na jedné paletě hlavní položky. Co se nevejde, čeká vpravo.');
-    else if (group) pocty = fld('Ověřeno ks', num('per', '–'), 'Tolik kusů už na této paletě jelo. Víc jich pojede také, paleta jen svítí oranžově.') + fld('Limit ks', num('cap', 'bez limitu'), 'Když je v zakázce víc kusů, žádný na paletu koli nepůjde – všechny čekají vpravo.');
+    else if (group) pocty = fld('Ověřeno ks', num('per', '–'), 'Tolik kusů už na této paletě jelo. Víc jich pojede také, paleta jen svítí oranžově.') + fld('Limit ks', num('cap', 'bez limitu'), 'Když je v zakázce víc kusů, žádný na paletu balení nepůjde – všechny čekají vpravo.');
     else pocty = fld(parcel ? 'Ks v balíku' : 'Ks na paletě', num('per', 'z číselníku'));
     const nm = names.get(String(r.code || '').toLowerCase()) || r.name || '';
     return '<tr' + (r.on === false ? ' class="off"' : '') + '>' +

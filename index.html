@@ -175,9 +175,9 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
         <div class="card cat">
           <div class="toolbar">
             <button class="btn primary" id="comboAdd">Přidat pravidlo</button>
-            <button class="btn" id="koloBtn">Importovat koli</button>
+            <button class="btn" id="koloBtn">Importovat balení</button>
             <button class="btn" id="comboToCat" title="Artikly z kombinací, které nejsou v číselníku, se do něj přidají (název, váha 0, balení neurčeno)">Doplnit artikly do číselníku</button>
-            <button class="btn" id="koloMerge" title="Najde koli se stejnými artikly (nebo podmnožinou jiného koli) na stejném typu palety a sloučí je">Sloučit duplicitní koli</button>
+            <button class="btn" id="koloMerge" title="Najde balení se stejnými artikly (nebo podmnožinou jiného balení) na stejném typu palety a sloučí je">Sloučit duplicitní balení</button>
             <label class="btn">Nahrát CSV / Excel<input type="file" id="comboFile" accept=".csv,.txt,.tsv,.xlsx,.xls,.ods" hidden></label>
             <label class="check"><input type="checkbox" id="comboReplace">Nahradit všechna pravidla</label>
             <button class="btn" id="comboExport">Stáhnout CSV</button>
@@ -238,7 +238,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
         <div class="pagehead"><div><h1>Jak to funguje</h1><p>Podle čeho kalkulátor počítá palety, vybírá vozidla a skládá nakládku.</p></div></div>
         <div class="help help-doc">
           <nav class="card help-wide help-toc"><b>Obsah:</b>
-            <a href="#h1">1. Jak kalkulátor pracuje</a> · <a href="#h2">2. Import zakázek</a> · <a href="#h3">3. Číselník a palety</a> · <a href="#h4">4. Kombinace a koli</a> · <a href="#h5">5. Projekty</a> · <a href="#h6">6. Výpočet palet</a> · <a href="#h7">7. Učení v zakázce</a> · <a href="#h8">8. Sběrná služba a balíky</a> · <a href="#h9">9. Výběr vozidel a nakládka</a> · <a href="#h10">10. Ringil, tisk, stavy</a> · <a href="#h11">11. Uživatelé a data</a></nav>
+            <a href="#h1">1. Jak kalkulátor pracuje</a> · <a href="#h2">2. Import zakázek</a> · <a href="#h3">3. Číselník a palety</a> · <a href="#h4">4. Kombinace a balení</a> · <a href="#h5">5. Projekty</a> · <a href="#h6">6. Výpočet palet</a> · <a href="#h7">7. Učení v zakázce</a> · <a href="#h8">8. Sběrná služba a balíky</a> · <a href="#h9">9. Výběr vozidel a nakládka</a> · <a href="#h10">10. Ringil, tisk, stavy</a> · <a href="#h11">11. Uživatelé a data</a></nav>
 
           <section class="card help-wide" id="h1"><h2>1. Jak kalkulátor pracuje</h2>
             <p>Dispečer vloží zakázku (jen artikly a množství) a hned vidí: kolik palet, váhu, LDM, nadrozměr, zda stačí sběrná služba, nebo kolik a jakých vozidel objednat – a hotové údaje pro Ringil.</p>
@@ -247,8 +247,8 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <h3>1.2 ID a zakázky</h3>
             <p><b>ID</b> = jedna adresa / zásilka. <b>SO (zakázka)</b> = prodejní objednávka. Jedno ID může mít víc SO. Palety se počítají pro každou zakázku zvlášť (zakázky se na jedné paletě nemíchají) a na paletě je číslo zakázky. Celé ID se snaží jet jedním vozidlem.</p>
             <h3>1.3 Pořadí rozhodování pro každý artikl</h3>
-            <ol><li>Je artikl v <b>koli s hlavní položkou</b> projektu (přibal pokladny) a je hlavní položka v zakázce? → jede na paletě hlavní položky (4.3).</li>
-            <li>Ne → je v <b>koli mix</b> projektu (společná paleta)? → jede na paletě koli (4.4).</li>
+            <ol><li>Je artikl v <b>balení s hlavní položkou</b> projektu (přibal pokladny) a je hlavní položka v zakázce? → jede na paletě hlavní položky (4.3).</li>
+            <li>Ne → je v <b>balení mix</b> projektu (společná paleta)? → jede na paletě balení (4.4).</li>
             <li>Ne → jede podle <b>definice položky v Číselníku</b> (vlastní paleta, balík, služba).</li>
             <li>Ne → čeká <b>vpravo</b> v seznamu „Neznámé artikly“ – zařadíte ho ručně (kapitola 7).</li></ol>
             <p>Nic skrytého: rozhoduje jen to, co je v tabulkách Číselník, Palety, Kombinace a Projekty.</p></section>
@@ -278,33 +278,33 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <h3>3.3 Kontrola</h3>
             <p>Tlačítko „Zkontrolovat číselník“ ukáže, co chybí: typ palety, kusy, váha 0, neurčené balení, duplicitní artikl.</p></section>
 
-          <section class="card help-wide" id="h4"><h2>4. Kombinace a koli</h2>
+          <section class="card help-wide" id="h4"><h2>4. Kombinace a balení</h2>
             <h3>4.1 Pořadí pravidel</h3>
-            <p>Nejdřív platí <b>koli s hlavní položkou</b>, potom <b>koli mix</b>, potom ostatní řádky; uvnitř skupiny shora dolů, platí první, který sedí. Až nakonec definice položky v Číselníku. <b>Když je v zakázce</b> = podmínka (ve stejné zakázce je i uvedený artikl), „libovolně“ = bez podmínky. „Ks od / do“ omezí množství v zakázce.</p>
+            <p>Nejdřív platí <b>balení s hlavní položkou</b>, potom <b>balení mix</b>, potom ostatní řádky; uvnitř skupiny shora dolů, platí první, který sedí. Až nakonec definice položky v Číselníku. <b>Když je v zakázce</b> = podmínka (ve stejné zakázce je i uvedený artikl), „libovolně“ = bez podmínky. „Ks od / do“ omezí množství v zakázce.</p>
             <h3>4.2 Druhy pravidel (sloupec Pojede)</h3>
             <ul><li><b>na paletě artiklu</b> – kusy jedou na paletách jiného artiklu (rozměr palety se nemění, přičte se váha);</li>
             <li><b>na jiné paletě</b> – v této situaci jiný typ palety a počet kusů;</li>
-            <li><b>na společné paletě</b> – koli: všechny artikly téhož koli jedou spolu na jedné paletě;</li>
+            <li><b>na společné paletě</b> – koli: všechny artikly téhož balení jedou spolu na jedné paletě;</li>
             <li><b>jako balík</b>.</li></ul>
-            <h3>4.3 Koli s hlavní položkou (pokladna + přibal)</h3>
-            <p>Hlavní položka (např. pokladna V12) jede <b>1 ks na své paletě</b>. Přibal (money box, plexi kit…) má <b>„Max ks na 1 hlavní položku“</b>. Kolik pokladen v zakázce, tolik palet; přibal se rozdělí na každou. Přibal více pokladen se dělí mezi všechny. Co se nevejde, čeká vpravo s poznámkou „nevešlo se na koli …“ – přetažením na paletu pokladny se maximum zvýší. <b>Jedna hlavní položka = jedno koli.</b></p>
-            <h3>4.4 Koli – společná paleta (drobný materiál)</h3>
+            <h3>4.3 Balení s hlavní položkou (pokladna + přibal)</h3>
+            <p>Hlavní položka (např. pokladna V12) jede <b>1 ks na své paletě</b>. Přibal (money box, plexi kit…) má <b>„Max ks na 1 hlavní položku“</b>. Kolik pokladen v zakázce, tolik palet; přibal se rozdělí na každou. Přibal více pokladen se dělí mezi všechny. Co se nevejde, čeká vpravo s poznámkou „nevešlo se na balení …“ – přetažením na paletu pokladny se maximum zvýší. <b>Jedna hlavní položka = jedno balení.</b></p>
+            <h3>4.4 Balení – společná paleta (drobný materiál)</h3>
             <ul><li><b>Ověřeno ks</b> – tolik už jelo spolu. Víc kusů pojede také, paleta jen svítí oranžově s „!“.</li>
-            <li><b>Limit ks</b> – víc kusů na paletu koli nejde; když je v zakázce víc, všechny kusy artiklu čekají vpravo („nevešlo se do KOLI-…“). Prázdné = bez limitu.</li>
-            <li>Artikl z koli projektu jede na paletě koli vždy, i když je v zakázce sám.</li></ul>
-            <p>Jeden artikl je jen v jednom druhu: kdo je hlavní položka nebo přibal, nepatří do koli.</p>
-            <h3>4.5 Import koli</h3>
-            <p>Tlačítko „Importovat koli“: vložte řádky koli z ERP (artikl, název, 1,00). Řádek PAL-… určí paletu (jedna se doplní sama, víc = vyberete, neznámý kód = založí se nová paleta). Volitelně <b>Hlavní položka</b> (pokladna) a <b>Projekt</b>. Koli s jediným artiklem se zapíše do Číselníku jako jeho vlastní paleta. Chybějící artikly se mohou doplnit do Číselníku s balením „neurčeno“.</p>
-            <h3>4.6 Sloučit koli</h3>
-            <p>Koli stejného projektu na stejné paletě se společným artiklem jsou jedno koli viděné po částech – spojí se do nejstaršího (1 2 3 4 5 + 3 4 5 6 → 1 2 3 4 5 6). Koli s jediným artiklem, který je ve větším koli, zmizí. Koli téže hlavní položky se spojí; stejný přibal se nesčítá, platí vyšší maximum.</p>
+            <li><b>Limit ks</b> – víc kusů na paletu balení nejde; když je v zakázce víc, všechny kusy artiklu čekají vpravo („nevešlo se do KOLI-…“). Prázdné = bez limitu.</li>
+            <li>Artikl z balení projektu jede na paletě balení vždy, i když je v zakázce sám.</li></ul>
+            <p>Jeden artikl je jen v jednom druhu: kdo je hlavní položka nebo přibal, nepatří do balení.</p>
+            <h3>4.5 Import balení</h3>
+            <p>Tlačítko „Importovat balení“: vložte řádky balení z ERP (artikl, název, 1,00). Řádek PAL-… určí paletu (jedna se doplní sama, víc = vyberete, neznámý kód = založí se nová paleta). Volitelně <b>Hlavní položka</b> (pokladna) a <b>Projekt</b>. Balení s jediným artiklem se zapíše do Číselníku jako jeho vlastní paleta. Chybějící artikly se mohou doplnit do Číselníku s balením „neurčeno“.</p>
+            <h3>4.6 Sloučit balení</h3>
+            <p>Balení stejného projektu na stejné paletě se společným artiklem jsou jedno balení viděné po částech – spojí se do nejstaršího (1 2 3 4 5 + 3 4 5 6 → 1 2 3 4 5 6). Balení s jediným artiklem, který je ve větším balení, zmizí. Balení téže hlavní položky se spojí; stejný přibal se nesčítá, platí vyšší maximum.</p>
             <h3>4.7 Další tlačítka</h3>
             <p>„Doplnit artikly do číselníku“ přidá artikly z kombinací, které v Číselníku chybí. „Historie změn“ ukazuje, co kdy kdo uložil.</p></section>
 
           <section class="card" id="h5"><h2>5. Projekty</h2>
             <h3>5.1 Rozpoznání</h3>
             <p>Projekt (např. Action) má <b>klíčové artikly</b> (záložka Projekty). Projekt zakázky je ten, jehož klíčových artiklů je v zakázce nejvíc. V detailu zakázky ho lze změnit, v seznamu je vidět štítek.</p>
-            <h3>5.2 Koli a projekt</h3>
-            <p>Koli s projektem platí jen v zakázkách tohoto projektu, koli „všechny projekty“ platí všude. Sloučení koli spojuje jen koli stejného projektu.</p></section>
+            <h3>5.2 Balení a projekt</h3>
+            <p>Balení s projektem platí jen v zakázkách tohoto projektu, balení „všechny projekty“ platí všude. Sloučení balení spojuje jen balení stejného projektu.</p></section>
 
           <section class="card" id="h6"><h2>6. Výpočet palet</h2>
             <h3>6.1 Z číselníku</h3>
@@ -312,21 +312,21 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <h3>6.2 Nadrozměr a LDM</h3>
             <p>Nadrozměr: paleta delší než <b data-help="oL"></b> m nebo širší než <b data-help="oW"></b> m. LDM (ložné metry) = plocha palet ÷ 2,4 m.</p>
             <h3>6.3 Deska „Palety zakázky“</h3>
-            <p>Palety seskupené podle typu palety, číslované po řadě. Na paletě: hlavní artikl, druhý artikl a „+N“ dalších. Štítek KOLI-… nad paletou ukazuje, ke kterému koli patří.</p></section>
+            <p>Palety seskupené podle typu palety, číslované po řadě. Na paletě: hlavní artikl, druhý artikl a „+N“ dalších. Štítek KOLI-… nad paletou ukazuje, ke kterému balení patří.</p></section>
 
           <section class="card help-wide" id="h7"><h2>7. Učení v zakázce</h2>
             <h3>7.1 Neznámé artikly vpravo</h3>
-            <p>Seznam má vyhledávání. Poznámka u artiklu říká, proč tam je (např. „přibal pro koli 6, 9“, „nevešlo se do KOLI-8“). Výběr více artiklů se Shiftem jen z jedné zakázky.</p>
+            <p>Seznam má vyhledávání. Poznámka u artiklu říká, proč tam je (např. „přibal pro balení 6, 9“, „nevešlo se do KOLI-8“). Výběr více artiklů se Shiftem jen z jedné zakázky.</p>
             <h3>7.2 Kam artikl přetáhnout</h3>
             <ul><li><b>na paletu s materiálem</b> – pojede na ní (s „Max ks na paletu“, zapamatovat jako kombinaci);</li>
-            <li><b>na paletu koli</b> – přidá se do koli;</li>
+            <li><b>na paletu balení</b> – přidá se do balení;</li>
             <li><b>na paletu pokladny</b> – přibal, maximum se zvýší;</li>
             <li><b>na prázdnou paletu</b> – určíte, kolik kusů se na tento typ vejde;</li>
             <li><b>na volné místo</b> – Nový artikl: paleta ze seznamu, nová paleta, balík nebo služba.</li></ul>
             <h3>7.3 Úprava palet</h3>
-            <p>Klik na paletu: přesun kusů, změna typu, smazání palety (kusy se vrátí vpravo, volitelně i s definicí artiklu), <b>Uložit jako koli</b>. Paletu lze přetáhnout na jinou – nad kapacitu jen s potvrzením. Zakázky se na paletě nemíchají.</p>
+            <p>Klik na paletu: přesun kusů, změna typu, smazání palety (kusy se vrátí vpravo, volitelně i s definicí artiklu), <b>Uložit jako balení</b>. Paletu lze přetáhnout na jinou – nad kapacitu jen s potvrzením. Zakázky se na paletě nemíchají.</p>
             <h3>7.4 ✓ Zkontrolovat a uložit</h3>
-            <p>Na konci zakázky: porovná pravidla s paletami (smaže neplatná, doplní nová, zvýší ověřené kusy, přidá artikly do koli), zapíše změny do historie a zakázka se zase počítá automaticky z tabulek. Ruční palety zůstanou jen tehdy, když je pravidla neumí popsat.</p></section>
+            <p>Na konci zakázky: porovná pravidla s paletami (smaže neplatná, doplní nová, zvýší ověřené kusy, přidá artikly do balení), zapíše změny do historie a zakázka se zase počítá automaticky z tabulek. Ruční palety zůstanou jen tehdy, když je pravidla neumí popsat.</p></section>
 
           <section class="card" id="h8"><h2>8. Sběrná služba a balíky</h2>
             <h3>8.1 Palety</h3>
@@ -363,10 +363,10 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
       </section>
 
       <section id="view-projects" hidden>
-        <div class="pagehead"><div><h1>Projekty</h1><p>Projekt zakázky se pozná podle klíčových artiklů (např. pokladny). Koli s projektem platí jen v zakázkách tohoto projektu.</p></div></div>
+        <div class="pagehead"><div><h1>Projekty</h1><p>Projekt zakázky se pozná podle klíčových artiklů (např. pokladny). Balení s projektem platí jen v zakázkách tohoto projektu.</p></div></div>
         <div class="card cat">
           <div class="toolbar"><button class="btn primary" id="projAdd">+ Přidat projekt</button></div>
-          <div class="tscroll"><table><thead><tr><th>Projekt</th><th>Klíčové artikly (oddělte čárkou nebo novým řádkem)</th><th class="num">Koli</th><th></th></tr></thead><tbody id="projBody"></tbody></table></div>
+          <div class="tscroll"><table><thead><tr><th>Projekt</th><th>Klíčové artikly (oddělte čárkou nebo novým řádkem)</th><th class="num">Balení</th><th></th></tr></thead><tbody id="projBody"></tbody></table></div>
         </div>
       </section>
       <section id="view-rules" hidden>
@@ -391,7 +391,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
   <form method="dialog">
     <h2 id="peTitle">Paleta</h2>
     <div id="peBody"></div>
-    <div class="acts"><button type="button" class="btn" id="peKoli" title="Obsah této palety se uloží jako koli – příště artikly pojedou spolu">Uložit jako koli</button><button type="button" class="btn" id="peDelete">Smazat paletu</button><button class="btn primary" value="close">Hotovo</button></div>
+    <div class="acts"><button type="button" class="btn" id="peKoli" title="Obsah této palety se uloží jako balení – příště artikly pojedou spolu">Uložit jako balení</button><button type="button" class="btn" id="peDelete">Smazat paletu</button><button class="btn primary" value="close">Hotovo</button></div>
   </form>
 </dialog>
 <dialog class="dlg" id="dlgPallet">
@@ -417,12 +417,12 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
 </dialog>
 <dialog class="dlg" id="dlgKolo">
   <form method="dialog" id="koForm">
-    <h2>Importovat koli</h2>
-    <p class="hint">Vložte řádky koli z ERP (artikl, název, množství). Artikly pak pojedou spolu na jedné paletě. Množství se bere jako <b>ověřené</b>, ne jako maximum – když jich bude v zakázce víc, pojedou také, jen s upozorněním.</p>
+    <h2>Importovat balení</h2>
+    <p class="hint">Vložte řádky balení z ERP (artikl, název, množství). Artikly pak pojedou spolu na jedné paletě. Množství se bere jako <b>ověřené</b>, ne jako maximum – když jich bude v zakázce víc, pojedou také, jen s upozorněním.</p>
     <textarea id="koText" rows="7" spellcheck="false" placeholder="DRO-0988&#9;FASTENERS KIT ACTION 0988&#9;1,00"></textarea>
     <div id="koPreview" class="ko-preview"></div>
     <label id="koPalWrap">Typ palety<input type="search" id="koPal" list="koPalList" autocomplete="off" placeholder="Hledat: kód, název nebo rozměr"><datalist id="koPalList"></datalist></label>
-    <label id="koSelWrap" hidden>Typ palety (v koli je víc palet – vyberte)<select id="koSel"></select></label>
+    <label id="koSelWrap" hidden>Typ palety (v balení je víc palet – vyberte)<select id="koSel"></select></label>
     <div id="koNew" class="ko-new" hidden>
       <p class="warn-text">Paleta <b id="koNewCode"></b> není v seznamu palet – založí se:</p>
       <label>Název palety<input type="text" id="koNewName"></label>
@@ -432,10 +432,10 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
     <label class="inline"><input type="checkbox" id="koCat" checked>Doplnit chybějící artikly do číselníku (název, váha 0, balení neurčeno)</label>
     <label>Projekt<select id="koProj"></select></label>
     <label>Hlavní položka (nepovinné)<select id="koMain"><option value="">– žádný, společná paleta –</option></select></label>
-    <p class="hint" id="koMainHint">Když vyberete hlavní položku (např. pokladnu V12), ostatní artikly pojedou na její paletě – jen když je hlavní položka v zakázce. Bez hlavní položky = společná paleta (koli).</p>
-    <label>Název koli (nepovinné)<input type="text" id="koName" placeholder="např. Action – brána Alphagate"></label>
+    <p class="hint" id="koMainHint">Když vyberete hlavní položku (např. pokladnu V12), ostatní artikly pojedou na její paletě – jen když je hlavní položka v zakázce. Bez hlavní položky = společná paleta (balení).</p>
+    <label>Název balení (nepovinné)<input type="text" id="koName" placeholder="např. Action – brána Alphagate"></label>
     <p class="problems" id="koMsg"></p>
-    <div class="acts"><button class="btn" value="no" formnovalidate>Zrušit</button><button class="btn primary" value="yes" id="koSave" disabled>Uložit koli</button></div>
+    <div class="acts"><button class="btn" value="no" formnovalidate>Zrušit</button><button class="btn primary" value="yes" id="koSave" disabled>Uložit balení</button></div>
   </form>
 </dialog>
 <dialog class="dlg" id="dlgAudit">

@@ -69,7 +69,7 @@ if (isAdmin && !me.demo) {
 // articles that still carry pallet sizes get a pallet type (PAL-xxxx)
 {
   const m = migrateCatalog(state.catalog, state.pallets);
-  // older imported koli (one special entry) become normal table rows
+  // older imported balení (one special entry) become normal table rows
   const ek = expandKolo(state.combos);
   if (ek.changed) { state.combos = ek.combos; if (isAdmin && !me.demo) setTimeout(() => persist('combos'), 0); }
   if (m.changed) { state.catalog = m.catalog; state.pallets = m.types; if (isAdmin && !me.demo) setTimeout(() => { persist('pallets'); persist('catalog'); }, 0); }
@@ -527,7 +527,7 @@ function endDrag(e, cancel) {
       // pallets never mix zakázky: the article must ride on a pallet of its own zakázka
       const pso = boardPal.dataset.so, bad = pso && d.unk.find(u => u.so && u.so !== pso);
       if (bad) { flash('Artikl ' + bad.code + ' je ze zakázky ' + bad.so + ', paleta ze zakázky ' + pso + '. Zakázky se na paletě nemíchají – položte ho na paletu své zakázky nebo na volné místo.'); return; }
-      // a koli pallet: the article joins that koli (learning), otherwise it rides on the article's pallet
+      // a balení pallet: the article joins that balení (learning), otherwise it rides on the article's pallet
       if (boardPal.dataset.group) { askKoloAdd(d.unk, boardPal.dataset.group, boardPal.dataset.pal, boardPal.dataset.bid); return; }
       askCombo(d.unk, boardPal.dataset.code, boardPal.dataset.bid); return;
     }
@@ -574,7 +574,7 @@ function askMerge(id, P, srcs, dst, dstNo) {
   $('#mgOverText').textContent = 'Vejde se jen ' + fit + ' ks z ' + (fit + left) + ' (limit kusů / nosnost palety).';
   $('#dlgMerge').querySelector('input[value="fit"]').checked = true;
   $('#mgRemWrap').hidden = !host || !riders.length; $('#mgRemember').checked = !!dst.group; $('#mgRule').hidden = !dst.group;
-  $('#mgRule').textContent = dst.group ? 'Artikly ' + riders.map(a => a.code).join(', ') + ' se přidají do koli ' + dst.group + ' (příště pojedou spolu na jedné paletě).' : 'Pravidlo: ' + riders.map(a => a.code).join(', ') + ' pojede na paletách ' + host + ' (když je v zakázce ' + host + ' a kusů je nejvýše tolik jako teď).';
+  $('#mgRule').textContent = dst.group ? 'Artikly ' + riders.map(a => a.code).join(', ') + ' se přidají do balení ' + dst.group + ' (příště pojedou spolu na jedné paletě).' : 'Pravidlo: ' + riders.map(a => a.code).join(', ') + ' pojede na paletách ' + host + ' (když je v zakázce ' + host + ' a kusů je nejvýše tolik jako teď).';
   $('#mgRemember').onchange = e => { $('#mgRule').hidden = !e.target.checked; };
   $('#dlgMerge').querySelector('form').onsubmit = ev => {
     if (!ev.submitter || ev.submitter.value !== 'yes') { clearSel(); return; }
@@ -641,7 +641,7 @@ onBoth('click', e => {
   res.drop.forEach(i => rows.push({ k: 'drop', i, t: 'Smazat neplatnou kombinaci: ' + ruleText(state.combos[i]) }));
   res.update.forEach(u => rows.push({ k: 'upd', u, t: 'Upravit kombinaci ' + ruleText(state.combos[u.i]) + ' → ' + Object.entries(u.ch).map(([k, v]) => (k === 'per' ? 'max ' + v + ' ks/paleta' : 'do ' + v + ' ks')).join(', ') }));
   res.add.forEach(a => rows.push({ k: 'add', a, t: 'Nová kombinace: ' + ruleText(a) }));
-  res.koliAdd.forEach(x => rows.push({ k: 'kadd', x, t: 'Přidat do koli ' + x.group + ': ' + x.code + ' (' + x.units + ' ks)' }));
+  res.koliAdd.forEach(x => rows.push({ k: 'kadd', x, t: 'Přidat do balení ' + x.group + ': ' + x.code + ' (' + x.units + ' ks)' }));
   res.seen.forEach(x => rows.push({ k: 'seen', x, t: 'Společná paleta ' + (state.combos[x.i].group || '') + ': ' + x.code + ' ověřeno ' + x.from + ' → ' + x.to + ' ks' }));
   res.defs.forEach(d => rows.push({ k: 'def', d, t: 'Artikl ' + d.code + ': typ palety ' + (d.was || '–') + ' → ' + d.pal }));
   const unk = (r.unknown || []).length;
@@ -690,18 +690,18 @@ onBoth('click', e => {
   };
   $('#dlgAudit').showModal();
 });
-// articles used as main item or přibal (strict host rules) – they do not go into koli
+// articles used as main item or přibal (strict host rules) – they do not go into balení
 function hostCodes() {
   const set = new Set();
   state.combos.forEach(r => { if (r.mode === 'host' && r.strict) { set.add(String(r.code).toLowerCase()); set.add(String(r.host).toLowerCase()); } });
   return set;
 }
-// articles that become a main item / přibal leave their koli rows
+// articles that become a main item / přibal leave their balení rows
 function dropFromKoli(codes) {
   const set = new Set(codes.map(c => String(c).toLowerCase()));
   state.combos = state.combos.filter(r => !(r.mode === 'group' && set.has(String(r.code).toLowerCase())));
 }
-// ---------- import koli (articles that travelled together on one pallet) ----------
+// ---------- import balení (articles that travelled together on one pallet) ----------
 let koParsed = { items: [], pals: [] };
 function koPalCode() {
   if (!$('#koSelWrap').hidden) return $('#koSel').value;
@@ -763,7 +763,7 @@ $('#koForm').onsubmit = ev => {
     state.pallets.push({ code, name: $('#koNewName').value.trim() || code, L: Math.max(L, W), W: Math.min(L, W), H: 0, tare: toNum($('#koNewTare').value) || 0, maxKg: 0, rot: true });
     persist('pallets'); drawPallets();
   }
-  // one article alone = its own pallet: that is a catalog definition, not a koli
+  // one article alone = its own pallet: that is a catalog definition, not a balení
   if (koParsed.items.length === 1 && !$('#koMain').value) {
     const it = koParsed.items[0], low = x => String(x).toLowerCase();
     const ex = state.catalog.find(a => low(a.code) === low(it.code)), def = { code: it.code, name: (ex && ex.name) || it.name || '', pack: 'paleta', pal: code, per: Math.max(1, it.seen || 1), kg: (ex && ex.kg) || 0, rot: true };
@@ -775,10 +775,10 @@ $('#koForm').onsubmit = ev => {
   }
   // one normal table row per article (mode „na společné paletě“), new rows go first
   const main = $('#koMain').value, lowm = x => String(x).toLowerCase();
-  // one main item = one koli: a main item that already has a koli is completed, no second koli number
+  // one main item = one koli: a main item that already has a balení is completed, no second balení number
   const mainRows = main ? state.combos.filter(r => r.mode === 'host' && r.strict && lowm(r.host) === lowm(main)) : [];
   const group = mainRows.length ? (koliOf(mainRows[0]) || nextKoloCode(state.combos)) : nextKoloCode(state.combos);
-  // an article lives in one kind of rule only: main item / přibal, or koli
+  // an article lives in one kind of rule only: main item / přibal, or balení
   const inHost = hostCodes(), lowc = c => String(c).toLowerCase();
   let skipped = [], items = koParsed.items;
   if (!main) { skipped = items.filter(it => inHost.has(lowc(it.code))).map(it => it.code); items = items.filter(it => !inHost.has(lowc(it.code))); }
@@ -791,14 +791,14 @@ $('#koForm').onsubmit = ev => {
   let addedArt = 0;
   if ($('#koCat').checked) koParsed.items.forEach(it => {
     if (state.catalog.some(a => String(a.code).toLowerCase() === it.code.toLowerCase())) return;
-    // the machine goes on the koli's pallet type; accessories get their packing later
+    // the machine goes on the balení's pallet type; accessories get their packing later
     state.catalog.push(it.code === main ? { code: it.code, name: it.name || '', pack: 'paleta', pal: code, per: 1, kg: 0, rot: true } : { code: it.code, name: it.name || '', pack: 'neurceno', per: 0, kg: 0, rot: true }); addedArt++;
   });
   if (addedArt) { persist('catalog'); drawCatalog(); }
   state.combos = rows.concat(state.combos); persist('combos'); drawCombos();
-  logChanges('–', ['Import koli ' + group + ': ' + rows.length + ' řádků kombinací, společná paleta ' + code]);
+  logChanges('–', ['Import balení ' + group + ': ' + rows.length + ' řádků kombinací, společná paleta ' + code]);
   recalc();
-  flash('Koli ' + group + ': přidáno ' + rows.length + ' řádků do kombinací (' + code + ')' + (addedArt ? ', ' + addedArt + ' artiklů do číselníku' : '') + (skipped.length ? '. Vynecháno ' + skipped.length + ' (už jsou jako hlavní položka / přibal): ' + skipped.join(', ') : '') + '.');
+  flash('Balení ' + group + ': přidáno ' + rows.length + ' řádků do kombinací (' + code + ')' + (addedArt ? ', ' + addedArt + ' artiklů do číselníku' : '') + (skipped.length ? '. Vynecháno ' + skipped.length + ' (už jsou jako hlavní položka / přibal): ' + skipped.join(', ') : '') + '.');
 };
 // ---------- articles used in combinations but missing in the catalog → catalog (packing decided later) ----------
 $('#comboToCat').addEventListener('click', async () => {
@@ -818,20 +818,20 @@ $('#comboToCat').addEventListener('click', async () => {
 $('#koloMerge').addEventListener('click', () => {
   const found = findDuplicateGroups(state.combos);
   const hint = $('#auHint').innerHTML;
-  $('#auTitle').textContent = 'Sloučit koli';
-  $('#auHint').textContent = 'Koli na stejném typu palety, která mají společný artikl, jsou jedno koli viděné po částech – spojí se do nejstaršího (1 2 3 4 5 + 3 4 5 6 → 1 2 3 4 5 6). Koli s jediným artiklem, který je ve větším koli, se smaže. Pravidla s podmínkou („když je v zakázce“, hlavní položka) se nemění.';
+  $('#auTitle').textContent = 'Sloučit balení';
+  $('#auHint').textContent = 'Balení na stejném typu palety, která mají společný artikl, jsou jedno balení viděné po částech – spojí se do nejstaršího (1 2 3 4 5 + 3 4 5 6 → 1 2 3 4 5 6). Balení s jediným artiklem, který je ve větším balení, se smaže. Pravidla s podmínkou („když je v zakázce“, hlavní položka) se nemění.';
   $('#auRows').innerHTML = found.length ? found.map((m, n) => '<label class="inline ' + (m.kind === 'merge' ? 'au-add' : 'au-drop') + '"><input type="checkbox" data-au="' + n + '" checked>' +
-    esc(m.kind === 'hostmerge' ? 'Hlavní položka ' + m.host + ': koli ' + m.drop.join(', ') + ' → sloučit do ' + m.keep + ' (jedna položka = jedno koli)' : m.kind === 'hostdup' ? 'Přibal ' + m.code + ' na ' + m.host + ' je dvakrát → jedno pravidlo, max ' + m.per + ' ks/paleta' : m.kind === 'merge' ? 'Spojit ' + m.drop.join(', ') + ' → ' + m.keep + ' · ' + m.pal + ' · celkem ' + m.codes + ' artiklů' : 'Smazat ' + m.drop + ' (jen ' + m.code.toUpperCase() + ', ten je v ' + m.into + ')') + '</label>').join('')
-    : '<p class="ok">Žádné duplicitní koli ✓</p>';
+    esc(m.kind === 'hostmerge' ? 'Hlavní položka ' + m.host + ': balení ' + m.drop.join(', ') + ' → sloučit do ' + m.keep + ' (jedna položka = jedno balení)' : m.kind === 'hostdup' ? 'Přibal ' + m.code + ' na ' + m.host + ' je dvakrát → jedno pravidlo, max ' + m.per + ' ks/paleta' : m.kind === 'merge' ? 'Spojit ' + m.drop.join(', ') + ' → ' + m.keep + ' · ' + m.pal + ' · celkem ' + m.codes + ' artiklů' : 'Smazat ' + m.drop + ' (jen ' + m.code.toUpperCase() + ', ten je v ' + m.into + ')') + '</label>').join('')
+    : '<p class="ok">Žádné duplicitní balení ✓</p>';
   $('#dlgAudit').querySelector('form').onsubmit = ev => {
     $('#auHint').innerHTML = hint;
     if (!ev.submitter || ev.submitter.value !== 'yes') return;
     const chosen = found.filter((m, n) => $('#auRows [data-au="' + n + '"]').checked);
     if (!chosen.length) return;
     state.combos = mergeGroups(state.combos, chosen); persist('combos'); drawCombos();
-    logChanges('–', chosen.map(m => m.kind === 'hostmerge' ? 'Hlavní položka ' + m.host + ': koli ' + m.drop.join(', ') + ' sloučeno do ' + m.keep : m.kind === 'hostdup' ? 'Přibal ' + m.code + ' na ' + m.host + ': duplicitní pravidlo sloučeno (max ' + m.per + ')' : m.kind === 'merge' ? 'Koli ' + m.drop.join(', ') + ' spojeno do ' + m.keep : 'Koli ' + m.drop + ' smazáno (' + m.code.toUpperCase() + ' je v ' + m.into + ')'));
+    logChanges('–', chosen.map(m => m.kind === 'hostmerge' ? 'Hlavní položka ' + m.host + ': balení ' + m.drop.join(', ') + ' sloučeno do ' + m.keep : m.kind === 'hostdup' ? 'Přibal ' + m.code + ' na ' + m.host + ': duplicitní pravidlo sloučeno (max ' + m.per + ')' : m.kind === 'merge' ? 'Balení ' + m.drop.join(', ') + ' spojeno do ' + m.keep : 'Balení ' + m.drop + ' smazáno (' + m.code.toUpperCase() + ' je v ' + m.into + ')'));
     recalc();
-    flash('Sloučeno: ' + chosen.length + ' koli.');
+    flash('Sloučeno: ' + chosen.length + ' balení.');
   };
   $('#dlgAudit').showModal();
 });
@@ -839,9 +839,9 @@ $('#koloMerge').addEventListener('click', () => {
 function projNames() { return (state.rules.projects || []).map(p => p.name).filter(Boolean); }
 function drawProjects() {
   const list = state.rules.projects || [];
-  const koli = name => new Set(state.combos.filter(r => r.mode === 'group' && r.project === name).map(r => r.group)).size;
+  const baleniCount = name => new Set(state.combos.filter(r => r.mode === 'group' && r.project === name).map(r => r.group)).size;
   $('#projBody').innerHTML = list.map((p, i) => '<tr><td><input type="text" data-p="' + i + '" data-pf="name" value="' + esc(p.name || '') + '" placeholder="např. Action"></td>' +
-    '<td><textarea data-p="' + i + '" data-pf="keys" placeholder="V-06-1019-0-0000-V5/9003">' + esc((p.keys || []).join(', ')) + '</textarea></td><td class="num">' + koli(p.name) + '</td>' +
+    '<td><textarea data-p="' + i + '" data-pf="keys" placeholder="V-06-1019-0-0000-V5/9003">' + esc((p.keys || []).join(', ')) + '</textarea></td><td class="num">' + baleniCount(p.name) + '</td>' +
     '<td><button class="btn small" data-pdel="' + i + '">Smazat</button></td></tr>').join('') || '<tr><td colspan="4" class="empty">Zatím žádný projekt.</td></tr>';
 }
 $('#projAdd').addEventListener('click', () => { state.rules.projects = (state.rules.projects || []).concat([{ name: '', keys: [] }]); drawProjects(); const ins = document.querySelectorAll('#projBody input'); if (ins.length) ins[ins.length - 1].focus(); });
@@ -850,7 +850,7 @@ $('#projBody').addEventListener('change', e => {
   const p = state.rules.projects[Number(i)], f = e.target.getAttribute('data-pf');
   if (f === 'name') {
     const old = p.name, nu = e.target.value.trim();
-    // koli of the project follow the new name
+    // balení of the project follow the new name
     if (old && nu && old !== nu) { state.combos.forEach(r => { if (r.project === old) r.project = nu; }); persist('combos'); drawCombos(); }
     p.name = nu;
   } else p.keys = e.target.value.split(/[\n,;\t]+/).map(x => x.trim()).filter(Boolean);
@@ -859,7 +859,7 @@ $('#projBody').addEventListener('change', e => {
 $('#projBody').addEventListener('click', async e => {
   const i = e.target.getAttribute('data-pdel'); if (i == null) return;
   const p = state.rules.projects[Number(i)];
-  if (!await ask('Smazat projekt?', 'Projekt „' + (p.name || '') + '“ se smaže. Jeho koli zůstanou a budou platit pro všechny projekty.', 'Smazat')) return;
+  if (!await ask('Smazat projekt?', 'Projekt „' + (p.name || '') + '“ se smaže. Jeho balení zůstanou a budou platit pro všechny projekty.', 'Smazat')) return;
   state.combos.forEach(r => { if (r.project && r.project === p.name) r.project = ''; });
   state.rules.projects.splice(Number(i), 1); persist('rules'); persist('combos'); drawProjects(); drawCombos(); recalc();
 });
@@ -870,8 +870,8 @@ onBoth('change', e => {
   state.projSel.set(state.sel, e.target.value); save('itab.projsel.v1', Object.fromEntries(state.projSel));
   state.manual.delete(state.sel); keepScroll(() => recalcOne());
 });
-// ---------- learning koli in the order ----------
-// articles join koli `group` on pallet `pal`; new rows get the koli's project; verified pcs only grow
+// ---------- learning balení in the order ----------
+// articles join balení `group` on pallet `pal`; new rows get the balení's project; verified pcs only grow
 function addToKoli(items, group, pal) {
   const low = s => String(s || '').toLowerCase(), inHost = hostCodes();
   const mine = state.combos.filter(r => r.mode === 'group' && low(r.group) === low(group) && low(r.pal) === low(pal));
@@ -886,28 +886,28 @@ function addToKoli(items, group, pal) {
     state.combos.splice(at >= 0 ? at + 1 : 0, 0, row); mine.push(row); added.push(it.code);
   });
   persist('combos'); drawCombos();
-  if (added.length) logChanges(state.sel, ['Do koli ' + group + ' přidáno: ' + added.join(', ')]);
+  if (added.length) logChanges(state.sel, ['Do balení ' + group + ' přidáno: ' + added.join(', ')]);
   return { added, skipped };
 }
-// unknown article dropped on a koli pallet
+// unknown article dropped on a balení pallet
 async function askKoloAdd(list, group, pal, bid) {
-  const ok = await ask('Přidat do koli ' + group + '?', list.map(u => u.code + ' ' + u.qty + ' ks').join(', ') + ' se přidá do koli ' + group + ' (' + pal + '). Příště pojede spolu s ostatními artikly tohoto koli.', 'Přidat do koli');
+  const ok = await ask('Přidat do balení ' + group + '?', list.map(u => u.code + ' ' + u.qty + ' ks').join(', ') + ' se přidá do balení ' + group + ' (' + pal + '). Příště pojede spolu s ostatními artikly tohoto balení.', 'Přidat do balení');
   if (!ok) { clearSel(); return; }
   const res = addToKoli(list.map(u => ({ code: u.code, name: u.name, units: u.qty })), group, pal);
   // pallets edited by hand: put the pieces on that pallet right away
   const P = state.plan.get(state.sel), b = P && bid && P.find(x => x.id === bid);
   if (b) list.filter(u => res.added.includes(u.code)).forEach(u => b.contents.push({ code: u.code, name: u.name || '', units: u.qty, per: u.qty, kg: 0, so: u.so, ride: true }));
   clearSel(); relearn();
-  flash('Přidáno do koli ' + group + ': ' + (res.added.join(', ') || '–') + (res.skipped.length ? '. Vynecháno (hlavní položka / přibal): ' + res.skipped.join(', ') : '') + '.');
+  flash('Přidáno do balení ' + group + ': ' + (res.added.join(', ') || '–') + (res.skipped.length ? '. Vynecháno (hlavní položka / přibal): ' + res.skipped.join(', ') : '') + '.');
 }
-// pallet editor: the pallet as it is now becomes a koli (or a main item + přibal)
+// pallet editor: the pallet as it is now becomes a balení (or a main item + přibal)
 $('#peKoli').addEventListener('click', async () => {
   const { id, pid } = peCur, P = state.plan.get(id), b = P && P.find(x => x.id === pid); if (!b) return;
   if (!typeOf(state.pallets, b.pal)) { flash('Nejdřív paletu uložte jako typ (Změnit typ / Jiná paleta se „Zapamatovat“).'); return; }
   const items = b.contents.filter(c => c.units > 0).map(c => ({ code: c.code, name: c.name || '', seen: c.units }));
-  if (items.length < 2) { flash('Na paletě je jen jeden artikl – to není koli.'); return; }
+  if (items.length < 2) { flash('Na paletě je jen jeden artikl – to není balení.'); return; }
   const main = b.contents.filter(c => c.units > 0 && !c.ride).sort((x, y) => y.units - x.units)[0] || b.contents[0];
-  const ok = await ask('Uložit jako koli?', items.length + ' artiklů na paletě ' + b.pal + ' se uloží jako koli.', 'Uložit koli', main.code + ' je hlavní položka (pokladna) – ostatní jsou přibal na její paletě');
+  const ok = await ask('Uložit jako balení?', items.length + ' artiklů na paletě ' + b.pal + ' se uloží jako balení.', 'Uložit balení', main.code + ' je hlavní položka (pokladna) – ostatní jsou přibal na její paletě');
   if (!ok) return;
   const group = nextKoloCode(state.combos), project = (view(id) || {}).project || '';
   if ($('#askChk').checked) {
@@ -916,7 +916,7 @@ $('#peKoli').addEventListener('click', async () => {
     const a = state.catalog.find(x => String(x.code).toLowerCase() === main.code.toLowerCase());
     if (a && (a.pack === 'neurceno' || !a.pal)) { Object.assign(a, { pack: 'paleta', pal: b.pal, per: 1 }); persist('catalog'); drawCatalog(); }
   } else if (b.group) {
-    // already a koli pallet: complete that koli instead of creating a second one
+    // already a balení pallet: complete that balení instead of creating a second one
     addToKoli(items.map(x => ({ code: x.code, name: x.name, units: x.seen })), b.group, b.pal);
   } else {
     const inHost = hostCodes(), keep = items.filter(x => !inHost.has(x.code.toLowerCase()));
@@ -924,12 +924,12 @@ $('#peKoli').addEventListener('click', async () => {
     b.group = group;
   }
   persist('combos'); drawCombos();
-  logChanges(id, ['Paleta uložena jako koli ' + (b.group || group) + ' (' + items.length + ' artiklů, ' + b.pal + ')' + ($('#askChk').checked ? ', hlavní položka ' + main.code : '')]);
+  logChanges(id, ['Paleta uložena jako balení ' + (b.group || group) + ' (' + items.length + ' artiklů, ' + b.pal + ')' + ($('#askChk').checked ? ', hlavní položka ' + main.code : '')]);
   $('#dlgPalEdit').close(); keepScroll(() => recalcOne());
-  flash('Uloženo jako koli ' + (b.group || group) + '.');
+  flash('Uloženo jako balení ' + (b.group || group) + '.');
 });
 
-// hint „z koli KOLI-8“ on an unknown article: show the koli and offer to use it in this order anyway
+// hint „z balení KOLI-8“ on an unknown article: show the balení and offer to use it in this order anyway
 onBoth('click', async e => {
   const h = e.target.closest('.unk-hint'); if (!h) return;
   e.stopPropagation();
@@ -939,8 +939,8 @@ onBoth('click', async e => {
   const o = state.orders.get(state.sel), inOrder = new Set([...o.lines.values()].map(l => low(l.code)));
   const t = typeOf(state.pallets, rows[0].pal);
   const list = rows.map(r => r.code + (inOrder.has(low(r.code)) ? ' ✓' : '')).join(', ');
-  const ok = await ask('Koli ' + rows[0].group + ' – ' + rows[0].pal + (t ? ' ' + t.name : ''),
-    'Artikly koli (✓ = jsou v této zakázce): ' + list + '. Tento artikl má v zakázce víc kusů, než koli dovoluje (Max ks). Přetáhněte ho na jinou paletu nebo na volné místo; nebo zvyšte Max ks v Kombinacích.', 'Rozumím');
+  const ok = await ask('Balení ' + rows[0].group + ' – ' + rows[0].pal + (t ? ' ' + t.name : ''),
+    'Artikly balení (✓ = jsou v této zakázce): ' + list + '. Tento artikl má v zakázce víc kusů, než balení dovoluje (Max ks). Přetáhněte ho na jinou paletu nebo na volné místo; nebo zvyšte Max ks v Kombinacích.', 'Rozumím');
   void ok;
 });
 function relearn() { state.manual.delete(state.sel); recalc(); }
@@ -1220,7 +1220,7 @@ function askArticle(u, next, left) {
       state.pallets.push({ code, name: $('#daPName').value.trim() || 'Paleta ' + Math.round(L / 10) + ' × ' + Math.round(W / 10), L, W, H: 0, tare: toNum($('#daPTare').value) || 0, maxKg: 0, rot });
       persist('pallets'); drawPallets(); a.pal = code;
     }
-    // an article known only from a koli (balení neurčeno) gets its packing now instead of a second entry
+    // an article known only from a balení (balení neurčeno) gets its packing now instead of a second entry
     const ex = state.catalog.find(c => String(c.code).toLowerCase() === u.code.toLowerCase());
     if (ex) { delete ex.pl; delete ex.pw; delete ex.pal; Object.assign(ex, a, { name: ex.name || a.name, kg: a.kg || ex.kg || 0 }); }
     else state.catalog.push(a);

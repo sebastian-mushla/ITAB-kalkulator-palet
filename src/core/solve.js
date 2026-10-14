@@ -94,7 +94,7 @@ function addBoardPallets(mp, added, types, ci0) {
 // `added` = pallets the operator put on the calculator board for this order: [{ id, pal, contents: [{ code, name, units, per, kg }] }]
 export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], forced = null, added = [], plan = null, project }) {
   const lines = [...o.lines.values()];
-  // project of the order: chosen by hand, otherwise recognised by its key articles; koli of other projects do not apply
+  // project of the order: chosen by hand, otherwise recognised by its key articles; balení of other projects do not apply
   const proj = project !== undefined ? project : ((projectOf(o, rules.projects) || {}).name || '');
   combos = combosFor(combos, proj);
   // each zakázka is calculated on its own pallets (pallets do not mix zakázky); everything is tagged with its zakázka
@@ -109,8 +109,8 @@ export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], 
   });
   if (plan) applyPlan(mp, plan, lines, catalog, pallets);
   else addBoardPallets(mp, added, pallets, catalog.length);
-  // koli number on every koli pallet, also on hand-edited ones
-  // main item with several imported koli (two V11): 1st pallet = 1st koli, 2nd = 2nd …
+  // balení number on every balení pallet, also on hand-edited ones
+  // main item with several imported balení (two V11): 1st pallet = 1st balení, 2nd = 2nd …
   const lowc = s => String(s).toLowerCase(), seenHost = new Map();
   mp.pallets.forEach(p => {
     if (p.group) { p.tag = p.group; return; }
@@ -119,13 +119,13 @@ export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], 
     const n = seenHost.get(lowc(p.code)) || 0; seenHost.set(lowc(p.code), n + 1);
     p.tag = ks[n % ks.length];
   });
-  // what waits on the right says which koli it belongs to
+  // what waits on the right says which balení it belongs to
   mp.unknown.forEach(u => {
     if (u.hint) return;
     const own = combos.filter(r => lowc(r.code) === lowc(u.code));
     const host = [...new Set(own.filter(r => r.mode === 'host' && r.strict).map(koliOf).filter(Boolean))].map(k => k.replace('KOLI-', ''));
     const grp = [...new Set(own.filter(r => r.mode === 'group').map(r => r.group))];
-    if (host.length) u.hint = 'přibal pro koli ' + host.join(', ');
+    if (host.length) u.hint = 'přibal pro balení ' + host.join(', ');
     else if (grp.length) u.hint = 'patří do ' + grp.join(', ');
   });
   const r = {

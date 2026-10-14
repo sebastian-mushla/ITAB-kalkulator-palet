@@ -80,7 +80,7 @@ export function auditOrder(order, plan, combos, catalog) {
     if (n > (rule.per || 0) && !seen.some(x => x.i === i)) seen.push({ i, code: l.code, from: rule.per || 0, to: n });
   });
 
-  // koli pallets the operator added articles to: those articles join the koli
+  // balení pallets the operator added articles to: those articles join the balení
   const koliAdd = [];
   plan.forEach(b => {
     if (!b.group) return;

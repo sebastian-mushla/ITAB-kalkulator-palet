@@ -23,7 +23,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
   }
 
   const groups = new Map(); // shared pallets (mode 'group'): group|pal → articles
-  // shared pallet (koli): the first matching row of the table decides, nothing hidden; „Max ks“ (cap) is a hard limit
+  // shared pallet (balení): the first matching row of the table decides, nothing hidden; „Max ks“ (cap) is a hard limit
   const overCap = (rule, qty) => rule.cap > 0 && qty > rule.cap;
   const capHint = rule => 'nevešlo se do ' + rule.group + (rule.project ? ' · ' + rule.project : '') + ' · ' + rule.pal + ' (max ' + rule.cap + ' ks)';
   function addGroup(rule, a, idx, l) {
@@ -51,11 +51,11 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     const rule = findRule(a.code, l.qty, present, combos);
     const row = { code: a.code, name: a.name, qty: l.qty, kg: l.qty * (a.kg || 0), ci: idx, rule: rule ? ruleText(rule) : null };
     if (rule && rule.mode === 'group') {
-      // more pieces than the koli may carry: all of them wait on the right, labelled with the koli
+      // more pieces than the balení may carry: all of them wait on the right, labelled with the balení
       if (overCap(rule, l.qty)) { unknown.push({ code: l.code, qty: l.qty, name: a.name || l.name || '', known: true, hint: capHint(rule) }); errors.push('Artikl „' + l.code + '“: ' + l.qty + ' ks je víc než max ' + rule.cap + ' ks v ' + rule.group + ' – zařaďte ho ručně.'); return; }
       addGroup(rule, a, idx, l); return;
     }
-    // packing not decided yet (article known from a koli): rides only by a rule, otherwise waits on the right side
+    // packing not decided yet (article known from a balení): rides only by a rule, otherwise waits on the right side
     // a service (freight, handling fee): counted in the order, nothing to load
     if (a.pack === 'sluzba') { rows.push(Object.assign(row, { pack: 'sluzba', kg: 0, full: 0, rem: 0, per: 0, fillRem: 0, count: 0 })); return; }
     if (a.pack === 'neurceno' && !(rule && rule.mode !== 'group')) {
@@ -112,7 +112,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     // přibal of a main item (rule.strict): the max per pallet is fixed – what does not fit waits on the right side
     if (left > 0 && (a.unknown || rule.strict)) {
       const ks = [...new Set(rules.map(koliOf).filter(Boolean))].map(k => k.replace('KOLI-', '')).join(', ');
-      unknown.push({ code: a.code, qty: left, name: a.name || '', known: !a.unknown, hint: rule.strict ? 'nevešlo se na koli ' + (ks || '?') + ' (max ' + rule.per + ' ks na ' + (rules.length > 1 ? 'hlavní položku' : rule.host) + ')' : undefined });
+      unknown.push({ code: a.code, qty: left, name: a.name || '', known: !a.unknown, hint: rule.strict ? 'nevešlo se na balení ' + (ks || '?') + ' (max ' + rule.per + ' ks na ' + (rules.length > 1 ? 'hlavní položku' : rule.host) + ')' : undefined });
       errors.push('Artikl „' + a.code + '“: ' + left + ' ks se nevešlo na palety ' + rule.host + (rule.strict ? ' (max ' + rule.per + ' ks na paletu) – přetáhněte ho na paletu, pravidlo se zvýší.' : ' a není v číselníku.'));
       Object.assign(row, { pack: 'paleta', full: 0, rem: 0, per: 0, fillRem: 0, count: 0 });
     } else if (left > 0) {
@@ -120,7 +120,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
       build(a, idx, left, row);
     } else Object.assign(row, { pack: 'paleta', full: 0, rem: 0, per: a.per, fillRem: 0, count: 0 });
   });
-  // main-item pallets carry the numbers of their koli (as the shared koli pallets do), so it is clear which koli they are
+  // main-item pallets carry the numbers of their balení (as the shared balení pallets do), so it is clear which balení they are
   pallets.forEach(p => {
     if (p.group) { p.tag = p.group; return; }
     const ks = [...new Set((combos || []).filter(r => r.mode === 'host' && r.strict && low(r.host) === low(p.code)).map(koliOf).filter(Boolean))];

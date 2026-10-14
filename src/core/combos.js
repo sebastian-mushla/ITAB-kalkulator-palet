@@ -9,7 +9,7 @@ export const COMBO_MODES = [['host', 'na paletě artiklu'], ['pallet', 'na jiné
 const low = s => String(s == null ? '' : s).trim().toLowerCase();
 
 // First active rule matching the article, the "together with" article and the quantity range.
-// Priority: koli with a main item (strict přibal) → koli mix (shared pallet) → other rows; table order inside each.
+// Priority: balení with a main item (strict přibal) → balení mix (shared pallet) → other rows; table order inside each.
 const rank = r => r.mode === 'host' && r.strict ? 0 : r.mode === 'group' ? 1 : 2;
 
 export function findRule(code, qty, present, combos) {
@@ -39,7 +39,7 @@ export function ruleText(r) {
   return r.code + (cond.length ? ' ' + cond.join(', ') : '') + ' → ' + act;
 }
 
-// Pasted koli from the ERP: "artikl<TAB>název<TAB>1,00" (optional position number first).
+// Pasted balení from the ERP: "artikl<TAB>název<TAB>1,00" (optional position number first).
 // PAL-xxxx lines are the pallet, not goods. Same article twice is summed.
 export function parseKolo(text) {
   const items = new Map(), pals = [], problems = [];
@@ -65,12 +65,12 @@ export function parseKolo(text) {
   return { items: [...items.values()], pals, problems };
 }
 export function nextKoloCode(combos) {
-  // KOLI-n from shared pallets and from machine koli (their note says „Koli KOLI-n – hlavní položka …“)
+  // KOLI-n from shared pallets and from machine balení (their note says „Balení KOLI-n – hlavní položka …“)
   const n = (combos || []).map(r => { const m = String((r.mode === 'group' && r.group) || r.note || '').match(/KOLI-(\d+)/i); return m ? Number(m[1]) : 0; });
   return 'KOLI-' + ((n.length ? Math.max(...n) : 0) + 1);
 }
 
-// older imported koli (one special entry) → normal table rows, one per article
+// older imported balení (one special entry) → normal table rows, one per article
 export function expandKolo(combos) {
   let changed = false;
   const out = [];
@@ -82,13 +82,13 @@ export function expandKolo(combos) {
   return { combos: out, changed };
 }
 export function koloRow(it, group, pal, name, on, project) {
-  return { project: project || '', on: on !== false, code: it.code, withCode: '', min: 0, max: 0, mode: 'group', host: '', pal, group, pl: 0, pw: 0, per: it.seen || 0, kg: 0, name: it.name || '', note: 'Koli ' + group + (name ? ' – ' + name : '') };
+  return { project: project || '', on: on !== false, code: it.code, withCode: '', min: 0, max: 0, mode: 'group', host: '', pal, group, pl: 0, pw: 0, per: it.seen || 0, kg: 0, name: it.name || '', note: 'Balení ' + group + (name ? ' – ' + name : '') };
 }
 
-// Consolidation of koli (unconditional 'group' rows):
-//  - koli on the same pallet type that share at least one article are one koli seen in parts → merged into the oldest
+// Consolidation of balení (unconditional 'group' rows):
+//  - balení on the same pallet type that share at least one article are one balení seen in parts → merged into the oldest
 //    (1 2 3 4 5 + 3 4 5 6 → 1 2 3 4 5 6), verified pcs = the larger;
-//  - a koli with a single article that is also in a bigger koli adds nothing → removed.
+//  - a balení with a single article that is also in a bigger balení adds nothing → removed.
 // Returns actions: { kind: 'merge', keep, drop: [..], pal, codes } | { kind: 'solo', drop, pal, code, into }
 const grpNum = g => Number(String(g).replace(/\D/g, '')) || 0;
 function koliGroups(combos) {
@@ -117,7 +117,7 @@ export function findDuplicateGroups(combos) {
     out.push({ kind: 'merge', keep: c[0].group, drop: c.slice(1).map(x => x.group), pal: c[0].pal, codes: codes.size });
     c.slice(1).forEach(x => merged.add(x));
   });
-  // one main item = one koli: koli numbers of the same main item are merged into the oldest
+  // one main item = one koli: balení numbers of the same main item are merged into the oldest
   const byHost = new Map();
   (combos || []).forEach(r => { if (r.mode === 'host' && r.strict) { const k = low(r.host); if (!byHost.has(k)) byHost.set(k, { host: r.host, ks: new Set() }); const n = koliOf(r); if (n) byHost.get(k).ks.add(n); } });
   byHost.forEach(h => { if (h.ks.size > 1) { const ks = [...h.ks].sort((a, b) => grpNum(a) - grpNum(b)); out.push({ kind: 'hostmerge', host: h.host, keep: ks[0], drop: ks.slice(1) }); } });
@@ -132,7 +132,7 @@ export function findDuplicateGroups(combos) {
     const j = seenHost.get(k);
     out.push({ kind: 'hostdup', code: r.code, host: r.host, keep: j, drop: i, per: Math.max(combos[j].per || 0, r.per || 0) });
   });
-  // single-article koli whose article is in a bigger koli (after merging)
+  // single-article balení whose article is in a bigger balení (after merging)
   const big = list.filter(x => !merged.has(x) && x.codes.size > 1);
   const bigCodes = new Map(); big.forEach(x => x.codes.forEach(c => { const k = x.project + '|' + c; if (!bigCodes.has(k)) bigCodes.set(k, x); }));
   list.filter(x => !merged.has(x) && x.codes.size === 1).forEach(x => {
@@ -145,7 +145,7 @@ export function mergeGroups(combos, actions) {
   const rename = new Map(), remove = new Set(), dropIdx = new Set(), raise = new Map();
   actions.forEach(a => {
     if (a.kind === 'hostdup') { dropIdx.add(a.drop); raise.set(a.keep, Math.max(raise.get(a.keep) || 0, a.per)); const k = combos[a.keep], d = combos[a.drop]; if (k) { k.strict = true; k.max = 0; if (!k.koli && d) { k.koli = d.koli; k.note = d.note; } } return; }
-    if (a.kind === 'hostmerge') { (combos || []).forEach(r => { if (r.mode === 'host' && r.strict && low(r.host) === low(a.host)) { r.koli = a.keep; r.note = 'Koli ' + a.keep + ' – hlavní položka ' + r.host; } }); return; }
+    if (a.kind === 'hostmerge') { (combos || []).forEach(r => { if (r.mode === 'host' && r.strict && low(r.host) === low(a.host)) { r.koli = a.keep; r.note = 'Balení ' + a.keep + ' – hlavní položka ' + r.host; } }); return; }
     if (a.kind === 'merge') a.drop.forEach(d => rename.set(low(d) + '|' + low(a.pal), a.keep));
     else remove.add(low(a.drop) + '|' + low(a.pal));
   });
@@ -156,22 +156,22 @@ export function mergeGroups(combos, actions) {
     const r = raise.has(i) ? Object.assign({}, r0, { per: raise.get(i) }) : r0;
     const k = low(r.group) + '|' + low(r.pal);
     if (plain(r) && remove.has(k)) return;
-    const nr = plain(r) && rename.has(k) ? Object.assign({}, r, { group: rename.get(k), note: 'Koli ' + rename.get(k) + ' (sloučeno)' }) : r;
-    // the same article twice in one koli → one row, verified pcs = the larger
+    const nr = plain(r) && rename.has(k) ? Object.assign({}, r, { group: rename.get(k), note: 'Balení ' + rename.get(k) + ' (sloučeno)' }) : r;
+    // the same article twice in one balení → one row, verified pcs = the larger
     const dup = plain(nr) && out.find(x => plain(x) && low(x.group) === low(nr.group) && low(x.pal) === low(nr.pal) && low(x.code) === low(nr.code));
     if (dup) { dup.per = Math.max(dup.per || 0, nr.per || 0); return; }
     out.push(nr);
   });
   return out;
 }
-// koli of a machine: the other articles ride on the machine's pallet (when the machine is in the order)
+// balení of a machine: the other articles ride on the machine's pallet (when the machine is in the order)
 export function koloHostRows(items, main, group, name) {
   const m = items.find(x => low(x.code) === low(main)), n = Math.max(1, (m && m.seen) || 1);
   return items.filter(x => low(x.code) !== low(main)).map(x => ({ on: true, strict: true, koli: group, code: x.code, withCode: main, min: 0, max: 0, mode: 'host', host: main, pl: 0, pw: 0,
-    per: Math.ceil((x.seen || 1) / n), kg: 0, name: x.name || '', note: 'Koli ' + group + ' – hlavní položka ' + main + (name ? ' – ' + name : '') }));
+    per: Math.ceil((x.seen || 1) / n), kg: 0, name: x.name || '', note: 'Balení ' + group + ' – hlavní položka ' + main + (name ? ' – ' + name : '') }));
 }
 
-// ---------- projects: an order is recognised by its key articles; koli can belong to one project ----------
+// ---------- projects: an order is recognised by its key articles; balení can belong to one project ----------
 // projects = [{ name, keys: ['V-06-…', …] }]
 export function projectOf(order, projects) {
   const codes = new Set([...order.lines.values()].map(l => low(l.code)));
@@ -182,10 +182,10 @@ export function projectOf(order, projects) {
   });
   return best ? { name: best, hits: n } : null;
 }
-// koli of another project do not apply; koli without a project apply everywhere
+// balení of another project do not apply; balení without a project apply everywhere
 export function combosFor(combos, project) {
   return (combos || []).filter(r => r.mode !== 'group' || !low(r.project) || (project && low(r.project) === low(project)));
 }
 
-// koli number of a rule (main item + přibal rows keep it in `koli`, older ones only in the note)
+// balení number of a rule (main item + přibal rows keep it in `balení`, older ones only in the note)
 export function koliOf(r) { const m = String(r.koli || r.group || r.note || '').match(/KOLI-\d+/i); return m ? m[0].toUpperCase() : ''; }
