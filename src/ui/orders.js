@@ -185,10 +185,19 @@ function compositionHtml(r) {
       if (x.full > 0) parts.push(x.full + ' ' + plural(x.full, ['plná', 'plné', 'plných']) + ' po ' + x.per + ' ks');
       if (x.rem > 0) parts.push('1 neúplná: ' + x.rem + ' ks, ' + Math.round(x.fillRem * 100) + ' %');
     }
-    return '<tr><td><i class="sw" style="background:' + color(x.ci) + '"></i>' + esc(x.code) + '<br><span class="hint">' + esc(x.name || '') + '</span></td><td class="num">' + fmtN(x.qty) + ' ks</td><td>' + palCell(x) + '</td><td>' + esc(parts.join(', ')) + (x.rule ? '<br><span class="rule-note' + (x.over ? ' over' : '') + '">Pravidlo: ' + esc(x.rule) + '</span>' : '') + '</td><td class="num">' + fmtKg(x.kg) + '</td></tr>';
+    // how it travels in one badge, the pallet numbers from the board, the rule only as a tooltip
+    const lc = String(x.code).toLowerCase();
+    const on = r.pallets.filter(p => (String(p.code).toLowerCase() === lc || (p.extra || []).some(e => String(e.code).toLowerCase() === lc)) && (!x.so || !p.so || String(p.so) === String(x.so)));
+    const nos = on.map(p => boardNo.get(p)).filter(Boolean).sort((a, b) => a - b);
+    const t = x.pack === 'sluzba' ? ['gray', 'Služba', 'nic se neveze'] : x.pack === 'kit' ? ['gray', 'Kit item', 'nic se neveze']
+      : x.group ? ['mix', 'Mix ' + x.group, 'společná paleta'] : x.onHost ? ['host', 'Přibal', 'na paletě hlavní položky']
+      : x.pack === 'balik' ? ['parcel', 'Balík', x.count + ' ' + balWord(x.count) + ' · ' + cm(x.pl) + ' × ' + cm(x.pw) + ' cm']
+      : x.planDist != null ? ['hand', 'Upraveno ručně', x.planDist] : x.board ? ['hand', 'Ručně', 'ručně přidaná paleta'] : ['solo', 'Solo', (x.pal ? x.pal + ' ' : '') + (x.palName || (cm(x.pl) + ' × ' + cm(x.pw) + ' cm'))];
+    const how = '<span class="how how-' + t[0] + '"' + (x.rule ? ' title="Pravidlo: ' + esc(x.rule) + '"' : '') + '>' + esc(t[1]) + '</span> <span class="how-d">' + esc(t[2]) + '</span>' + (x.over ? ' <span class="how-over">víc než ověřeno</span>' : '');
+    return '<tr><td><i class="sw" style="background:' + color(x.ci) + '"></i><b class="c-code">' + esc(x.code) + '</b><br><span class="hint">' + esc(x.name || '') + '</span></td><td class="num"><b>' + fmtN(x.qty) + '</b> ks</td><td>' + how + '</td><td>' + (nos.length ? nos.map(n => '<span class="pno">' + n + '</span>').join('') : '<span class="muted">–</span>') + '</td><td class="num">' + (x.kg ? fmtKg(x.kg) : '<span class="muted">–</span>') + '</td></tr>';
   }).join('');
   const unk = r.unknown || [];
-  const unknownRows = unk.map(u => '<tr class="unk-row"><td><i class="sw" style="background:var(--gray)"></i>' + esc(u.code) + '<br><span class="hint">' + esc(u.name || '') + '</span></td><td class="num">' + fmtN(u.qty) + ' ks</td><td><span class="pt-chip none">nezařazeno</span></td><td>není v číselníku – zařaďte na ploše níže</td><td class="num">–</td></tr>').join('');
+  const unknownRows = unk.map(u => '<tr class="unk-row"><td><i class="sw" style="background:var(--gray)"></i>' + esc(u.code) + '<br><span class="hint">' + esc(u.name || '') + '</span></td><td class="num">' + fmtN(u.qty) + ' ks</td><td><span class="how how-unk">Nezařazeno</span> <span class="how-d">' + esc(u.hint || 'čeká vpravo') + '</span></td><td><span class="muted">vpravo</span></td><td class="num">–</td></tr>').join('');
   const nKnown = new Set(r.rows.map(x => x.code.toLowerCase())).size, nUnk = unk.length, total = nKnown + nUnk;
   const sum = '<div class="comp-sum"><span class="cs ok">Zařazeno <b>' + nKnown + '</b> z ' + total + ' ' + plural(total, ['artiklu', 'artiklů', 'artiklů']) + '</span>' +
     (nUnk ? '<span class="cs bad"><b>' + nUnk + '</b> ' + plural(nUnk, ['nezařazený', 'nezařazené', 'nezařazených']) + '</span>' : '<span class="cs ok">vše zařazeno ✓</span>') +
@@ -201,7 +210,7 @@ function compositionHtml(r) {
     const unkHtml = unk.map((u, i) => [u.so, unknownRows.split('</tr>')[i] + '</tr>']);
     body = sos.map(so => '<tr class="so-head"><td colspan="5">Zakázka <b>' + esc(so) + '</b></td></tr>' + unkHtml.filter(x => x[0] === so).map(x => x[1]).join('') + rowsHtml.filter(x => x[0] === so).map(x => x[1]).join('')).join('');
   }
-  return '<div class="panel">' + fold('comp', r.rows.length + (r.unknown || []).length <= 15, 'Složení' + (sos.length > 1 ? ' – ' + sos.length + ' zakázky' : ' zakázky') + ' (' + (r.rows.length + (r.unknown || []).length) + ')', sum + '<div class="tscroll"><table><thead><tr><th>Artikl</th><th class="num">Množství</th><th>Paleta</th><th>Rozdělení</th><th class="num">Váha</th></tr></thead><tbody>' + body + '</tbody></table></div>', 'fold-comp') + '</div>';
+  return '<div class="panel">' + fold('comp', r.rows.length + (r.unknown || []).length <= 15, 'Složení' + (sos.length > 1 ? ' – ' + sos.length + ' zakázky' : ' zakázky') + ' (' + (r.rows.length + (r.unknown || []).length) + ')', sum + '<div class="tscroll"><table><thead><tr><th>Artikl</th><th class="num">Ks</th><th>Jak jede</th><th>Palety č.</th><th class="num">Váha</th></tr></thead><tbody>' + body + '</tbody></table></div>', 'fold-comp') + '</div>';
 }
 function extrasOf(items) {
   const m = new Map();
