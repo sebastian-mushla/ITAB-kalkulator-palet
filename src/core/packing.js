@@ -54,7 +54,8 @@ export function setNorms(r) { norms = Object.assign({}, NORM_DEFAULTS, r || {});
 
 // how a loaded body scores against the norms (lower = better)
 export function evalLoad(items, L, W, maxKg) {
-  const kg = items.reduce((s, i) => s + i.kg, 0);
+  // a pallet without weight: balance cannot be judged for the vehicle at all (judging only the known ones would be wrong)
+  const kg = items.some(i => !(i.kg > 0)) ? 0 : items.reduce((s, i) => s + i.kg, 0);
   if (!items.length) return { score: 0, gapPct: 0, leftPct: 50, cgPct: 0, latBad: 0, cgBad: 0, heavy: false };
   const usedL = Math.max(...items.map(i => i.x + i.w));
   const area = items.reduce((s, i) => s + i.w * i.h, 0);
@@ -66,7 +67,8 @@ export function evalLoad(items, L, W, maxKg) {
   const cgBad = heavy ? Math.max(0, norms.cgMin - cgPct, cgPct - norms.cgMax) : 0;
   // tie-break: the load sits as close to the cab as possible (free space stays together at the doors)
   const front = items.reduce((s, i) => s + i.w * i.h * (i.x + i.w / 2), 0) / (area * L);
-  return { score: 1000 * (latBad + cgBad) + gapPct + usedL / L + front, gapPct, leftPct: st.leftPct, cgPct, latBad, cgBad, heavy };
+  // gaps first (rounded to 0.1 %), balance decides only between equally tight layouts, then closeness to the cab
+  return { score: Math.round(gapPct * 10) * 1e4 + Math.round(usedL / L * 1000) * 10 + Math.min(9, latBad + cgBad) + front, gapPct, leftPct: st.leftPct, cgPct, latBad, cgBad, heavy };
 }
 
 // ---------- weight distribution ----------
@@ -171,6 +173,8 @@ export function balanceLoad(items, W, L, maxKg) {
   if (!items.length) return items;
   let out = items.map(i => Object.assign({}, i));
   const usedL = Math.max(...out.map(i => i.x + i.w));
+  // missing weight on any pallet: keep the layout by space only
+  if (out.some(i => !(i.kg > 0))) { compactToCab(out); pullForward(out, W); compactToCab(out); return out; }
   const kg = out.reduce((s, i) => s + i.kg, 0) || 1;
   const cg = out.reduce((s, i) => s + i.kg * (i.x + i.w / 2), 0) / kg;
   // light load: heavy end to the headboard; heavy load: only if that keeps the centre of gravity in the zone
@@ -226,7 +230,7 @@ export function balanceLoad(items, W, L, maxKg) {
 // tie-break only: a better balanced layout wins between options of the same price, never over a cheaper set of vehicles
 // (score can reach 1e5 when a norm is broken, e.g. light loads with weights not filled in → at most 0.01 here)
 function imbalance(b, W, L, maxKg) {
-  return Math.min(1e5, evalLoad(balanceLoad(b.items, W, L, maxKg), L || b.L, W, maxKg || 0).score) / 1e7;
+  return Math.min(1e7, evalLoad(balanceLoad(b.items, W, L, maxKg), L || b.L, W, maxKg || 0).score) / 1e9;
 }
 
 // 3) a pallet with free room across the body slides to the lighter side (mirror position, far edge or the wall)
