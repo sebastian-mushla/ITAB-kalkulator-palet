@@ -303,7 +303,7 @@ export function loadPlanHtml(r, vehicles) {
     'section{margin-top:20px;break-inside:avoid}h2{font-size:16px;margin:0 0 6px}h2 small{color:#555;font-weight:400;font-size:13px}' +
     'table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px}th,td{border:1px solid #bbb;padding:4px 6px;text-align:left;vertical-align:top}.num{text-align:right}.pn{display:inline-block;min-width:20px;padding:1px 5px;border-radius:5px;color:#fff;text-align:center}summary{display:none}' +
     'ul{list-style:none;padding:0;margin:0 0 8px;display:flex;flex-wrap:wrap;gap:4px 16px}ul i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}' +
-    'svg{width:100%;height:auto;max-width:100%!important;min-width:0!important}' +
+    'svg{width:calc(var(--rel, 1) * 100%)!important;height:auto;max-width:100%!important;min-width:0!important}' +
     '@media print{body{margin:10mm}button{display:none}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}@page{size:landscape}' +
     '</style></head><body><button onclick="print()" style="float:right;padding:8px 16px">Tisknout</button>' +
     '<h1>Nakládka – ' + idTitle(r) + '</h1><div class="meta">' + new Date().toLocaleDateString('cs-CZ') + (r.reco ? ' · ' + esc(r.reco) : '') + ' · ' + fmtKg(r.kg) + ' · pohled shora, přední čelo vlevo</div>' + body + '</body></html>';
