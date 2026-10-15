@@ -882,7 +882,7 @@ $('#koloMerge').addEventListener('click', () => {
   $('#auTitle').textContent = 'Sloučit balení';
   $('#auHint').textContent = 'Balení na stejném typu palety, která mají společný artikl, jsou jedno balení viděné po částech – spojí se do nejstaršího (1 2 3 4 5 + 3 4 5 6 → 1 2 3 4 5 6). Balení s jediným artiklem, který je ve větším balení, se smaže. Pravidla s podmínkou („když je v zakázce“, hlavní položka) se nemění.';
   $('#auRows').innerHTML = found.length ? found.map((m, n) => '<label class="inline ' + (m.kind === 'merge' ? 'au-add' : 'au-drop') + '"><input type="checkbox" data-au="' + n + '" checked>' +
-    esc(m.kind === 'hostmerge' ? 'Hlavní položka ' + m.host + ': balení ' + m.drop.join(', ') + ' → sloučit do ' + m.keep + ' (jedna položka = jedno balení)' : m.kind === 'hostdup' ? 'Přibal ' + m.code + ' na ' + m.host + ' je dvakrát → jedno pravidlo, max ' + m.per + ' ks/paleta' : m.kind === 'merge' ? 'Spojit ' + m.drop.join(', ') + ' → ' + m.keep + ' · ' + m.pal + ' · celkem ' + m.codes + ' artiklů' : 'Smazat ' + m.drop + ' (jen ' + m.code.toUpperCase() + ', ten je v ' + m.into + ')') + '</label>').join('')
+    esc(m.kind === 'solodup' ? m.code + ': ' + m.what + ' je dvakrát → smazat duplicitní řádek' : m.kind === 'hostmerge' ? 'Hlavní položka ' + m.host + ': balení ' + m.drop.join(', ') + ' → sloučit do ' + m.keep + ' (jedna položka = jedno balení)' : m.kind === 'hostdup' ? 'Přibal ' + m.code + ' na ' + m.host + ' je dvakrát → jedno pravidlo, max ' + m.per + ' ks/paleta' : m.kind === 'merge' ? 'Spojit ' + m.drop.join(', ') + ' → ' + m.keep + ' · ' + m.pal + ' · celkem ' + m.codes + ' artiklů' : 'Smazat ' + m.drop + ' (jen ' + m.code.toUpperCase() + ', ten je v ' + m.into + ')') + '</label>').join('')
     : '<p class="ok">Žádné duplicitní balení ✓</p>';
   $('#dlgAudit').querySelector('form').onsubmit = ev => {
     $('#auHint').innerHTML = hint;
@@ -890,7 +890,7 @@ $('#koloMerge').addEventListener('click', () => {
     const chosen = found.filter((m, n) => $('#auRows [data-au="' + n + '"]').checked);
     if (!chosen.length) return;
     state.combos = mergeGroups(state.combos, chosen); persist('combos'); drawCombos();
-    logChanges('–', chosen.map(m => m.kind === 'hostmerge' ? 'Hlavní položka ' + m.host + ': balení ' + m.drop.join(', ') + ' sloučeno do ' + m.keep : m.kind === 'hostdup' ? 'Přibal ' + m.code + ' na ' + m.host + ': duplicitní pravidlo sloučeno (max ' + m.per + ')' : m.kind === 'merge' ? 'Balení ' + m.drop.join(', ') + ' spojeno do ' + m.keep : 'Balení ' + m.drop + ' smazáno (' + m.code.toUpperCase() + ' je v ' + m.into + ')'));
+    logChanges('–', chosen.map(m => m.kind === 'solodup' ? m.code + ': duplicitní ' + m.what + ' smazán' : m.kind === 'hostmerge' ? 'Hlavní položka ' + m.host + ': balení ' + m.drop.join(', ') + ' sloučeno do ' + m.keep : m.kind === 'hostdup' ? 'Přibal ' + m.code + ' na ' + m.host + ': duplicitní pravidlo sloučeno (max ' + m.per + ')' : m.kind === 'merge' ? 'Balení ' + m.drop.join(', ') + ' spojeno do ' + m.keep : 'Balení ' + m.drop + ' smazáno (' + m.code.toUpperCase() + ' je v ' + m.into + ')'));
     recalc();
     flash('Sloučeno: ' + chosen.length + ' balení.');
   };

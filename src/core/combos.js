@@ -151,6 +151,15 @@ export function findDuplicateGroups(combos) {
     const j = seenHost.get(k);
     out.push({ kind: 'hostdup', code: r.code, host: r.host, keep: j, drop: i, per: Math.max(combos[j].per || 0, r.per || 0) });
   });
+  // Solo P. / Solo B. entered twice: same article, kind, project and quantity range → one row
+  // (pallet type / ks per pallet of the first one stay; a different pallet type is a real choice, not a duplicate)
+  const seenSolo = new Map();
+  (combos || []).forEach((r, i) => {
+    if (r.mode !== 'pallet' && r.mode !== 'parcel') return;
+    const k = [r.mode, low(r.code), low(r.project), r.min || 0, r.max || 0, low(r.pal), r.pl || 0, r.pw || 0].join('|');
+    if (!seenSolo.has(k)) { seenSolo.set(k, i); return; }
+    out.push({ kind: 'solodup', code: r.code, keep: seenSolo.get(k), drop: i, what: (r.mode === 'pallet' ? 'Solo P. ' + (r.pal || r.pl + '×' + r.pw) : 'Solo B. ' + r.pl + '×' + r.pw) + (r.project ? ' · ' + r.project : '') });
+  });
   // single-article balení whose article is in a bigger balení (after merging)
   const big = list.filter(x => !merged.has(x) && x.codes.size > 1);
   const bigCodes = new Map(); big.forEach(x => x.codes.forEach(c => { const k = x.project + '|' + c; if (!bigCodes.has(k)) bigCodes.set(k, x); }));
@@ -164,6 +173,7 @@ export function mergeGroups(combos, actions) {
   const rename = new Map(), remove = new Set(), dropIdx = new Set(), raise = new Map();
   actions.forEach(a => {
     if (a.kind === 'hostdup') { dropIdx.add(a.drop); raise.set(a.keep, Math.max(raise.get(a.keep) || 0, a.per)); const k = combos[a.keep], d = combos[a.drop]; if (k) { k.strict = true; k.max = 0; if (!k.koli && d) { k.koli = d.koli; k.note = d.note; } } return; }
+    if (a.kind === 'solodup') { dropIdx.add(a.drop); return; }
     if (a.kind === 'hostmerge') { (combos || []).forEach(r => { if (r.mode === 'host' && r.strict && low(r.host) === low(a.host)) { r.koli = a.keep; r.note = 'Balení ' + a.keep + ' – hlavní položka ' + r.host; } }); return; }
     if (a.kind === 'merge') a.drop.forEach(d => rename.set(low(d) + '|' + low(a.pal), a.keep));
     else remove.add(low(a.drop) + '|' + low(a.pal));
