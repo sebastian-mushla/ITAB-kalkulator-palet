@@ -1,7 +1,7 @@
 // Acceptance tests from CLAUDE.md. Run in the browser (tests/index.html) or with `node --test tests/`.
 import { parseOrders, rowsToOrderText } from '../src/core/parse.js';
 import { fromResult, replaceVehicle, viewOf } from '../src/core/manual.js';
-import { loadStats } from '../src/core/packing.js';
+import { loadStats, packAll } from '../src/core/packing.js';
 import { freezePlan, moveUnits, mergePallets } from '../src/core/plan.js';
 import { solve } from '../src/core/solve.js';
 import { DEFAULT_CATALOG, DEFAULT_VEHICLES, DEFAULT_RULES, DEFAULT_COMBOS, DEFAULT_PALLETS, SAMPLE } from '../src/core/defaults.js';
@@ -431,4 +431,14 @@ cases.push(['Jedna hlavní položka = jedno koli: sloučení koli stejné polož
   const f = findDuplicateGroups(rows), res = mergeGroups(rows, f);
   assert(f.some(a => a.kind === 'hostmerge' && a.keep === 'BAL-9'), JSON.stringify(f));
   assert(res.length === 3 && res.every(r => r.koli === 'BAL-9') && res.find(r => r.code === 'MB').per === 1, JSON.stringify(res.map(r => r.code + r.koli + r.per)));
+}]);
+cases.push(['Stejné palety spolu: do druhého vozidla jede paleta artiklu, který jinak nemá v kamionu pár', () => {
+  const P = (code, pl, pw, kg) => ({ code, pl, pw, kg, rot: true, tare: 0 });
+  const small = ['2', '3', '4', '6', '7', '8', '10'].map(c => P(c, 1170, 1100, 100));
+  const pal = [P('V12', 3420, 1350, 373), P('V11', 3420, 1350, 380), P('V12', 3420, 1350, 373), P('V12', 3420, 1350, 373)]
+    .concat(small, [P('ISL', 1200, 1200, 80), P('ISL', 1200, 1200, 80)]);
+  const r = packAll(pal, DEFAULT_VEHICLES, null, true, null, DEFAULT_RULES);
+  const where = code => new Set(r.vehicles.filter(v => v.items.some(i => i.code === code)).map(v => v.title));
+  assert(r.vehicles.length === 2, 'dvě vozidla');
+  assert(where('V12').size === 1 && where('ISL').size === 1, 'V12 a ISL nejsou rozdělené: ' + r.vehicles.map(v => v.title + ': ' + v.items.map(i => i.code).join(',')).join(' | '));
 }]);

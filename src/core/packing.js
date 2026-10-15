@@ -327,6 +327,24 @@ function downsize(b, pool) {
   return { v: v0, b };
 }
 
+// rule „stejné palety spolu“ (tie-break between sets of vehicles with the same price):
+// 1) pallets of the same article, then of the same pallet type, should not be split between vehicles;
+// 2) the smaller vehicles take the smallest pallets (big ones stay together in the main vehicle).
+// Bigger than the used-length / balance tie-breaks, far below any vehicle price.
+export function splitCost(typed) {
+  if (typed.length < 2) return 0;
+  const spread = key => {
+    const m = new Map();
+    typed.forEach((t, k) => t.b.items.forEach(i => { const x = key(i); if (!m.has(x)) m.set(x, new Set()); m.get(x).add(k); }));
+    let n = 0; m.forEach(s => { n += s.size - 1; }); return n;
+  };
+  const art = spread(i => i.code || '?');
+  const typ = spread(i => i.pal || (Math.max(i.pl, i.pw) + '×' + Math.min(i.pl, i.pw)));
+  const big = typed.reduce((a, t) => (t.v.Lmm * t.v.Wmm > a.v.Lmm * a.v.Wmm ? t : a), typed[0]);
+  const small = typed.filter(t => t !== big).reduce((s, t) => s + t.b.items.reduce((u, i) => u + i.pl * i.pw, 0), 0) / 1e6;
+  return art * 0.005 + typ * 0.002 + small * 3e-4;
+}
+
 function fillBins(list, primary, bySize) {
   const bins = [];
   list.forEach(it => {
@@ -449,6 +467,7 @@ function packAllRaw(pallets, vehicles, forced, oneVehicle, seq, rules) {
       // every extra vehicle costs something on top (loading, paperwork, dock time): fewer vehicles win when prices are close
       // rule „co nejméně vozidel“: the number of vehicles decides first, price only between sets of the same size
       c += Math.max(0, typed.length - 1) * (norms.minVeh !== false ? 1000 : (norms.vehExtra || 0));
+      c += splitCost(typed);
       if (!best || c < best.c - 1e-9) best = { c, typed };
     });
   });
