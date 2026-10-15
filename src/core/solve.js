@@ -131,9 +131,16 @@ export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], 
   mp.unknown.forEach(u => {
     if (u.hint) return;
     const own = (soCombos.get(u.so) || combos).filter(r => lowc(r.code) === lowc(u.code));
-    const host = [...new Set(own.filter(r => r.mode === 'host' && r.strict).map(koliOf).filter(Boolean))].map(k => k.replace(/^(KOLI|BAL)-/, ''));
+    const hr = own.filter(r => r.mode === 'host' && r.strict);
     const grp = [...new Set(own.filter(r => r.mode === 'group').map(r => r.group))];
-    if (host.length) u.hint = 'přibal pro balení ' + host.join(', ');
+    // přibal: name the main items (what is on the board) and say that none of them is in this zakázka
+    const inOrder = new Set(lines.filter(l => !u.so || (l.so || o.id) === u.so).map(l => lowc(l.code)));
+    if (hr.length) {
+      const hosts = [...new Set(hr.map(r => r.host))], here = hosts.filter(h => inOrder.has(lowc(h)));
+      const bal = [...new Set(hr.map(koliOf).filter(Boolean))].join(', ');
+      u.hint = here.length ? 'přibal k ' + here.join(', ') + (bal ? ' (' + bal + ')' : '') + ' – nevešel se'
+        : 'přibal k ' + hosts.slice(0, 2).join(', ') + (hosts.length > 2 ? ' …' : '') + (bal ? ' (' + bal + ')' : '') + ' – ta hlavní položka v zakázce není';
+    }
     else if (grp.length) u.hint = 'patří do ' + grp.join(', ');
   });
   const r = {
