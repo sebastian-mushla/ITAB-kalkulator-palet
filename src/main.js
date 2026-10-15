@@ -182,8 +182,25 @@ function importOrders(text, open, initial) {
   recalc();
   if (open && fresh.length) goDetail();
 }
+// the deleted order's lines also leave the import field: blocks under „ID x“ / „SO y“ of that order;
+// a pasted text without any ID / SO header belongs to the one order made from it
+function dropFromImport(id, sos) {
+  const t = $('#csv').value; if (!t.trim()) return;
+  const lw = x => String(x || '').trim().toLowerCase(), mine = new Set([lw(id)].concat((sos || []).map(lw)));
+  const lines = t.split(/\r?\n/), keep = [];
+  let curId = '', curSo = '', any = false;
+  lines.forEach(l => {
+    const m = l.match(/^\s*(ID|SO)\s+(\S+)/i);
+    if (m) { any = true; if (m[1].toUpperCase() === 'ID') { curId = lw(m[2]); curSo = ''; } else curSo = lw(m[2]); }
+    if (!(mine.has(curId) || mine.has(curSo))) keep.push(l);
+  });
+  const nt = any ? keep.join('\n').replace(/\n{3,}/g, '\n\n').trim() : (state.orders.size ? t : '');
+  if (nt !== t) { $('#csv').value = nt; state.csv = nt; save(KEYS.csv, nt); }
+}
 function removeOrder(id) {
-  state.orders.delete(id); state.results.delete(id); state.forced.delete(id); state.manual.delete(id); state.board.delete(id); state.plan.delete(id); state.oneOff.delete(id); unsavePlan(id);
+  const o0 = state.orders.get(id);
+  state.orders.delete(id);
+  dropFromImport(id, o0 && o0.sos); state.results.delete(id); state.forced.delete(id); state.manual.delete(id); state.board.delete(id); state.plan.delete(id); state.oneOff.delete(id); unsavePlan(id);
   if (state.done.delete(id)) save('itab.done.v1', [...state.done]);
   if (state.ordered.delete(id)) save('itab.ordered.v1', [...state.ordered]);
   if (state.sel === id) state.sel = state.orders.size ? state.orders.keys().next().value : null;
