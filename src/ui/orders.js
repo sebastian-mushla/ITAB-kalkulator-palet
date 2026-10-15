@@ -18,10 +18,11 @@ export function icon(n) {
 }
 
 // ---------- drawings ----------
+// --rel = length of this drawing compared with a 13,6 m trailer: all vehicles are drawn in the same scale
 export function svgVehicle(v) {
   const S = 10, x0 = 86, y0 = 6, Lw = v.L / S, Hw = v.W / S, lift = v.lift ? 26 : 0, vbW = x0 + Lw + 14 + lift, vbH = y0 + Hw + 36;
   const drag = v.idx != null;
-  let s = '<svg viewBox="0 0 ' + vbW + ' ' + vbH + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Schéma nakládky: ' + esc(v.title) + '"' + (drag ? ' class="veh-svg" data-v="' + v.idx + '" data-x0="' + x0 + '" data-y0="' + y0 + '" data-s="' + S + '"' : '') + ' style="min-width:' + Math.min(560, Math.max(320, Math.round(vbW * 0.62))) + 'px;max-width:' + Math.round(vbW * 1.15) + 'px">';
+  let s = '<svg viewBox="0 0 ' + vbW + ' ' + vbH + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Schéma nakládky: ' + esc(v.title) + '"' + (drag ? ' class="veh-svg" data-v="' + v.idx + '" data-x0="' + x0 + '" data-y0="' + y0 + '" data-s="' + S + '"' : '') + ' style="--rel:' + Math.min(1, vbW / 1486).toFixed(3) + ';min-width:' + Math.min(560, Math.max(320, Math.round(vbW * 0.62))) + 'px;max-width:' + Math.round(vbW * 1.15) + 'px">';
   const depot = v.type === 'depot';
   if (depot) {
     // handover floor: hatched outline, carrier names, no cab

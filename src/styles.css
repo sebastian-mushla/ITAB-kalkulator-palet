@@ -502,7 +502,7 @@ tr.so-head td{background:var(--soft);font-size:13px;padding:6px 10px;color:var(-
 .pn{display:inline-grid;place-items:center;min-width:24px;height:22px;padding:0 5px;border-radius:6px;color:#fff;font-size:12px}
 .zoom{display:inline-flex;gap:2px;margin-right:6px}.zoom .btn{min-width:30px}
 :root{--zoom:1}
-#dock .plan svg{min-width:calc(var(--zoom) * 560px)!important;max-width:none!important;width:calc(var(--zoom) * 100%)!important}
+#dock .plan svg{min-width:calc(var(--zoom) * var(--rel, 1) * 560px)!important;max-width:none!important;width:calc(var(--zoom) * var(--rel, 1) * 100%)!important}
 .board-pal{padding:6px 8px}
 .board-pal b,.board-pal span,.board-pal small,.board-pal em{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .board-pal b{font-size:14px}.board-pal span{font-size:12.5px}
