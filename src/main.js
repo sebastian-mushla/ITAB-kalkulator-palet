@@ -8,7 +8,7 @@ import { auditOrder } from './core/audit.js';
 import { ruleText, parseKolo, nextKoloCode, expandKolo, koloRow, findDuplicateGroups, mergeGroups, koloHostRows, koliOf, defsToSolo, projectOf as projOf, findRules } from './core/combos.js';
 import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle, replaceVehicle, DEPOT } from './core/manual.js';
 import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, rowsToPallets, mergeBy, toCsv } from './io/importTable.js';
-import { renderKpis, renderPriorities, renderList, renderDetail, renderDock, requestText, loadPlanHtml, palOption, setNameLookup } from './ui/orders.js';
+import { renderKpis, renderPriorities, renderList, renderDetail, renderDock, requestText, loadPlanHtml, palOption, setNameLookup, setKgLookup } from './ui/orders.js';
 import { ringilHtml } from './ui/ringil.js';
 import { renderOrderTable, statusOf, transportOf } from './ui/ordertable.js';
 import { packListHtml } from './ui/packlist.js';
@@ -23,6 +23,13 @@ setNameLookup(code => {
   if (a && a.name) return a.name;
   const o = state.orders.get(state.sel), l = o && [...o.lines.values()].find(x => x.code.toLowerCase() === k);
   return l ? l.name || '' : '';
+});
+// weight of one piece for the pallet lists (catalog, otherwise the rule's weight); 0 = missing
+setKgLookup(code => {
+  const k = String(code).toLowerCase(), a = state.catalog.find(x => String(x.code).toLowerCase() === k);
+  if (a && a.kg > 0) return a.kg;
+  const r = state.combos.find(x => String(x.code).toLowerCase() === k && x.kg > 0);
+  return r ? r.kg : 0;
 });
 // zoom of the vehicle drawings (remembered)
 let zoom = load('itab.zoom.v1', 1);

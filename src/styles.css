@@ -619,3 +619,4 @@ label.check.nowrap{white-space:nowrap}
 .pe-iss-acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}
 .so-shares{display:flex;flex-wrap:wrap;gap:6px 14px;margin:4px 0 2px}.so-share{display:inline-flex;align-items:center;gap:5px;font-size:13px}.so-share small{color:var(--ink2)}
 .variants{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
+.kg-miss{color:var(--red);font-weight:700}

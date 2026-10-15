@@ -234,15 +234,21 @@ function palletTable(v, names) {
     const arts = [{ code: it.code, units: it.units }].concat(it.extra || []);
     return '<tr><td class="num"><b class="pn" style="background:' + color(it.ci) + '">' + numOf.get(it) + '</b></td>' + (multi ? '<td>' + esc(it.so || '') + '</td>' : '') +
       '<td>' + arts.map(a => '<b>' + esc(a.code) + '</b>').join('<br>') + '</td><td class="pt-name">' + arts.map(a => esc(names(a.code))).join('<br>') + '</td>' +
-      '<td class="num">' + arts.map(a => fmtN(a.units) + ' ks').join('<br>') + '</td><td class="num">' + fmtN(it.kg) + ' kg</td><td>' + esc(it.pal || '') + (it.fill < 0.999 ? ' · ' + Math.round(it.fill * 100) + ' %' : '') + '</td></tr>';
+      '<td class="num">' + arts.map(a => fmtN(a.units) + ' ks').join('<br>') + '</td>' +
+      // weight of one piece per article: missing weight in red – that is why balance / payload cannot be checked
+      '<td class="num">' + arts.map(a => { const w = kgOf(a.code); return w > 0 ? fmtN(Math.round(w * 100) / 100) + ' kg' : '<span class="kg-miss" title="Chybí váha kusu – doplňte v Číselníku">chybí</span>'; }).join('<br>') + '</td>' +
+      '<td class="num">' + (missKg(it) ? '<span class="kg-miss" title="Některý artikl na paletě nemá váhu – skutečná váha je vyšší">≥ ' + fmtN(Math.round(it.kg)) + ' kg</span>' : fmtN(Math.round(it.kg)) + ' kg') + '</td><td>' + esc(it.pal || '') + (it.fill < 0.999 ? ' · ' + Math.round(it.fill * 100) + ' %' : '') + '</td></tr>';
   }).join('');
   // closed by default (the loader needs the drawing); an opened list stays open after re-render
   const key = String(v.title || v.vi || '').replace(/'/g, '');
-  const open = typeof window !== 'undefined' && window.__ptOpen && window.__ptOpen[key];
-  return '<details class="ptable"' + (open ? ' open' : '') + ' ontoggle="(window.__ptOpen = window.__ptOpen || {})[\'' + key + '\'] = this.open"><summary>Seznam palet (' + v.items.length + ')</summary><div class="tscroll"><table><thead><tr><th class="num">Č.</th>' + (multi ? '<th>Zakázka</th>' : '') + '<th>Artikl</th><th>Název</th><th class="num">Kusů</th><th class="num">Váha</th><th>Paleta</th></tr></thead><tbody>' + rows + '</tbody></table></div></details>';
+  // open by itself when a weight is missing (so the cause is visible), unless the operator closed it
+  const st = typeof window !== 'undefined' && window.__ptOpen ? window.__ptOpen[key] : undefined;
+  const miss = v.items.some(missKg), open = st !== undefined ? st : miss;
+  return '<details class="ptable"' + (open ? ' open' : '') + ' ontoggle="(window.__ptOpen = window.__ptOpen || {})[\'' + key + '\'] = this.open"><summary>Seznam palet (' + v.items.length + ')' + (miss ? ' <span class="kg-miss">· chybí váha u ' + v.items.filter(missKg).length + ' ' + plural(v.items.filter(missKg).length, ['palety', 'palet', 'palet']) + '</span>' : '') + '</summary><div class="tscroll"><table><thead><tr><th class="num">Č.</th>' + (multi ? '<th>Zakázka</th>' : '') + '<th>Artikl</th><th>Název</th><th class="num">Kusů</th><th class="num">Váha ks</th><th class="num">Váha palety</th><th>Paleta</th></tr></thead><tbody>' + rows + '</tbody></table></div></details>';
 }
-let nameOf = () => '';
+let nameOf = () => '', kgOf = () => 0;
 export function setNameLookup(fn) { nameOf = fn; }
+export function setKgLookup(fn) { kgOf = fn; }
 function vehicleHtml(v) {
   const legend = groupItems(v.items).map(g => '<li><i class="sw" style="background:' + color(g.ci) + '"></i>' + esc(g.code) + ': ' + g.count + ' ' + palWord(g.count) + ', ' + g.units + ' ks</li>').join('') +
     extrasOf(v.items).map(e => '<li><i class="sw" style="background:' + color(e.ci) + '"></i>' + esc(e.code) + ': ' + e.units + ' ks na paletách ' + esc(e.host) + '</li>').join('');
