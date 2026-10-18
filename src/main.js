@@ -1520,8 +1520,8 @@ $('#catReset').addEventListener('click', async () => {
   state.catalog = clone(DEFAULT_CATALOG); persist('catalog'); drawCatalog(); recalc(); $('#catReport').innerHTML = '';
 });
 $('#catExport').addEventListener('click', () => download('ciselnik-artiklu.csv',
-  [['artikl', 'nazev', 'baleni', 'paleta', 'ks_na_palete', 'vaha_kusu_kg', 'lze_otacet', 'balik_delka_mm', 'balik_sirka_mm']]
-    .concat(state.catalog.map(a => [a.code, a.name, a.pack || 'paleta', a.pack === 'balik' ? '' : (a.pal || ''), a.per, String(a.kg).replace('.', ','), a.rot ? 'ano' : 'ne', a.pack === 'balik' ? a.pl : '', a.pack === 'balik' ? a.pw : '']))));
+  [['artikl', 'nazev', 'druh', 'vaha_kusu_kg', 'delka_artiklu_mm', 'sirka_artiklu_mm', 'lze_otacet']]
+    .concat(state.catalog.map(a => [a.code, a.name, a.pack === 'sluzba' || a.pack === 'kit' ? a.pack : 'zbozi', String(a.kg || 0).replace('.', ','), a.aL || '', a.aW || '', a.rot ? 'ano' : 'ne']))));
 // full check of the catalog: every problem that would make an order wrong
 function catalogProblems() {
   const out = [], seen = new Map();
@@ -1549,7 +1549,17 @@ $('#catFile').addEventListener('change', async e => {
     const { rows } = await readFileRows(f), res = rowsToCatalog(rows), replace = $('#catReplace').checked;
     let merged = null;
     if (res.items.length) {
-      merged = replace ? { list: res.items } : mergeBy(state.catalog, res.items, a => String(a.code).trim().toLowerCase());
+      // new article: defaults (zboží, weight 0, can turn); existing one: only the columns the file has, the ERP name stays
+      const full = x => Object.assign({ name: '', pack: 'neurceno', per: 0, kg: 0, rot: true }, x);
+      if (replace) merged = { list: res.items.map(full) };
+      else {
+        const list = state.catalog.slice(), idx = new Map(list.map((a, i) => [String(a.code).trim().toLowerCase(), i]));
+        let added = 0, updated = 0;
+        res.items.forEach(x => { const k = String(x.code).trim().toLowerCase();
+          if (idx.has(k)) { const o = list[idx.get(k)]; list[idx.get(k)] = Object.assign({}, o, x, o.name ? { name: o.name } : {}); updated++; }
+          else { idx.set(k, list.length); list.push(full(x)); added++; } });
+        merged = { list, added, updated };
+      }
       const m = migrateCatalog(merged.list, state.pallets);
       state.catalog = m.catalog; if (m.types.length !== state.pallets.length) { state.pallets = m.types; persist('pallets'); drawPallets(); }
       persist('catalog'); drawCatalog(); recalc();

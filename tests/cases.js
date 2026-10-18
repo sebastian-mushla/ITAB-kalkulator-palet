@@ -99,10 +99,10 @@ export const cases = [
   ['Import číselníku z examples/catalog.csv', () => {
     const csv = 'article,name,pallet_length_mm,pallet_width_mm,units_per_pallet,unit_kg,rotatable\nV06,Kabina,2450,1300,1,200,true\nV-POL,Police,1200,800,156,3,true\nBAD,,0,800,1,2,true';
     const res = rowsToCatalog(parseCsvRows(csv));
-    assert(res.items.length === 2 && res.errors.length === 1, JSON.stringify(res.errors));
+    assert(res.items.length === 3 && res.errors.length === 0, JSON.stringify(res.errors)); // packing is in Způsob balení: a row with only the code is fine
     assert(res.items[1].per === 156 && res.items[1].kg === 3 && res.items[1].pack === 'paleta', JSON.stringify(res.items[1]));
     const m = mergeBy(DEFAULT_CATALOG, res.items, a => a.code.toLowerCase());
-    assert(m.added === 0 && m.updated === 2, 'merge');
+    assert(m.added === 1 && m.updated === 2, 'merge');
   }],
   ['Import českého CSV se středníky a desetinnou čárkou', () => {
     const csv = 'Artikl;Název;Balení;Délka palety, mm;Šířka palety, mm;Ks na paletě;Váha kusu, kg\nP1;"Pokladna; malá";paleta;1200;800;24;4,5\nB1;Kabel;balík;300;200;5;0,8';
@@ -441,4 +441,9 @@ cases.push(['Stejné palety spolu: do druhého vozidla jede paleta artiklu, kter
   const where = code => new Set(r.vehicles.filter(v => v.items.some(i => i.code === code)).map(v => v.title));
   assert(r.vehicles.length === 2, 'dvě vozidla');
   assert(where('V12').size === 1 && where('ISL').size === 1, 'V12 a ISL nejsou rozdělené: ' + r.vehicles.map(v => v.title + ': ' + v.items.map(i => i.code).join(',')).join(' | '));
+}]);
+
+cases.push(['Číselník: rozměr artiklu z CSV a přesah palety', () => {
+  const res = rowsToCatalog(parseCsvRows('Artikl;Název;Váha kusu, kg;Délka artiklu, mm;Šířka artiklu, mm\nST-1;Stojka;4,5;2500;300\nM-1;Malý;1;200;100'));
+  assert(res.errors.length === 0 && res.items[0].aL === 2500 && res.items[0].aW === 300 && res.items[0].kg === 4.5 && res.items[0].pack === undefined, JSON.stringify(res.items[0]));
 }]);

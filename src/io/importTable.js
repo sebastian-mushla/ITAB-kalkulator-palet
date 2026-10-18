@@ -91,6 +91,9 @@ function headerIndex(rows) { return rows.findIndex(r => r.some(c => String(c).tr
 
 // ---------- catalog ----------
 export const CATALOG_FIELDS = {
+  // article size (posts, tubes bigger than their pallet) – before the generic délka/šířka so those words go here first
+  aL: ['delka_artiklu_mm', 'delka artiklu', 'rozmer artiklu delka', 'article length'],
+  aW: ['sirka_artiklu_mm', 'sirka artiklu', 'rozmer artiklu sirka', 'article width'],
   code: ['artikl', 'article', 'artikel', 'артикул', 'sku', 'kod', 'code', 'cislo artiklu'],
   name: ['nazev', 'name', 'название', 'наименование', 'popis', 'description'],
   pack: ['baleni', 'pack', 'packaging', 'упаковка', 'typ baleni'],
@@ -114,11 +117,8 @@ export function rowsToCatalog(rows) {
   const hi = headerIndex(rows);
   if (hi < 0) return { items: [], errors: ['Soubor je prázdný.'], cols: {} };
   const cols = findColumns(rows[hi], CATALOG_FIELDS);
-  const missing = ['code', 'per', 'kg'].filter(k => cols[k] == null);
-  if (cols.pal == null && (cols.pl == null || cols.pw == null)) missing.push('pal');
-  if (missing.length) {
-    return { items: [], cols, errors: ['Nenalezeny sloupce: ' + missing.map(k => CATALOG_LABELS[k]).join(', ') + '. Zkontrolujte záhlaví prvního řádku.'] };
-  }
+  // packing lives in Způsob balení: only the article code is required (name, weight, druh, size optional)
+  if (cols.code == null) return { items: [], cols, errors: ['Nenalezen sloupec: artikl. Zkontrolujte záhlaví prvního řádku.'] };
   const items = [], errors = [];
   const get = (r, k) => (cols[k] == null ? '' : r[cols[k]]);
   rows.slice(hi + 1).forEach((r, i) => {
@@ -127,23 +127,25 @@ export function rowsToCatalog(rows) {
     const code = String(get(r, 'code')).trim();
     if (!code) { errors.push('řádek ' + line + ': chybí artikl'); return; }
     const per = toNum(get(r, 'per')), pl = toNum(get(r, 'pl')), pw = toNum(get(r, 'pw')), kg = toNum(get(r, 'kg') || 0);
-    const pal = String(get(r, 'pal')).trim().toUpperCase(), pack = packValue(get(r, 'pack'));
-    const bad = [];
-    if (pack !== 'neurceno' && pack !== 'sluzba' && pack !== 'kit' && (!(per >= 1) || per % 1 !== 0)) bad.push('počet kusů musí být celé číslo ≥ 1');
-    if (pack === 'balik') {
-      if (!(pl > 0)) bad.push('chybí délka balíku');
-      if (!(pw > 0)) bad.push('chybí šířka balíku');
-    } else if (pack !== 'neurceno' && pack !== 'sluzba' && pack !== 'kit' && !pal && !(pl > 0 && pw > 0)) bad.push('chybí typ palety (PAL-xxxx)');
-    if (!(kg >= 0)) bad.push('váha není číslo');
-    if (bad.length) { errors.push('řádek ' + line + ' (' + code + '): ' + bad.join(', ')); return; }
-    items.push({
-      code, name: String(get(r, 'name')).trim(), pack,
-      pal: pack === 'balik' ? undefined : (pal || undefined), pl: pl || undefined, pw: pw || undefined, per, kg, rot: toBool(get(r, 'rot'), true)
-    });
+    const aL = toNum(get(r, 'aL') || 0), aW = toNum(get(r, 'aW') || 0);
+    const pal = String(get(r, 'pal')).trim().toUpperCase();
+    // no packing column: an article (zboží) – its packing is set in Způsob balení
+    const pack = cols.pack != null ? packValue(get(r, 'pack')) : (pal || (pl > 0 && pw > 0) ? 'paleta' : 'neurceno');
+    if (!(kg >= 0)) { errors.push('řádek ' + line + ' (' + code + '): váha není číslo'); return; }
+    // only the columns the file has: a file with just code + size does not wipe the weights (merge keeps the rest)
+    const it = { code };
+    if (cols.name != null) it.name = String(get(r, 'name')).trim();
+    if (cols.pack != null || pal || (pl > 0 && pw > 0)) it.pack = pack;
+    if (pal && pack !== 'balik') it.pal = pal;
+    if (pl > 0) it.pl = pl; if (pw > 0) it.pw = pw; if (per > 0) it.per = per;
+    if (cols.kg != null) it.kg = kg;
+    if (cols.rot != null) it.rot = toBool(get(r, 'rot'), true);
+    if (aL > 0) it.aL = aL; if (aW > 0) it.aW = aW;
+    items.push(it);
   });
   return { items, errors, cols };
 }
-export const CATALOG_LABELS = { pal: 'typ palety (nebo délka a šířka)', code: 'artikl', name: 'název', pack: 'balení', per: 'kusů na paletě', pl: 'délka', pw: 'šířka', kg: 'váha kusu', rot: 'lze otáčet' };
+export const CATALOG_LABELS = { aL: 'délka artiklu', aW: 'šířka artiklu', pal: 'typ palety (nebo délka a šířka)', code: 'artikl', name: 'název', pack: 'balení', per: 'kusů na paletě', pl: 'délka', pw: 'šířka', kg: 'váha kusu', rot: 'lze otáčet' };
 
 // ---------- pallet types ----------
 export const PALLET_FIELDS = {
