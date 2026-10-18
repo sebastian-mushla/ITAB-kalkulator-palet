@@ -65,7 +65,7 @@ export function svgVehicle(v) {
       s += '<text x="' + cx + '" y="' + (cyy + fs * 1.1) + '" style="' + st + ';stroke-width:2px;font-weight:600;font-size:' + fc.toFixed(1) + 'px">' + esc(shown) + '</text>';
       s += '<text x="' + cx + '" y="' + (cyy + fs * 2.25) + '" style="' + st + ';font-weight:500;font-size:' + fs.toFixed(1) + 'px">' + esc(cut(it.units + ' ks' + (partial ? ' · ' + Math.round(it.fill * 100) + ' %' : ''))) + '</text>';
     }
-    if (it.showSo && it.so && ph >= 30 && pw >= 46) s += '<text x="' + (px + 3) + '" y="' + (py + 10) + '" style="fill:#fff;font-size:9px;font-weight:700;opacity:.95">' + esc(String(it.so).slice(-6)) + '</text>';
+    if (it.showSo && it.so && ph >= 30 && pw >= 46) s += '<text x="' + (px + 3) + '" y="' + (py + 10) + '" style="fill:#fff;font-size:9px;font-weight:700;opacity:.95">' + esc(String(it.so).includes('·') ? String(it.so).split('·')[1].slice(0, 5) : String(it.so).slice(-6)) + '</text>';
     if (drag) s += '</g>';
   });
   const ry = y0 + Hw + 6;
