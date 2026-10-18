@@ -80,12 +80,13 @@ if (isAdmin && !me.demo) {
   // older imported balení (one special entry) become normal table rows
   const ek = expandKolo(state.combos);
   if (ek.changed) { state.combos = ek.combos; if (isAdmin && !me.demo) setTimeout(() => persist('combos'), 0); }
+  // pallet types first, then the packing moves out of the catalog (else the old catalog copy would come back)
+  if (m.changed) { state.catalog = m.catalog; state.pallets = m.types; if (isAdmin && !me.demo) setTimeout(() => { persist('pallets'); persist('catalog'); }, 0); }
   // packing moved from the catalog into Způsob balení (solo / balík rows without project); a backup stays in this browser
   if (state.catalog.some(a => a.pack === 'paleta' || a.pack === 'balik')) {
     try { if (!localStorage.getItem('itab.backup.before-solo')) localStorage.setItem('itab.backup.before-solo', JSON.stringify({ catalog: state.catalog, combos: state.combos })); } catch (e) {}
     if (defsToSolo(state.catalog, state.combos, '') && isAdmin && !me.demo) setTimeout(() => { persist('combos'); persist('catalog'); }, 0);
   }
-  if (m.changed) { state.catalog = m.catalog; state.pallets = m.types; if (isAdmin && !me.demo) setTimeout(() => { persist('pallets'); persist('catalog'); }, 0); }
 }
 
 // admin edits go to the shared database; plain users cannot write (RLS)
