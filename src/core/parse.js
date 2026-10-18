@@ -13,7 +13,10 @@ export function parseOrders(text) {
     if (cols.id != null && cols.order != null && cols.code != null && cols.qty != null) text = rowsToOrderText(rows);
   }
   let first = true, cur = null, curId = null;
+  let term = '';
   function add(id, so, code, qty, name) {
+    // datum dodání: lines of one zakázka with another delivery date are a separate zakázka (same ID)
+    if (term) so = so + '·' + term;
     if (!orders.has(id)) orders.set(id, { id, sos: [], lines: new Map() });
     const o = orders.get(id);
     // ERP lists the pallets themselves as items (PAL-0013 EURO paleta 2×): not goods, kept as a note
@@ -24,7 +27,11 @@ export function parseOrders(text) {
     else o.lines.set(k, { so, code, qty, name: name && name !== '-' ? name : '' });
   }
   text.split(/\r?\n/).forEach((raw, idx) => {
-    const line = raw.trim(); if (!line) return;
+    let line = raw.trim(); if (!line) return;
+    // last column = datum dodání (21/07/26, 21.07.2026 or 210726 after the quantity): cut it off and remember it
+    term = '';
+    const dm = line.match(/^(.*[^\s;])[\s;]+(\d{1,2})[\/.](\d{1,2})[\/.](\d{2}|\d{4})$/) || line.match(/^(.*[\s;][\d.,]+)[\s;]+(\d{2})(\d{2})(\d{2})$/);
+    if (dm && !/^(ID|SO)\b/i.test(line)) { line = dm[1].trim(); term = dm[2].padStart(2, '0') + '.' + dm[3].padStart(2, '0') + '.' + dm[4].slice(-2); }
     const isFirst = first; first = false;
     const idm = line.match(/^ID[\s:.\-]*(\S+)$/i);
     if (idm) { curId = idm[1]; cur = null; return; }

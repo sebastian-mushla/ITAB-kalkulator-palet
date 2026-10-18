@@ -181,7 +181,18 @@ export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], 
   if (r.groupage.ok && forced == null) { r.mode = 'groupage'; r.stat = 'Sběrná služba'; }
   else {
     if (sos.length > 1) mp.pallets.forEach(p => { p.showSo = true; });
-    let pk = packAll(mp.pallets, vehicles, forced, rules.oneVeh !== false, sos, rules);
+    // different datum dodání (SO „551220·21.07.26“) = different loading days: every date is loaded on its own
+    const termOf = so => { const m = String(so).match(/·(.+)$/); return m ? m[1] : ''; };
+    const terms = [...new Set(sos.map(termOf))];
+    let pk;
+    if (terms.length > 1) {
+      pk = { vehicles: [], oversize: [] };
+      terms.forEach(t => {
+        const tsos = sos.filter(so => termOf(so) === t), part = packAll(mp.pallets.filter(p => tsos.includes(p.so)), vehicles, forced, rules.oneVeh !== false, tsos, rules);
+        part.vehicles.forEach(v => { v.term = t; v.title = v.title + (t ? ' · ' + t : ''); });
+        pk.vehicles.push(...part.vehicles); pk.oversize.push(...part.oversize);
+      });
+    } else pk = packAll(mp.pallets, vehicles, forced, rules.oneVeh !== false, sos, rules);
     // a second variant (every zakázka in its own vehicles) when it needs more vehicles: the dispatcher decides
     if (pk.alt) { r.variants = [{ key: 'min', label: 'Méně vozidel', n: pk.vehicles.length }, { key: 'sep', label: pk.alt.label, n: pk.alt.vehicles.length }]; r.variant = variant === 'sep' ? 'sep' : 'min'; if (variant === 'sep') pk = pk.alt; }
     r.vehicles = pk.vehicles; r.oversize = pk.oversize;
