@@ -16,7 +16,8 @@ export function parseOrders(text) {
   let term = '';
   function add(id, so, code, qty, name) {
     // datum dodání: lines of one zakázka with another delivery date are a separate zakázka (same ID)
-    if (term) so = so + '·' + term;
+    // …and a separate ID (own row in the list, own vehicles), e.g. „551220·21.07.26“
+    if (term) { so = so + '·' + term; if (!String(id).includes('·' + term)) id = id + '·' + term; }
     if (!orders.has(id)) orders.set(id, { id, sos: [], lines: new Map() });
     const o = orders.get(id);
     // ERP lists the pallets themselves as items (PAL-0013 EURO paleta 2×): not goods, kept as a note
