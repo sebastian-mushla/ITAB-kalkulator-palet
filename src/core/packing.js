@@ -171,6 +171,17 @@ function compactToCab(items) {
     if (!moved) break;
   }
 }
+// heavy load with the centre of gravity too far forward (front axle overloaded): move the whole block back
+// until the centre of gravity reaches the zone (cgMin % of the body), as far as the free length allows
+function shiftForCg(out, L, W, maxKg) {
+  if (!L || !maxKg || !out.length) return;
+  const e = evalLoad(out, L, W, maxKg);
+  if (e.heavy && e.cgPct < norms.cgMin) {
+    const room = L - Math.max(...out.map(i => i.x + i.w)), need = (norms.cgMin - e.cgPct) / 100 * L;
+    const dx = Math.max(0, Math.min(room, need));
+    if (dx > 0) out.forEach(i => { i.x += dx; });
+  }
+}
 export function balanceLoad(items, W, L, maxKg) {
   if (!items.length) return items;
   let out = items.map(i => Object.assign({}, i));
@@ -214,14 +225,7 @@ export function balanceLoad(items, W, L, maxKg) {
     }
   });
   // heavy load with the centre of gravity too far forward (front axle / kingpin overloaded): move the whole block back
-  if (L && maxKg) {
-    const e = evalLoad(out, L, W, maxKg);
-    if (e.heavy && e.cgPct < norms.cgMin) {
-      const room = L - Math.max(...out.map(i => i.x + i.w)), need = (norms.cgMin - e.cgPct) / 100 * L;
-      const dx = Math.max(0, Math.min(room, need));
-      if (dx > 0) out.forEach(i => { i.x += dx; });
-    }
-  }
+  shiftForCg(out, L, W, maxKg);
   // sideways sliding opens gaps, so only when left/right is out of tolerance
   const st0 = loadStats(out, W); // null when the load weighs nothing (weights not filled in yet)
   if (st0 && Math.abs(st0.leftPct - 50) > norms.lrTol - 50) slideAcross(out, W);
@@ -484,7 +488,8 @@ function packAllRaw(pallets, vehicles, forced, oneVehicle, seq, rules) {
   // sequential loading (zakázka 1, then 2, the rest into the next vehicle) must not be reshuffled across vehicles afterwards
   if (forced == null && !best.seq) { absorb(out); shrink(out, pool); }
   // pallets moved out of a vehicle leave holes: pull what is left towards the cab again
-  out.forEach(v => { compactToCab(v.items); pullForward(v.items, v.W); compactToCab(v.items); });
+  // …and a heavy load is then moved back so its centre of gravity is in the zone
+  out.forEach(v => { compactToCab(v.items); pullForward(v.items, v.W); compactToCab(v.items); shiftForCg(v.items, v.L, v.W, v.maxKg); });
   const cnt = new Map();
   out.forEach(v => { const n = (cnt.get(v.vi) || 0) + 1; cnt.set(v.vi, n); v.n = n; v.title = v.name + ' ' + n; delete v.eup; });
   return { vehicles: out, oversize };
