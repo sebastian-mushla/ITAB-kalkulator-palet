@@ -1313,9 +1313,9 @@ function askMaterial(listU, bid) {
   const t = typeOf(state.pallets, b.pal) || b.custom || { code: b.pal, name: '' };
   const dlg = $('#dlgMaterial');
   $('#dmText').innerHTML = 'Na paletu <b>' + esc(t.code) + '</b> <span class="dlg-name">' + esc(t.name || '') + '</span>. Zaplnění se počítá podle „vejde se na paletu“.';
-  $('#dmRows').innerHTML = '<div class="lr-h m"><span>Artikl</span><span>Na tuto paletu</span><span>Vejde se na paletu</span><span>Váha kusu, kg</span></div>' + listU.map((u, i) =>
+  $('#dmRows').innerHTML = '<div class="lr-h m"><span>Artikl</span><span>Na tuto paletu</span><span>Vejde se na paletu</span><span>Váha kusu, kg</span><span title="Jen když je artikl delší / širší než paleta">Délka × šířka art., mm</span></div>' + listU.map((u, i) =>
     '<div class="lr m"><span><b>' + esc(u.code) + '</b><small>' + esc(u.name || '') + ' · ' + u.qty + ' ks</small></span>' +
-    '<input type="number" min="1" max="' + u.qty + '" step="1" value="' + u.qty + '" data-mu="' + i + '" required><input type="number" min="1" step="1" value="' + u.qty + '" data-mp="' + i + '" required><input type="number" min="0" step="any" value="0" data-mk="' + i + '" required></div>').join('');
+    '<input type="number" min="1" max="' + u.qty + '" step="1" value="' + u.qty + '" data-mu="' + i + '" required><input type="number" min="1" step="1" value="' + u.qty + '" data-mp="' + i + '" required><input type="number" min="0" step="any" value="0" data-mk="' + i + '" required><span class="sz2"><input type="number" min="0" placeholder="–" data-ml="' + i + '"><input type="number" min="0" placeholder="–" data-mw="' + i + '"></span></div>').join('');
   $('#dmSave').checked = true;
   $('#dmSaveText').textContent = 'Uložit do číselníku: ' + (listU.length > 1 ? 'artikly jedou' : listU[0].code + ' jede') + ' na ' + t.code + ' (kusů na paletu = „vejde se na paletu“)';
   dlg.querySelector('form').onsubmit = ev => {
@@ -1329,7 +1329,7 @@ function askMaterial(listU, bid) {
     listU.forEach((u, i) => {
       const units = Math.min(u.qty, Math.max(1, Math.round(toNum($('#dmRows [data-mu="' + i + '"]').value))));
       const per = Math.max(1, Math.round(toNum($('#dmRows [data-mp="' + i + '"]').value))), kg = toNum($('#dmRows [data-mk="' + i + '"]').value) || 0;
-      if (save) { const ex = state.catalog.find(c => String(c.code).toLowerCase() === u.code.toLowerCase()), na = { code: u.code, name: u.name || '', pack: 'paleta', pal: t.code, per, kg, rot: true }; if (ex) Object.assign(ex, na, { name: ex.name || na.name, kg: kg || ex.kg || 0 }); else state.catalog.push(na); }
+      if (save) { const ex = state.catalog.find(c => String(c.code).toLowerCase() === u.code.toLowerCase()), na = { code: u.code, name: u.name || '', pack: 'paleta', pal: t.code, per, kg, rot: true }; const al = toNum($('#dmRows [data-ml="' + i + '"]').value), aw = toNum($('#dmRows [data-mw="' + i + '"]').value); if (al > 0) na.aL = al; if (aw > 0) na.aW = aw; if (ex) Object.assign(ex, na, { name: ex.name || na.name, kg: kg || ex.kg || 0 }); else state.catalog.push(na); }
       // without a plan the catalog makes the pallets itself; with a plan (or without saving) the pieces go on this pallet
       if (P || !save) b.contents.push({ code: u.code, name: u.name || '', units, per, kg, so: u.so });
     });
@@ -1363,6 +1363,8 @@ function askArticle(u, next, left) {
     const a = { code: u.code, name: $('#daName').value.trim(), pack: mode === 'balik' ? 'balik' : mode === 'sluzba' || mode === 'kit' ? mode : 'paleta', per, kg, rot };
     if (mode === 'sluzba' || mode === 'kit') Object.assign(a, { per: 0, kg: 0 });
     else if (mode === 'balik') Object.assign(a, { pl: toNum($('#daL').value), pw: toNum($('#daW').value) });
+    if (mode === 'list' || mode === 'new') { const al = toNum($('#daAL').value), aw = toNum($('#daAW').value); if (al > 0) a.aL = al; if (aw > 0) a.aW = aw; }
+    if (mode === 'sluzba' || mode === 'kit' || mode === 'balik') {}
     else if (mode === 'list') {
       const v = $('#daPal').value.trim(), t = typeOf(state.pallets, v.split(' · ')[0].trim()) || state.pallets.find(p => palOption(p).toLowerCase() === v.toLowerCase());
       if (!t) { ev.preventDefault(); flash('Vyberte typ palety z nabídky (začněte psát kód, název nebo rozměr).'); $('#daPal').focus(); return; }
@@ -1403,6 +1405,8 @@ function daSections() {
   const none = m === 'sluzba' || m === 'kit';
   $('#daQtyRow').hidden = none; $('#daQtyRow').querySelectorAll('input').forEach(i => { i.disabled = none; });
   $('#daRot').closest('label').hidden = none;
+  const sz = m === 'list' || m === 'new';
+  $('#daSizeRow').hidden = !sz; $('#daSizeRow').querySelectorAll('input').forEach(i => { i.disabled = !sz; });
 }
 $('#daPack').addEventListener('change', daSections);
 onBoth('pointercancel', e => endDrag(e, true));
