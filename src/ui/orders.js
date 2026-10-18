@@ -332,7 +332,7 @@ function palletBoardHtml(r, isAdmin, board, types) {
     return '<div class="board-pal' + (cls || '') + '" ' + attrs + ' style="width:' + w.toFixed(0) + 'px;height:' + hh.toFixed(0) + 'px;--c:' + color(p.ci) + ';--f:' + Math.min(100, Math.round(p.fill * 100)) + '%">' + inner + '</div>';
   };
   const multi = (r.sos || []).length > 1;
-  const label = p =>  '<b>' + esc(p.code) + '</b><span>' + fmtN(p.units) + ' ks' + (p.fill < 0.999 ? ' · ' + Math.round(p.fill * 100) + ' %' : '') + '</span>' +
+  const label = p => (p.overhang ? '<small class="ovh" title="Artikl ' + esc(p.overhang.code) + ' je větší než paleta ' + Math.round(p.overhang.palL / 10) + ' × ' + Math.round(p.overhang.palW / 10) + ' cm – v korbě zabere ' + Math.round(p.pl / 10) + ' × ' + Math.round(p.pw / 10) + ' cm">↔ přesah ' + Math.round(p.pl / 10) + '×' + Math.round(p.pw / 10) + '</small>' : '') +  '<b>' + esc(p.code) + '</b><span>' + fmtN(p.units) + ' ks' + (p.fill < 0.999 ? ' · ' + Math.round(p.fill * 100) + ' %' : '') + '</span>' +
     // second article written out, the rest only counted (+3) – the full list is in the pallet editor
     (p.extra ? '<em class="ex"><span class="ex-t">+ ' + esc(p.extra[0].code + ' ' + p.extra[0].units + ' ks') + '</span>' + (p.extra.length > 1 ? '<b class="more">+' + (p.extra.length - 1) + '</b>' : '') + '</em>' : '');
   const num = new Map(r.pallets.map((p, i) => [p, i + 1]));

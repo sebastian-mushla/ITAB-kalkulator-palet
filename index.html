@@ -136,7 +136,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
           </div>
           <div class="tscroll">
             <table>
-              <thead><tr><th>Artikl</th><th>Název</th><th>Druh</th><th>Způsob balení</th><th>Váha kusu, kg</th><th>Lze otáčet</th><th></th></tr></thead>
+              <thead><tr><th>Artikl</th><th>Název</th><th>Druh</th><th>Způsob balení</th><th>Váha kusu, kg</th><th title="Jen když je artikl větší než jeho paleta (stojky, trubky). Paleta pak v korbě zabere tento rozměr.">Rozměr artiklu d × š, mm</th><th>Lze otáčet</th><th></th></tr></thead>
               <tbody id="catBody"></tbody>
             </table>
           </div>
@@ -274,6 +274,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <p>Kód PAL-xxxx, název, délka × šířka (délka jde podél korby), výška, vlastní váha, nosnost, lze otáčet. Import z CSV / Excelu.</p>
             <h3>3.2 Artikl (záložka Číselník artiklů)</h3>
             <p>Kód, název (z ERP, nemění se), <b>váha kusu</b>, „lze otáčet“ a druh: <b>zboží</b>, <b>služba</b> (doprava, poplatek) nebo <b>kit item</b> (součást sady) – služba a kit item se nenakládají a v zakázce se jen ukážou jako vyřízené. Sloupec <b>Způsob balení</b> jen ukazuje, jaká pravidla pro artikl platí; mění se v záložce Způsob balení.</p>
+            <p><b>Rozměr artiklu</b> (d × š, mm) se vyplní jen u artiklů větších než jejich paleta (stojky, trubky). Paleta pak v korbě, v LDM i u nadrozměru počítá s rozměrem největšího artiklu, který na ní leží – na desce palet je označená „↔ přesah“.</p>
             <h3>3.3 Kontrola</h3>
             <p>Tlačítko „Zkontrolovat číselník“ ukáže, co chybí: typ palety, kusy, váha 0, neurčené balení, duplicitní artikl.</p></section>
 

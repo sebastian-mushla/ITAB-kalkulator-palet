@@ -117,6 +117,19 @@ export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], 
   });
   if (plan) applyPlan(mp, plan, lines, catalog, pallets);
   else addBoardPallets(mp, added, pallets, catalog.length);
+  // article bigger than its pallet (posts, tubes): the pallet takes the size of its biggest article – that is the real
+  // footprint in the vehicle, for LDM and for oversize; the pallet itself stays the same (palL × palW kept for the label)
+  const sized = new Map(catalog.filter(a => a.aL > 0 || a.aW > 0).map(a => [String(a.code).toLowerCase(), a]));
+  if (sized.size) mp.pallets.forEach(p => {
+    let L = p.pl || 0, W = p.pw || 0, by = '';
+    [p.code].concat((p.extra || []).map(e => e.code)).forEach(c => {
+      const a = sized.get(String(c).toLowerCase()); if (!a) return;
+      const al = Math.max(a.aL || 0, a.aW || 0), aw = Math.min(a.aL || al, a.aW || al);
+      if (al > L) { L = al; by = c; }
+      if (aw > W) { W = aw; by = by || c; }
+    });
+    if (by) { p.overhang = { code: by, palL: p.pl, palW: p.pw }; p.pl = L; p.pw = W; p.euro = false; }
+  });
   // balení number on every balení pallet, also on hand-edited ones
   // main item with several imported balení (two V11): 1st pallet = 1st balení, 2nd = 2nd …
   const lowc = s => String(s).toLowerCase(), seenHost = new Map();

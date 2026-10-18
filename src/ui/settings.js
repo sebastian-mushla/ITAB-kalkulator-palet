@@ -29,9 +29,11 @@ export function renderCatalog(catalog, view, pallets, combos) {
       '<td><select data-i="' + i + '" data-f="pack" aria-label="Druh"><option value="neurceno"' + (a.pack !== 'sluzba' && a.pack !== 'kit' ? ' selected' : '') + '>zboží</option><option value="sluzba"' + (a.pack === 'sluzba' ? ' selected' : '') + '>služba</option><option value="kit"' + (a.pack === 'kit' ? ' selected' : '') + '>kit item</option></select></td>' +
       '<td class="muted small">' + (a.pack === 'sluzba' || a.pack === 'kit' ? 'nic se neveze' : balOf(a.code)) + '</td>' +
       num('kg') +
+      // size of the article itself when it is bigger than its pallet (posts, tubes): pallet + overhang
+      '<td><span class="dims"><input type="number" min="0" data-i="' + i + '" data-f="aL" value="' + (a.aL || '') + '" placeholder="–" aria-label="Délka artiklu, mm"> × <input type="number" min="0" data-i="' + i + '" data-f="aW" value="' + (a.aW || '') + '" placeholder="–" aria-label="Šířka artiklu, mm"></span></td>' +
       '<td><input type="checkbox" data-i="' + i + '" data-f="rot"' + (a.rot ? ' checked' : '') + ' aria-label="Lze otáčet"></td>' +
       '<td><button class="btn small" data-del="' + i + '">Smazat</button></td></tr>';
-  }).join('') || '<tr><td colspan="7" class="empty">Nic nenalezeno.</td></tr>';
+  }).join('') || '<tr><td colspan="8" class="empty">Nic nenalezeno.</td></tr>';
   $('#catInfo').textContent = list.length + ' ' + plural(list.length, ['artikl', 'artikly', 'artiklů']) + (list.length !== catalog.length ? ' z ' + catalog.length : '');
   $('#catPager').innerHTML = pages > 1
     ? '<button class="btn small" data-page="' + (view.page - 1) + '"' + (view.page === 0 ? ' disabled' : '') + '>‹ Předchozí</button><span class="muted">Strana ' + (view.page + 1) + ' z ' + pages + '</span><button class="btn small" data-page="' + (view.page + 1) + '"' + (view.page >= pages - 1 ? ' disabled' : '') + '>Další ›</button>'
