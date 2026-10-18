@@ -621,3 +621,6 @@ label.check.nowrap{white-space:nowrap}
 .variants{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
 .kg-miss{color:var(--red);font-weight:700}
 .board-pal .ovh{position:absolute;right:6px;bottom:4px;font-size:10px;font-weight:700;background:#fff;color:#a8560b;border-radius:6px;padding:0 4px}
+.c-id .idrow{display:flex;align-items:center;gap:8px;min-height:1.3em}
+.c-id .sos{display:block;color:var(--muted)}
+.date-chip{background:var(--accent-soft,#eeebfa);color:var(--accent,#6a57e3);font-weight:600;font-size:12px;padding:2px 8px;border-radius:999px}

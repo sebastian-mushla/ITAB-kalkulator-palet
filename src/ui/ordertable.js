@@ -86,7 +86,7 @@ export function renderOrderTable(el, countEl, rows, ui, sel) {
     const st = ST[row.status], full = row.known === row.total;
     return '<tr class="orow' + (row.status === 'vyrizena' ? ' done' : '') + '" data-id="' + esc(row.id) + '"' + (row.id === sel ? ' aria-current="true"' : '') + '>' +
       '<td class="c-done"><input type="checkbox" data-done="' + esc(row.id) + '"' + (row.status === 'vyrizena' ? ' checked' : '') + (full ? '' : ' disabled') + ' title="' + (full ? 'Označit jako vyřízenou' : 'Nejdřív zařaďte všechny artikly') + '"></td>' +
-      '<td class="c-id"><b>' + esc(row.id) + '</b>' + (row.sos && (row.sos.length > 1 || row.sos[0] !== row.id) ? '<small class="sos" title="' + esc(row.sos.join(', ')) + '">' + row.sos.length + ' ' + plural(row.sos.length, ['zakázka', 'zakázky', 'zakázek']) + '</small>' : '') + (row.project ? '<span class="chip proj-chip2">' + esc(row.project) + '</span>' : '') + '</td>' +
+      '<td class="c-id">' + idCell(row) + (row.project ? '<span class="chip proj-chip2">' + esc(row.project) + '</span>' : '') + '</td>' +
       '<td><span class="st st-' + st.color + '">' + st.label + '</span></td>' +
       '<td class="num">' + ring(row.known, row.total) + '</td>' +
       '<td class="num">' + row.pallets + (row.parcels ? '<small> +' + row.parcels + ' bal.</small>' : '') + '</td>' +
@@ -95,4 +95,14 @@ export function renderOrderTable(el, countEl, rows, ui, sel) {
       '<td><button class="feed-x" data-del="' + esc(row.id) + '" aria-label="Odebrat zakázku ' + esc(row.id) + '" title="Odebrat ze seznamu">×</button></td></tr>';
   }).join('') : '<tr><td colspan="9" class="empty">' + (rows.length ? 'Žádná zakázka neodpovídá filtrům.' : 'Zakázky zatím nejsou.') + '</td></tr>';
   el.innerHTML = '<table class="otable"><thead>' + head + '</thead><tbody>' + body + '</tbody></table>';
+}
+
+const TERM = /·(\d\d\.\d\d\.\d\d)$/;
+function idCell(row) {
+  const m = String(row.id).match(TERM), date = m ? m[1] : '';
+  const id = String(row.id).replace(TERM, '');
+  const sos = (row.sos && row.sos.length ? row.sos : [row.id]).map(s => String(s).replace(TERM, ''));
+  const hasId = !(sos.length === 1 && sos[0] === id);
+  return '<div class="idrow"><b class="idnum">' + (hasId ? esc(id) : '') + '</b>' + (date ? '<span class="chip date-chip">' + esc(date) + '</span>' : '') + '</div>' +
+    '<small class="sos" title="' + esc(sos.join(', ')) + '">' + esc(sos.join(', ')) + '</small>';
 }
