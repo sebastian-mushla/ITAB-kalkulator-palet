@@ -124,9 +124,9 @@ export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], 
     let L = p.pl || 0, W = p.pw || 0, by = '';
     [p.code].concat((p.extra || []).map(e => e.code)).forEach(c => {
       const a = sized.get(String(c).toLowerCase()); if (!a) return;
-      const al = Math.max(a.aL || 0, a.aW || 0), aw = Math.min(a.aL || al, a.aW || al);
-      if (al > L) { L = al; by = c; }
-      if (aw > W) { W = aw; by = by || c; }
+      // each side on its own: longer article → only the length grows, wider → only the width
+      if ((a.aL || 0) > L) { L = a.aL; by = c; }
+      if ((a.aW || 0) > W) { W = a.aW; by = by || c; }
     });
     if (by) { p.overhang = { code: by, palL: p.pl, palW: p.pw }; p.pl = L; p.pw = W; p.euro = false; }
   });
