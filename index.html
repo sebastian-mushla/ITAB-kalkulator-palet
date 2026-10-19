@@ -500,7 +500,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
       <label>Vlastní váha palety, kg<input type="number" id="daPTare" min="0" step="any" value="0"></label>
     </div>
     <div data-sec="balik" class="two"><label>Délka balíku, mm<input type="number" id="daL" min="1" value="400" required></label><label>Šířka balíku, mm<input type="number" id="daW" min="1" value="300" required></label></div>
-    <div class="two" id="daSizeRow"><label>Délka artiklu, mm<input type="number" id="daAL" min="0" placeholder="jen když je delší než paleta"></label><label>Šířka artiklu, mm<input type="number" id="daAW" min="0" placeholder="jen když je širší než paleta"></label></div>
+    <div class="two" id="daSizeRow"><label>Délka artiklu, mm<input type="number" id="daAL" min="1" placeholder="skutečná délka artiklu" required></label><label>Šířka artiklu, mm<input type="number" id="daAW" min="1" placeholder="skutečná šířka artiklu" required></label></div>
     <div class="two" id="daQtyRow"><label><span id="daPerLabel">Kusů na paletě</span><input type="number" id="daPer" min="1" step="1" value="1" required></label><label>Váha kusu, kg<input type="number" id="daKg" min="0" step="any" value="0" required></label></div>
     <label class="inline"><input type="checkbox" id="daRot" checked>Lze otáčet</label>
     <div class="acts"><button class="btn" value="no" formnovalidate>Zrušit</button><button class="btn primary" value="yes">Uložit artikl</button></div>

@@ -1313,9 +1313,9 @@ function askMaterial(listU, bid) {
   const t = typeOf(state.pallets, b.pal) || b.custom || { code: b.pal, name: '' };
   const dlg = $('#dlgMaterial');
   $('#dmText').innerHTML = 'Na paletu <b>' + esc(t.code) + '</b> <span class="dlg-name">' + esc(t.name || '') + '</span>. Zaplnění se počítá podle „vejde se na paletu“.';
-  $('#dmRows').innerHTML = '<div class="lr-h m"><span>Artikl</span><span>Na tuto paletu</span><span>Vejde se na paletu</span><span>Váha kusu, kg</span><span title="Jen když je artikl delší / širší než paleta">Délka × šířka art., mm</span></div>' + listU.map((u, i) =>
+  $('#dmRows').innerHTML = '<div class="lr-h m"><span>Artikl</span><span>Na tuto paletu</span><span>Vejde se na paletu</span><span>Váha kusu, kg</span><span title="Skutečný rozměr artiklu; větší než paleta = paleta se prodlouží">Délka × šířka art., mm</span></div>' + listU.map((u, i) =>
     '<div class="lr m"><span><b>' + esc(u.code) + '</b><small>' + esc(u.name || '') + ' · ' + u.qty + ' ks</small></span>' +
-    '<input type="number" min="1" max="' + u.qty + '" step="1" value="' + u.qty + '" data-mu="' + i + '" required><input type="number" min="1" step="1" value="' + u.qty + '" data-mp="' + i + '" required><input type="number" min="0" step="any" value="0" data-mk="' + i + '" required><span class="sz2"><input type="number" min="0" placeholder="–" data-ml="' + i + '"><input type="number" min="0" placeholder="–" data-mw="' + i + '"></span></div>').join('');
+    '<input type="number" min="1" max="' + u.qty + '" step="1" value="' + u.qty + '" data-mu="' + i + '" required><input type="number" min="1" step="1" value="' + u.qty + '" data-mp="' + i + '" required><input type="number" min="0" step="any" value="0" data-mk="' + i + '" required><span class="sz2"><input type="number" min="1" placeholder="D" data-ml="' + i + '" required><input type="number" min="1" placeholder="Š" data-mw="' + i + '" required></span></div>').join('');
   $('#dmSave').checked = true;
   $('#dmSaveText').textContent = 'Uložit do číselníku: ' + (listU.length > 1 ? 'artikly jedou' : listU[0].code + ' jede') + ' na ' + t.code + ' (kusů na paletu = „vejde se na paletu“)';
   dlg.querySelector('form').onsubmit = ev => {
