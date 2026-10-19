@@ -115,8 +115,9 @@ export function auditOrder(order, plan, combos, catalog, project) {
     else if (rule.mode === 'pallet') {
       const i = combos.indexOf(rule), ch = {};
       if (low(rule.pal) !== low(types[0])) ch.pal = types[0];
-      // more pieces on one pallet than "Ks na paletě" and the operator kept it → raise it
-      if (rule.per > 0 && per > rule.per) ch.per = per;
+      // "Ks na paletě" as the pallets stand: several pallets → the fullest one (also lower);
+      // all pieces on one pallet → only a raise (one pallet says nothing about a smaller limit)
+      if (own.length > 1 ? per !== rule.per : rule.per > 0 && per > rule.per) ch.per = per;
       if (Object.keys(ch).length) update.set(i, Object.assign(update.get(i) || {}, ch));
     }
   });
