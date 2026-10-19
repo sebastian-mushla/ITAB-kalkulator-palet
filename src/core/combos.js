@@ -229,7 +229,7 @@ export function defsToSolo(catalog, combos, project) {
     if (par ? (a.pl > 0 && a.pw > 0) : (a.pal || (a.pl > 0 && a.pw > 0))) {
       const proj = project || '';
       const ex = combos.find(r => (r.mode === 'pallet' || r.mode === 'parcel') && low(r.code) === low(a.code) && low(r.project) === low(proj));
-      const row = { on: true, code: a.code, withCode: '', min: 0, max: 0, mode: par ? 'parcel' : 'pallet', host: '', pal: par ? '' : (a.pal || ''), pl: a.pal && !par ? 0 : (a.pl || 0), pw: a.pal && !par ? 0 : (a.pw || 0), per: a.per || 1, kg: 0, name: a.name || '', project: proj, note: '' };
+      const row = { on: true, code: a.code, withCode: '', min: 0, max: 0, mode: par ? 'parcel' : 'pallet', host: '', pal: par ? '' : (a.pal || ''), pl: a.pal && !par ? 0 : (a.pl || 0), pw: a.pal && !par ? 0 : (a.pw || 0), per: a.per || 0, kg: 0, name: a.name || '', project: proj, note: '' };
       if (ex) Object.assign(ex, row); else combos.push(row);
     }
     a.pack = 'neurceno'; delete a.pal; delete a.pl; delete a.pw; a.per = 0;

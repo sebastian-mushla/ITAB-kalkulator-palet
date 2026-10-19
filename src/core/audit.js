@@ -112,7 +112,13 @@ export function auditOrder(order, plan, combos, catalog, project) {
     const rule = findRule(l.code, l.qty, bySo.get(l.so || order.id), combos);
     const per = Math.max(...own.map(b => b.contents.find(c => low(c.code) === k).units));
     if (!rule) add.set(k + '|solo', { on: true, code: l.code, withCode: '', min: 0, max: 0, mode: 'pallet', host: '', pal: types[0], pl: 0, pw: 0, per: own.length > 1 ? per : 0, kg: 0, name: l.name || (a && a.name) || '', project: project || '', note: 'Uloženo ze zakázky ' + order.id });
-    else if (rule.mode === 'pallet' && low(rule.pal) !== low(types[0])) { const i = combos.indexOf(rule); update.set(i, Object.assign(update.get(i) || {}, { pal: types[0] })); }
+    else if (rule.mode === 'pallet') {
+      const i = combos.indexOf(rule), ch = {};
+      if (low(rule.pal) !== low(types[0])) ch.pal = types[0];
+      // more pieces on one pallet than "Ks na paletě" and the operator kept it → raise it
+      if (rule.per > 0 && per > rule.per) ch.per = per;
+      if (Object.keys(ch).length) update.set(i, Object.assign(update.get(i) || {}, ch));
+    }
   });
 
   return {

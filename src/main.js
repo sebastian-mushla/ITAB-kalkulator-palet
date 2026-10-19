@@ -1011,12 +1011,28 @@ async function askKoloAdd(list, group, pal, bid, pi) {
   if (remember) relearn(); else keepScroll(() => recalcOne());
   flash(remember ? 'Přidáno do balení ' + group + ': ' + (added.join(', ') || '–') + '.' : 'Položeno na paletu ' + group + ' jen pro tuto zakázku (balení se nemění).');
 }
+// one article on the pallet: "Uložit" sets its Solo P. rule (pallet type + Ks na paletě) in the order's project
+async function saveSolo(id, b, it) {
+  if (!it) return;
+  const project = (view(id) || {}).project || '', lc = it.code.toLowerCase();
+  const ex = state.combos.find(r => r.mode === 'pallet' && String(r.code).toLowerCase() === lc && (r.project || '') === project);
+  const what = it.code + ': ' + it.seen + ' ks na paletě ' + b.pal + (project ? ' (projekt ' + project + ')' : '');
+  if (!(await ask('Uložit nastavení palety?', what + '. Příští výpočet použije tento typ palety a ' + it.seen + ' ks na jednu paletu.' + (ex ? ' Dosud: ' + (ex.pal || '–') + ', ' + (ex.per > 0 ? ex.per + ' ks' : 'vše na jedné') + '.' : ''), 'Uložit'))) return;
+  if (ex) Object.assign(ex, { on: true, pal: b.pal, per: it.seen, pl: 0, pw: 0 });
+  else state.combos.unshift({ on: true, code: it.code, withCode: '', min: 0, max: 0, mode: 'pallet', host: '', pal: b.pal, pl: 0, pw: 0, per: it.seen, kg: 0, name: it.name || '', project, note: 'Uloženo z palety zakázky ' + id });
+  persist('combos'); drawCombos();
+  logChanges(id, ['Solo P. ' + what + (ex ? ' (upraveno)' : ' (nové)')]);
+  // the next calculation follows the rule: drop the hand plan of this order
+  state.plan.delete(id); unsavePlan(id); state.manual.delete(id);
+  $('#dlgPalEdit').close(); keepScroll(() => recalcOne());
+  flash('Uloženo: ' + what + '.');
+}
 // pallet editor: the pallet as it is now becomes a balení (or a main item + přibal)
 $('#peKoli').addEventListener('click', async () => {
   const { id, pid } = peCur, P = state.plan.get(id), b = P && P.find(x => x.id === pid); if (!b) return;
   if (!typeOf(state.pallets, b.pal)) { flash('Nejdřív paletu uložte jako typ (Změnit typ / Jiná paleta se „Zapamatovat“).'); return; }
   const items = b.contents.filter(c => c.units > 0).map(c => ({ code: c.code, name: c.name || '', seen: c.units }));
-  if (items.length < 2) { flash('Na paletě je jen jeden artikl – to není balení.'); return; }
+  if (items.length < 2) { await saveSolo(id, b, items[0]); return; }
   const main = b.contents.filter(c => c.units > 0 && !c.ride).sort((x, y) => y.units - x.units)[0] || b.contents[0];
   const ok = await ask('Uložit jako balení?', items.length + ' artiklů na paletě ' + b.pal + ' se uloží jako balení.', 'Uložit balení', main.code + ' je hlavní položka (pokladna) – ostatní jsou přibal na její paletě');
   if (!ok) return;
