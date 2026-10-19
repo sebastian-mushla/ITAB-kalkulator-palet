@@ -447,3 +447,14 @@ cases.push(['Číselník: rozměr artiklu z CSV a přesah palety', () => {
   const res = rowsToCatalog(parseCsvRows('Artikl;Název;Váha kusu, kg;Délka artiklu, mm;Šířka artiklu, mm\nST-1;Stojka;4,5;2500;300\nM-1;Malý;1;200;100'));
   assert(res.errors.length === 0 && res.items[0].aL === 2500 && res.items[0].aW === 300 && res.items[0].kg === 4.5 && res.items[0].pack === undefined, JSON.stringify(res.items[0]));
 }]);
+
+cases.push(['Bezpečnost: služba, Ks na paletě 0 / 1 – žádné zamrznutí ani tisíce palet', () => {
+  const o = parseOrders('SO 1\nr10 SLUZ doprava 1\nr20 V-POL police 700\nr30 HUGE kus 50000').orders.get('1');
+  const cat = DEFAULT_CATALOG.map(a => Object.assign({}, a)).concat([{ code: 'SLUZ', name: 'doprava', pack: 'sluzba', per: 0, kg: 0 }, { code: 'HUGE', name: 'kus', pack: 'neurceno', per: 0, kg: 0 }]);
+  const combos = [{ on: true, code: 'V-POL', mode: 'pallet', pal: 'PAL-0001', per: 0, min: 0, max: 0, project: '' }, { on: true, code: 'HUGE', mode: 'pallet', pal: 'PAL-0001', per: 1, min: 0, max: 0, project: '' }];
+  const t0 = Date.now();
+  const r = solve(o, { catalog: cat, vehicles: DEFAULT_VEHICLES, pallets: DEFAULT_PALLETS, rules: DEFAULT_RULES, combos });
+  assert(Date.now() - t0 < 5000, 'too slow');
+  assert(r.pallets.filter(p => p.code === 'V-POL').length === 1, 'V-POL per 0 = one pallet');
+  assert(r.pallets.length < 10 && r.errors.some(e => /2000 palet/.test(e)), 'huge per 1 capped: ' + r.pallets.length);
+}]);

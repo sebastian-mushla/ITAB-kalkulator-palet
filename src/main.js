@@ -1420,9 +1420,9 @@ function askArticle(u, next, left) {
     else state.catalog.push(a);
     // pallets edited by hand: the catalog does not change them, so the new article gets its own pallets in the plan
     const P = state.plan.get(state.sel);
-    if (P && a.pack !== 'balik') {
-      let left = u.qty;
-      while (left > 0) { const n = Math.min(left, a.per); P.push({ id: newId(), pal: a.pal, contents: [{ code: a.code, name: a.name, units: n, per: a.per, kg: a.kg, so: u.so }] }); left -= n; }
+    if (P && a.pack === 'paleta') {
+      let left = u.qty; const per = a.per > 0 ? a.per : Math.max(1, u.qty);
+      while (left > 0) { const n = Math.min(left, per); P.push({ id: newId(), pal: a.pal, contents: [{ code: a.code, name: a.name, units: n, per: a.per, kg: a.kg, so: u.so }] }); left -= n; }
     }
     persist('catalog'); drawCatalog(); relearn();
     flash('Artikl ' + u.code + ' uložen do číselníku.');
@@ -1879,3 +1879,7 @@ $('#csv').value = state.csv;
 drawCatalog(); drawPallets(); drawVehicles(); drawCombos(); renderRules(state.rules);
 drawLog();
 importOrders(load(KEYS.list, null) || state.csv, false, true);
+
+// any unexpected error: tell the user instead of a silently broken page
+window.addEventListener('error', e => { try { flash('Chyba: ' + (e.message || e) + ' – obnovte stránku (F5), data jsou uložená.'); } catch (x) {} });
+window.addEventListener('unhandledrejection', e => { try { flash('Chyba: ' + ((e.reason && e.reason.message) || e.reason) + ' – obnovte stránku (F5).'); } catch (x) {} });

@@ -12,6 +12,9 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
   const riders = [];
 
   function build(a, idx, qty, row) {
+    // safety: no / bad "Ks na paletě" = everything on one pallet; never thousands of pallets (page would freeze)
+    if (!(a.per > 0) || !isFinite(a.per)) a = Object.assign({}, a, { per: Math.max(1, qty) });
+    if (qty / a.per > 2000) { errors.push(a.code + ': ' + qty + ' ks po ' + a.per + ' ks = víc než 2000 palet – zkontrolujte „Ks na paletě“. Počítáno vše na jedné paletě.'); a = Object.assign({}, a, { per: Math.max(1, qty) }); }
     const full = Math.floor(qty / a.per), rem = qty % a.per;
     const parcel = a.pack === 'balik';
     const tare = parcel ? 0 : (a.tare || 0);
