@@ -187,9 +187,10 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
           <div id="comboReport"></div>
           <details class="howto"><summary>Historie změn (Zkontrolovat a uložit)</summary><ul id="comboLog" class="log"></ul></details>
           <label class="search tbl-search"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="comboSearch" type="search" placeholder="Hledat ve způsobech balení: artikl, paleta, skupina…" aria-label="Hledat"></label>
+          <div class="combo-who"><label>Uložil<select id="comboBy"><option value="">všichni</option></select></label><label>Den<input type="date" id="comboDay"></label><button class="btn small" id="comboUndo" disabled title="Smaže řádky, které vybraný uživatel ten den uložil (nové i upravené)">Smazat změny výběru</button><span class="muted" id="comboWhoN"></span></div>
           <div class="tscroll">
             <table>
-              <thead><tr><th></th><th>Balení</th><th>Artikl</th><th>Paleta</th><th>Počty</th><th>Projekt</th><th></th></tr></thead>
+              <thead><tr><th></th><th>Balení</th><th>Artikl</th><th>Paleta</th><th>Počty</th><th>Projekt</th><th></th><th class="c-who">Uložil · kdy</th></tr></thead>
               <tbody id="comboBody"></tbody>
             </table>
           </div>

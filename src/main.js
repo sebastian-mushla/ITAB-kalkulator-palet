@@ -90,7 +90,24 @@ if (isAdmin && !me.demo) {
 }
 
 // admin edits go to the shared database; plain users cannot write (RLS)
+// who saved which Způsob balení row and when: rows that differ from the last saved state get by / at
+const comboSnap = new WeakMap();
+const comboKey = r => JSON.stringify(Object.assign({}, r, { by: undefined, at: undefined }));
+function stampCombos() {
+  const who = (me && me.user && me.user.email) || '', at = new Date().toISOString();
+  const trs = document.querySelectorAll('#comboBody tr[data-by]');
+  state.combos.forEach((r, i) => {
+    const k = comboKey(r); if (comboSnap.get(r) === k) return;
+    if (comboSnap.has(r) || !r.at) {
+      r.by = who; r.at = at;
+      // the open table shows it at once (no redraw while typing)
+      const td = trs[i] && trs[i].querySelector('td.c-who'); if (td) { td.innerHTML = esc(who) + '<br><small class="muted">' + new Date(at).toLocaleString('cs-CZ') + '</small>'; trs[i].dataset.by = who; trs[i].dataset.day = at.slice(0, 10); }
+    }
+    comboSnap.set(r, k);
+  });
+}
 function persist(name) {
+  if (name === 'combos') stampCombos();
   // a definition learned in an order (pallet / balík) goes to Způsob balení as solo, in the order's project
   if (name === 'catalog' && state.catalog.some(a => a.pack === 'paleta' || a.pack === 'balik')) {
     const o = state.orders && state.orders.get(state.sel);
@@ -1661,7 +1678,30 @@ $('#vehFile').addEventListener('change', async e => {
 });
 
 // ---------- combos ----------
-const drawCombos = () => { renderCombos(state.combos, state.catalog, state.pallets, projNames()); filterTable($('#comboBody'), $('#comboSearch').value); };
+const drawCombos = () => {
+  state.combos.forEach(r => { if (!comboSnap.has(r)) comboSnap.set(r, comboKey(r)); });
+  renderCombos(state.combos, state.catalog, state.pallets, projNames()); filterTable($('#comboBody'), $('#comboSearch').value); whoFilter();
+};
+// filter by who / which day; "Smazat změny výběru" removes those rows
+function whoFilter() {
+  const sel = $('#comboBy'), by = sel.value, day = $('#comboDay').value;
+  const users = [...new Set(state.combos.map(r => r.by).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">všichni</option>' + users.map(u => '<option' + (u === by ? ' selected' : '') + '>' + esc(u) + '</option>').join('');
+  let n = 0;
+  $('#comboBody').querySelectorAll('tr[data-by]').forEach(tr => { const ok = (!by || tr.dataset.by === by) && (!day || tr.dataset.day === day); if (!ok) tr.hidden = true; else if (!tr.hidden) n++; });
+  $('#comboWhoN').textContent = by || day ? n + ' řádků' : '';
+  $('#comboUndo').disabled = !(by && day && n);
+}
+$('#comboBy').addEventListener('change', whoFilter);
+$('#comboDay').addEventListener('change', drawCombos);
+$('#comboBy').addEventListener('change', drawCombos);
+$('#comboUndo').addEventListener('click', () => {
+  const by = $('#comboBy').value, day = $('#comboDay').value;
+  const del = state.combos.filter(r => r.by === by && String(r.at || '').slice(0, 10) === day);
+  if (!del.length || !confirm('Smazat ' + del.length + ' řádků, které ' + by + ' uložil(a) ' + day.split('-').reverse().join('.') + '? Upravené řádky se smažou celé (předchozí verze se nevrací).')) return;
+  state.combos = state.combos.filter(r => !del.includes(r));
+  persist('combos'); drawCombos(); recalc(); flash('Smazáno ' + del.length + ' řádků.');
+});
 $('#comboSearch').addEventListener('input', e => filterTable($('#comboBody'), e.target.value));
 // lazy pallet list in the Způsob balení table: filled the first time the select is used
 $('#comboBody').addEventListener('focusin', e => {

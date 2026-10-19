@@ -107,15 +107,17 @@ export function renderCombos(combos, catalog, pallets, projects) {
       : fld(pallet ? 'Ks na paletě' : 'Ks v balíku', num('per', 'vše na jedné'), 'Prázdné = celé množství na jedné paletě / v jednom balíku. 1 = každý kus zvlášť.') +
         // solo / balík can depend on the quantity in the order (e.g. from 150 ks on a pallet, up to 149 ks as balík)
         '<div class="cf2">' + fld('Od ks v zakázce', num('min', '–'), 'Platí, když je v zakázce aspoň tolik kusů.') + fld('Do ks v zakázce', num('max', '–'), 'Platí, když je v zakázce nejvýš tolik kusů.') + '</div>';
-    return '<tr class="' + (r.on === false ? 'off ' : '') + 'kind-' + kn + '"' + (r.note ? ' title="' + esc(r.note) + '"' : '') + '>' +
+    const day = r.at ? String(r.at).slice(0, 10) : '';
+    return '<tr data-by="' + esc(r.by || '') + '" data-day="' + day + '" class="' + (r.on === false ? 'off ' : '') + 'kind-' + kn + '"' + (r.note ? ' title="' + esc(r.note) + '"' : '') + '>' +
       '<td><input type="checkbox" data-i="' + i + '" data-f="on"' + (r.on !== false ? ' checked' : '') + ' aria-label="Aktivní"></td>' +
       '<td class="c-bal">' + fld('Číslo balení', codeIn) + fld('Typ', kindSel) + '</td>' +
       '<td class="c-art">' + fld('Artikl', inp('code', 'artikl', ' class="code-in"')) + (nm ? '<small class="c-name">' + esc(nm) + '</small>' : '') + (main ? fld('Hlavní položka', inp('host', 'artikl hlavní položky')) : '') + '</td>' +
       '<td class="c-kam">' + pal + '</td>' +
       '<td class="c-num">' + pocty + '</td>' +
       '<td class="c-proj">' + fld('Projekt', projSel) + '</td>' +
-      '<td class="nowrap"><button class="btn small" data-up="' + i + '" aria-label="Výš"' + (i === 0 ? ' disabled' : '') + '>↑</button> <button class="btn small" data-down="' + i + '" aria-label="Níž"' + (i === combos.length - 1 ? ' disabled' : '') + '>↓</button> <button class="btn small" data-del="' + i + '" title="Smazat" aria-label="Smazat">×</button></td></tr>';
-  }).join('') || '<tr><td colspan="7" class="empty">Zatím žádná pravidla. Bez pravidel platí běžný výpočet z číselníku.</td></tr>';
+      '<td class="nowrap"><button class="btn small" data-up="' + i + '" aria-label="Výš"' + (i === 0 ? ' disabled' : '') + '>↑</button> <button class="btn small" data-down="' + i + '" aria-label="Níž"' + (i === combos.length - 1 ? ' disabled' : '') + '>↓</button> <button class="btn small" data-del="' + i + '" title="Smazat" aria-label="Smazat">×</button></td>' +
+      '<td class="c-who">' + (r.by ? esc(r.by) + '<br><small class="muted">' + new Date(r.at).toLocaleString('cs-CZ') + '</small>' : '<small class="muted">–</small>') + '</td></tr>';
+  }).join('') || '<tr><td colspan="8" class="empty">Zatím žádná pravidla. Bez pravidel platí běžný výpočet z číselníku.</td></tr>';
 }
 
 export function renderRules(rules) {
