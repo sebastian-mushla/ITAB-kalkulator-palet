@@ -27,6 +27,7 @@ export function transportOf(r) {
 const COLS = [
   ['id', 'ID / zakázky', 'text'],
   ['project', 'Projekt', 'text'],
+  ['date', 'Datum dodání', 'text'],
   ['status', 'Stav', 'status'],
   ['known', 'Artikly', 'num'],
   ['pallets', 'Palety', 'num'],
@@ -49,6 +50,7 @@ function ring(known, total) {
 // rows: [{ id, r, status, total, known }]
 function matches(row, f) {
   if (f.id && !(row.id + ' ' + (row.sos || []).join(' ')).toLowerCase().includes(f.id.toLowerCase())) return false;
+  if (f.date && !dateOf(row).includes(f.date)) return false;
   if (f.project && !String(row.project || '').toLowerCase().includes(f.project.toLowerCase())) return false;
   if (f.transport && !row.transport.toLowerCase().includes(f.transport.toLowerCase())) return false;
   if (f.status && f.status.length && !f.status.includes(row.status)) return false;
@@ -73,7 +75,7 @@ const active = (key, f) => key === 'status' ? (f.status || []).length > 0 : ['te
 export function renderOrderTable(el, countEl, rows, ui, sel) {
   const f = ui.filters, sort = ui.sort;
   let list = rows.filter(r => matches(r, f));
-  const val = (row, k) => k === 'status' ? ST[row.status].rank : k === 'known' ? row.known / (row.total || 1) : k === 'id' || k === 'transport' || k === 'project' ? String(row[k] || '').toLowerCase() : row[k];
+  const val = (row, k) => k === 'date' ? (dateOf(row).split('.').reverse().join('') || '999999') : k === 'status' ? ST[row.status].rank : k === 'known' ? row.known / (row.total || 1) : k === 'id' || k === 'transport' || k === 'project' ? String(row[k] || '').toLowerCase() : row[k];
   if (sort.key) list.sort((a, b) => { const x = val(a, sort.key), y = val(b, sort.key); return (x < y ? -1 : x > y ? 1 : 0) * (sort.dir === 'desc' ? -1 : 1); });
   else list.sort((a, b) => (a.status === 'vyrizena' ? 1 : 0) - (b.status === 'vyrizena' ? 1 : 0));
   const nf = COLS.filter(c => active(c[0], f)).length;
@@ -90,22 +92,24 @@ export function renderOrderTable(el, countEl, rows, ui, sel) {
       '<td class="c-done"><input type="checkbox" data-done="' + esc(row.id) + '"' + (row.status === 'vyrizena' ? ' checked' : '') + (full ? '' : ' disabled') + ' title="' + (full ? 'Označit jako vyřízenou' : 'Nejdřív zařaďte všechny artikly') + '"></td>' +
       '<td class="c-id">' + idCell(row) + '</td>' +
       '<td class="c-project">' + (row.project ? '<span class="chip proj-chip2">' + esc(row.project) + '</span>' : '<span class="muted">–</span>') + '</td>' +
+      '<td class="c-date">' + (dateOf(row) ? '<span class="chip date-chip">' + dateOf(row) + '</span>' : '<span class="muted">–</span>') + '</td>' +
       '<td><span class="st st-' + st.color + '">' + st.label + '</span></td>' +
       '<td class="num">' + ring(row.known, row.total) + '</td>' +
       '<td class="num">' + row.pallets + (row.parcels ? '<small> +' + row.parcels + ' bal.</small>' : '') + '</td>' +
       '<td class="num">' + fmtN(row.kg) + ' kg</td>' +
       '<td class="c-tr" title="' + esc(row.transport) + '">' + esc(row.transport || '–') + '</td>' +
       '<td><button class="feed-x" data-del="' + esc(row.id) + '" aria-label="Odebrat zakázku ' + esc(row.id) + '" title="Odebrat ze seznamu">×</button></td></tr>';
-  }).join('') : '<tr><td colspan="10" class="empty">' + (rows.length ? 'Žádná zakázka neodpovídá filtrům.' : 'Zakázky zatím nejsou.') + '</td></tr>';
+  }).join('') : '<tr><td colspan="11" class="empty">' + (rows.length ? 'Žádná zakázka neodpovídá filtrům.' : 'Zakázky zatím nejsou.') + '</td></tr>';
   el.innerHTML = '<table class="otable"><thead>' + head + '</thead><tbody>' + body + '</tbody></table>';
 }
 
+const dateOf = row => (String(row.id).match(TERM) || [])[1] || '';
 const TERM = /·(\d\d\.\d\d\.\d\d)$/;
 function idCell(row) {
   const m = String(row.id).match(TERM), date = m ? m[1] : '';
   const id = String(row.id).replace(TERM, '');
   const sos = (row.sos && row.sos.length ? row.sos : [row.id]).map(s => String(s).replace(TERM, ''));
   const hasId = !(sos.length === 1 && sos[0] === id);
-  return '<div class="idrow"><b class="idnum">' + (hasId ? esc(id) : '') + '</b>' + (date ? '<span class="chip date-chip">' + esc(date) + '</span>' : '') + '</div>' +
+  return '<div class="idrow"><b class="idnum">' + (hasId ? esc(id) : '') + '</b></div>' +
     '<small class="sos" title="' + esc(sos.join(', ')) + '">' + esc(sos.join(', ')) + '</small>';
 }
