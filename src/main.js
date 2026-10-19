@@ -1159,12 +1159,13 @@ function drawPalEditor() {
       '<label class="inline"><input type="checkbox" id="pmSave" checked> Zapamatovat – uložit mezi typy palet</label></span></span></label>' +
     (others ? '<label class="pm-opt"><input type="radio" name="pmKind" value="exist"><span><b>Na paletu v zakázce</b><small>přidat k už existující paletě</small><select id="pmExist" class="pm-sub">' + others + '</select></span></label>' : '') +
     '</div><div class="pm-acts"><button type="button" class="btn" data-pcancel="1">Zpět</button><button type="button" class="btn primary" data-pgo="' + i + '">Přesunout ' + esc(c.code) + '</button></div></div>';
-  // with a max weight the bar follows the load against it, otherwise the pieces fill
-  const bar = t.maxKg ? Math.max(0, kg - (t.tare || 0)) / t.maxKg : fill;
+  // two bars: pieces against "fits on pallet", load against the pallet max weight (when set)
+  const bar = t.maxKg ? Math.max(0, kg - (t.tare || 0)) / t.maxKg : 0;
+  const fillBar = (lab, f) => '<div class="pe-bar"><span>' + lab + ' ' + Math.round(f * 100) + ' %</span><div class="pe-fill' + (f > 1.001 ? ' over' : '') + '"><i style="width:' + Math.min(100, Math.round(f * 100)) + '%"></i></div></div>';
   $('#peBody').innerHTML =
     '<div class="pe-head"><input type="search" id="peType" list="palList2" value="' + esc(t.code ? t.code + ' · ' + t.name : '') + '" aria-label="Typ palety" style="flex:1 1 260px"><datalist id="palList2">' + state.pallets.map(p => '<option value="' + esc(palOption(p)) + '"></option>').join('') + '</datalist><button type="button" class="btn small" id="peTypeBtn">Změnit typ</button></div>' +
-    '<p class="muted">' + cm(t.L) + ' × ' + cm(t.W) + ' cm · ' + Math.round(kg) + ' kg (tara ' + (t.tare || 0) + ' kg)' + (t.maxKg ? ' · nosnost ' + t.maxKg + ' kg' : '') + ' · zaplnění ' + Math.round(bar * 100) + ' %' + (t.maxKg ? ' (podle nosnosti)' : '') + '</p>' +
-    '<div class="pe-fill' + (bar > 1.001 ? ' over' : '') + '"><i style="width:' + Math.min(100, Math.round(bar * 100)) + '%"></i></div>' +
+    '<p class="muted">' + cm(t.L) + ' × ' + cm(t.W) + ' cm · ' + Math.round(kg) + ' kg (tara ' + (t.tare || 0) + ' kg)' + (t.maxKg ? ' · nosnost ' + t.maxKg + ' kg' : '') + '</p>' +
+    fillBar('Kusy', fill) + (t.maxKg ? fillBar('Váha', bar) : '') +
     (iss.length ? '<div class="pe-issues"><b>Problémy na paletě</b><ul>' + iss.map(x => '<li><b>' + esc(x.c.code) + '</b>: ' + esc(x.t) + '</li>').join('') + '</ul>' +
       (iss.some(x => x.fix) ? '<div class="pe-iss-acts"><button type="button" class="btn small primary" id="peConfirm">✓ Potvrdit množství</button><small class="muted">ověřené / max kusy se zvýší</small></div>' +
       (iss.some(x => x.fix && x.r && x.r.mode === 'group') ? '<div class="pe-iss-acts"><button type="button" class="btn small" id="peNoConfirm">✗ Nepotvrzovat množství</button><small class="muted">Max ks = ověřeno; kusy navíc se přepočítají (jiné balení, solo, jinak vpravo)</small></div>' : '') : '') + '</div>' : '') +

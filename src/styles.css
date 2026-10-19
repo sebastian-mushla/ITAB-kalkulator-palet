@@ -625,3 +625,4 @@ label.check.nowrap{white-space:nowrap}
 .c-id .idrow{display:flex;align-items:center;gap:8px;min-height:1.3em}
 .c-id .sos{display:block;color:var(--muted)}
 .date-chip{background:var(--accent-soft,#eeebfa);color:var(--accent,#6a57e3);font-weight:600;font-size:12px;padding:2px 8px;border-radius:999px}
+.pe-bar{display:grid;grid-template-columns:110px 1fr;align-items:center;gap:10px;margin:4px 0}.pe-bar span{font-size:13px;color:var(--muted)}.pe-bar .pe-fill{margin:0}
