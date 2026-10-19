@@ -1678,7 +1678,14 @@ $('#vehFile').addEventListener('change', async e => {
 });
 
 // ---------- combos ----------
+// rows from before the tracking get "původní stav" (once, saved by an admin)
+let comboFill = false;
 const drawCombos = () => {
+  if (!comboFill && isAdmin && !me.demo && state.combos.some(r => !r.at)) {
+    comboFill = true; const at = new Date().toISOString();
+    state.combos.forEach(r => { if (!r.at) { r.by = 'původní stav'; r.at = at; } });
+    setTimeout(() => persist('combos'), 0);
+  }
   state.combos.forEach(r => { if (!comboSnap.has(r)) comboSnap.set(r, comboKey(r)); });
   renderCombos(state.combos, state.catalog, state.pallets, projNames()); filterTable($('#comboBody'), $('#comboSearch').value); whoFilter();
 };
