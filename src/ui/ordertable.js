@@ -31,8 +31,7 @@ const COLS = [
   ['status', 'Stav', 'status'],
   ['known', 'Artikly', 'num'],
   ['pallets', 'Palety', 'num'],
-  ['kg', 'Váha', 'num'],
-  ['transport', 'Doprava', 'text']
+  ['kg', 'Váha', 'num']
 ];
 
 function ring(known, total) {
@@ -97,9 +96,8 @@ export function renderOrderTable(el, countEl, rows, ui, sel) {
       '<td class="num">' + ring(row.known, row.total) + '</td>' +
       '<td class="num">' + row.pallets + (row.parcels ? '<small> +' + row.parcels + ' bal.</small>' : '') + '</td>' +
       '<td class="num">' + fmtN(row.kg) + ' kg</td>' +
-      '<td class="c-tr" title="' + esc(row.transport) + '">' + esc(row.transport || '–') + '</td>' +
       '<td><button class="feed-x" data-del="' + esc(row.id) + '" aria-label="Odebrat zakázku ' + esc(row.id) + '" title="Odebrat ze seznamu">×</button></td></tr>';
-  }).join('') : '<tr><td colspan="11" class="empty">' + (rows.length ? 'Žádná zakázka neodpovídá filtrům.' : 'Zakázky zatím nejsou.') + '</td></tr>';
+  }).join('') : '<tr><td colspan="10" class="empty">' + (rows.length ? 'Žádná zakázka neodpovídá filtrům.' : 'Zakázky zatím nejsou.') + '</td></tr>';
   el.innerHTML = '<table class="otable"><thead>' + head + '</thead><tbody>' + body + '</tbody></table>';
 }
 
