@@ -107,7 +107,7 @@ export function renderCombos(combos, catalog, pallets, projects) {
       : fld(pallet ? 'Ks na paletě' : 'Ks v balíku', num('per', 'vše na jedné'), 'Prázdné = celé množství na jedné paletě / v jednom balíku. 1 = každý kus zvlášť.') +
         // solo / balík can depend on the quantity in the order (e.g. from 150 ks on a pallet, up to 149 ks as balík)
         '<div class="cf2">' + fld('Od ks v zakázce', num('min', '–'), 'Platí, když je v zakázce aspoň tolik kusů.') + fld('Do ks v zakázce', num('max', '–'), 'Platí, když je v zakázce nejvýš tolik kusů.') + '</div>';
-    const day = r.at ? String(r.at).slice(0, 10) : '';
+    const day = r.at ? new Date(r.at).toLocaleDateString('sv-SE') : '';
     return '<tr data-by="' + esc(r.by || '') + '" data-day="' + day + '" class="' + (r.on === false ? 'off ' : '') + 'kind-' + kn + '"' + (r.note ? ' title="' + esc(r.note) + '"' : '') + '>' +
       '<td><input type="checkbox" data-i="' + i + '" data-f="on"' + (r.on !== false ? ' checked' : '') + ' aria-label="Aktivní"></td>' +
       '<td class="c-bal">' + fld('Číslo balení', codeIn) + fld('Typ', kindSel) + '</td>' +

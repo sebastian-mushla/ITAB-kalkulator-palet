@@ -101,7 +101,7 @@ function stampCombos() {
     if (comboSnap.has(r) || !r.at) {
       r.by = who; r.at = at;
       // the open table shows it at once (no redraw while typing)
-      const td = trs[i] && trs[i].querySelector('td.c-who'); if (td) { td.innerHTML = esc(who) + '<br><small class="muted">' + new Date(at).toLocaleString('cs-CZ') + '</small>'; trs[i].dataset.by = who; trs[i].dataset.day = at.slice(0, 10); }
+      const td = trs[i] && trs[i].querySelector('td.c-who'); if (td) { td.innerHTML = esc(who) + '<br><small class="muted">' + new Date(at).toLocaleString('cs-CZ') + '</small>'; trs[i].dataset.by = who; trs[i].dataset.day = new Date(at).toLocaleDateString('sv-SE'); }
     }
     comboSnap.set(r, k);
   });
@@ -1697,7 +1697,7 @@ $('#comboDay').addEventListener('change', drawCombos);
 $('#comboBy').addEventListener('change', drawCombos);
 $('#comboUndo').addEventListener('click', () => {
   const by = $('#comboBy').value, day = $('#comboDay').value;
-  const del = state.combos.filter(r => r.by === by && String(r.at || '').slice(0, 10) === day);
+  const del = state.combos.filter(r => r.by === by && r.at && new Date(r.at).toLocaleDateString('sv-SE') === day);
   if (!del.length || !confirm('Smazat ' + del.length + ' řádků, které ' + by + ' uložil(a) ' + day.split('-').reverse().join('.') + '? Upravené řádky se smažou celé (předchozí verze se nevrací).')) return;
   state.combos = state.combos.filter(r => !del.includes(r));
   persist('combos'); drawCombos(); recalc(); flash('Smazáno ' + del.length + ' řádků.');
