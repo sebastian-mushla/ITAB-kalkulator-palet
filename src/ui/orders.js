@@ -158,6 +158,8 @@ function decisionHtml(r, rules, acts) {
 }
 function compositionHtml(r) {
   const cm = mm => Math.round(mm / 10);
+  const multi = (r.sos || []).length > 1;
+  const SO_TD = so => multi ? '<td class="c-so">' + esc(so || '') + '</td>' : '';
   // which pallet type an article sits on (own pallets, a host article's pallets, or a hand-placed pallet)
   const palCell = x => {
     if (x.pack === 'balik') return '<span class="pt-chip parcel">balík ' + cm(x.pl) + ' × ' + cm(x.pw) + ' cm</span>';
@@ -195,24 +197,66 @@ function compositionHtml(r) {
       : x.pack === 'balik' ? ['parcel', 'Solo B.', x.count + ' ' + balWord(x.count) + ' · ' + cm(x.pl) + ' × ' + cm(x.pw) + ' cm']
       : x.planDist != null ? ['hand', 'Upraveno ručně', x.planDist] : x.board ? ['hand', 'Ručně', 'ručně přidaná paleta'] : ['solo', 'Solo P.', (x.pal ? x.pal + ' ' : '') + (x.palName || (cm(x.pl) + ' × ' + cm(x.pw) + ' cm'))];
     const how = '<span class="how how-' + t[0] + '"' + (x.rule ? ' title="Pravidlo: ' + esc(x.rule) + '"' : '') + '>' + esc(t[1]) + '</span> <span class="how-d">' + esc(t[2]) + '</span>' + (x.over ? ' <span class="how-over">víc než ověřeno</span>' : '');
-    return '<tr><td><i class="sw" style="background:' + color(x.ci) + '"></i><b class="c-code">' + esc(x.code) + '</b><br><span class="hint">' + esc(x.name || '') + '</span></td><td class="num"><b>' + fmtN(x.qty) + '</b> ks</td><td>' + how + '</td><td>' + (nos.length ? nos.map(n => '<span class="pno">' + n + '</span>').join('') : '<span class="muted">–</span>') + '</td><td class="num">' + (x.kg ? fmtKg(x.kg) : '<span class="muted">–</span>') + '</td></tr>';
+    return '<tr data-kso="' + esc(x.so || '') + '" data-kcode="' + esc(x.code) + '" data-kqty="' + x.qty + '" data-khow="' + esc(t[1]) + '" data-kpno="' + (nos[0] || 9999) + '" data-kkg="' + (x.kg || 0) + '">' + SO_TD(x.so) + '<td><i class="sw" style="background:' + color(x.ci) + '"></i><b class="c-code">' + esc(x.code) + '</b><br><span class="hint">' + esc(x.name || '') + '</span></td><td class="num"><b>' + fmtN(x.qty) + '</b> ks</td><td>' + how + '</td><td>' + (nos.length ? nos.map(n => '<span class="pno">' + n + '</span>').join('') : '<span class="muted">–</span>') + '</td><td class="num">' + (x.kg ? fmtKg(x.kg) : '<span class="muted">–</span>') + '</td></tr>';
   }).join('');
   const unk = r.unknown || [];
-  const unknownRows = unk.map(u => '<tr class="unk-row"><td><i class="sw" style="background:var(--gray)"></i>' + esc(u.code) + '<br><span class="hint">' + esc(u.name || '') + '</span></td><td class="num">' + fmtN(u.qty) + ' ks</td><td><span class="how how-unk">Nezařazeno</span> <span class="how-d">' + esc(u.hint || 'čeká vpravo') + '</span></td><td><span class="muted">vpravo</span></td><td class="num">–</td></tr>').join('');
+  const unknownRows = unk.map(u => '<tr class="unk-row" data-kso="' + esc(u.so || '') + '" data-kcode="' + esc(u.code) + '" data-kqty="' + u.qty + '" data-khow="Nezařazeno" data-kpno="99999" data-kkg="0">' + SO_TD(u.so) + '<td><i class="sw" style="background:var(--gray)"></i>' + esc(u.code) + '<br><span class="hint">' + esc(u.name || '') + '</span></td><td class="num">' + fmtN(u.qty) + ' ks</td><td><span class="how how-unk">Nezařazeno</span> <span class="how-d">' + esc(u.hint || 'čeká vpravo') + '</span></td><td><span class="muted">vpravo</span></td><td class="num">–</td></tr>').join('');
   const nKnown = new Set(r.rows.map(x => x.code.toLowerCase())).size, nUnk = unk.length, total = nKnown + nUnk;
   const sum = '<div class="comp-sum"><span class="cs ok">Zařazeno <b>' + nKnown + '</b> z ' + total + ' ' + plural(total, ['artiklu', 'artiklů', 'artiklů']) + '</span>' +
     (nUnk ? '<span class="cs bad"><b>' + nUnk + '</b> ' + plural(nUnk, ['nezařazený', 'nezařazené', 'nezařazených']) + '</span>' : '<span class="cs ok">vše zařazeno ✓</span>') +
     '<span class="cs">' + r.pallets.length + ' ' + palWord(r.pallets.length) + (r.tare ? ', z toho tara ' + fmtKg(r.tare) : '') + '</span></div>';
-  // with several zakázky: one block per zakázka in loading order
-  let body = unknownRows + known;
+  // one flat table like the order list: sort by a header click, filter with the funnel (applyCompTable)
   const sos = r.sos || [];
-  if (sos.length > 1) {
-    const rowsHtml = r.rows.map((x, i) => [x.so, known.split('</tr>')[i] + '</tr>']);
-    const unkHtml = unk.map((u, i) => [u.so, unknownRows.split('</tr>')[i] + '</tr>']);
-    body = sos.map(so => '<tr class="so-head"><td colspan="5">Zakázka <b>' + esc(so) + '</b></td></tr>' + unkHtml.filter(x => x[0] === so).map(x => x[1]).join('') + rowsHtml.filter(x => x[0] === so).map(x => x[1]).join('')).join('');
-  }
-  return '<div class="panel">' + fold('comp', r.rows.length + (r.unknown || []).length <= 15, 'Složení' + (sos.length > 1 ? ' – ' + sos.length + ' zakázky' : ' zakázky') + ' (' + (r.rows.length + (r.unknown || []).length) + ')', sum + '<div class="tscroll"><table><thead><tr><th>Artikl</th><th class="num">Ks</th><th>Jak jede</th><th>Palety č.</th><th class="num">Váha</th></tr></thead><tbody>' + body + '</tbody></table></div>', 'fold-comp') + '</div>';
+  const cols = (multi ? [['so', 'Zakázka', 'text']] : []).concat([['code', 'Artikl', 'text'], ['qty', 'Ks', 'num'], ['how', 'Jak jede', 'text'], ['pno', 'Palety č.', 'num'], ['kg', 'Váha', 'num']]);
+  const head = '<tr>' + cols.map(c => '<th class="c-' + c[0] + (c[2] === 'num' ? ' num' : '') + '"><span class="th-in"><button type="button" class="th-sort" data-csort="' + c[0] + '">' + c[1] + '</button><button type="button" class="th-filt" data-cfilt="' + c[0] + '" title="Filtr" aria-label="Filtr ' + c[1] + '"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg></button></span></th>').join('') + '</tr>';
+  return '<div class="panel">' + fold('comp', r.rows.length + (r.unknown || []).length <= 15, 'Složení' + (multi ? ' – ' + sos.length + ' zakázky' : ' zakázky') + ' (' + (r.rows.length + (r.unknown || []).length) + ')', sum + '<div class="tscroll"><table class="ctable otable"><thead>' + head + '</thead><tbody>' + unknownRows + known + '</tbody></table></div>', 'fold-comp') + '</div>';
 }
+
+// Složení table: sort / filter in the page (kept while the user works, also after a recalculation)
+const compUi = { sort: null, dir: 1, f: {} };
+export function applyCompTable(root = document) {
+  const t = root.querySelector('.ctable'); if (!t) return;
+  const tb = t.tBodies[0], rows = [...tb.rows];
+  const num = k => k === 'qty' || k === 'pno' || k === 'kg';
+  if (compUi.sort) {
+    const k = compUi.sort;
+    rows.sort((a, b) => { const x = a.dataset['k' + k], y = b.dataset['k' + k]; return (num(k) ? x - y : String(x).localeCompare(String(y), 'cs', { numeric: true })) * compUi.dir; });
+    rows.forEach(r => tb.appendChild(r));
+  }
+  rows.forEach(r => {
+    r.hidden = Object.entries(compUi.f).some(([k, v]) => {
+      if (!v) return false;
+      if (num(k)) { const [mn, mx] = v; const x = Number(r.dataset['k' + k]); return (mn !== '' && x < Number(mn)) || (mx !== '' && x > Number(mx)); }
+      return !String(r.dataset['k' + k] || '').toLowerCase().includes(v.toLowerCase());
+    });
+  });
+  t.querySelectorAll('[data-csort]').forEach(b => { b.textContent = b.textContent.replace(/ [▲▼]$/, '') + (compUi.sort === b.dataset.csort ? (compUi.dir > 0 ? ' ▲' : ' ▼') : ''); });
+  t.querySelectorAll('[data-cfilt]').forEach(b => { const v = compUi.f[b.dataset.cfilt]; b.classList.toggle('on', !!(v && (Array.isArray(v) ? v.some(x => x !== '') : v))); });
+}
+if (typeof document !== 'undefined') document.addEventListener('click', e => {
+  const s = e.target.closest('[data-csort]');
+  if (s) { const k = s.dataset.csort; if (compUi.sort === k) compUi.dir = -compUi.dir; else { compUi.sort = k; compUi.dir = 1; } applyCompTable(); return; }
+  const fb = e.target.closest('[data-cfilt]');
+  if (fb) {
+    const th = fb.closest('th'), k = fb.dataset.cfilt, open = th.querySelector('.fpop');
+    document.querySelectorAll('.ctable .fpop').forEach(p => p.remove());
+    if (open) return;
+    const isNum = th.classList.contains('num'), v = compUi.f[k] || (isNum ? ['', ''] : '');
+    th.insertAdjacentHTML('beforeend', '<div class="fpop"><b>Filtr</b>' + (isNum ? '<div class="fp-range"><input type="number" data-cfmin="' + k + '" value="' + esc(v[0]) + '" placeholder="od"><input type="number" data-cfmax="' + k + '" value="' + esc(v[1]) + '" placeholder="do"></div>' : '<input type="search" data-cf="' + k + '" value="' + esc(v) + '" placeholder="obsahuje…">') + '<div class="fp-acts"><button type="button" class="linkbtn" data-cfclear="' + k + '">Zrušit filtr</button><button type="button" class="btn small" data-cfclose="1">Hotovo</button></div></div>');
+    th.querySelector('.fpop input').focus(); return;
+  }
+  const c = e.target.closest('[data-cfclear]');
+  if (c) { delete compUi.f[c.dataset.cfclear]; c.closest('.fpop').remove(); applyCompTable(); return; }
+  if (e.target.closest('[data-cfclose]')) { e.target.closest('.fpop').remove(); return; }
+  if (!e.target.closest('.ctable .fpop')) document.querySelectorAll('.ctable .fpop').forEach(p => p.remove());
+});
+if (typeof document !== 'undefined') document.addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset.cf) compUi.f[el.dataset.cf] = el.value;
+  else if (el.dataset.cfmin || el.dataset.cfmax) { const k = el.dataset.cfmin || el.dataset.cfmax, v = compUi.f[k] || ['', '']; v[el.dataset.cfmin ? 0 : 1] = el.value; compUi.f[k] = v; }
+  else return;
+  applyCompTable();
+});
 function extrasOf(items) {
   const m = new Map();
   items.forEach(it => (it.extra || []).forEach(e => {
@@ -407,6 +451,7 @@ export function renderDetail(r, { rules, isAdmin, board, pallets, saved }) {
   h += '<div class="go-dock">' + (r.pallets.length || r.parcels.length ? '<button class="btn big print" id="packBtn"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>Tisk pro balení</button>' : '') + (isAdmin && r.pallets.length ? '<button class="btn big" id="auditBtn" title="Zkontroluje způsob balení a definice artiklů podle palet této zakázky a uloží palety">✓ Zkontrolovat a uložit</button>' : '') + (saved && saved.has(r.id) ? '<span class="muted saved-at">Uloženo ' + esc(saved.get(r.id)) + '</span>' : '') + '<button class="btn primary big" id="goDock"' + (ready ? '' : ' disabled') + '>Přejít k nakládce →</button>' +
     '<span class="muted">' + (ready ? 'Palety jsou spočítané. V nakládce je rozložíte do vozidel a objednáte dopravu.' : (n ? 'Nejdřív zařaďte ' + n + ' ' + plural(n, ['neznámý artikl', 'neznámé artikly', 'neznámých artiklů']) + '.' : 'Zakázka nemá žádné palety.')) + '</span></div>';
   el.innerHTML = h;
+  applyCompTable(el);
 }
 
 // ---------- tab 2: loading (docking) ----------
