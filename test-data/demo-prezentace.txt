@@ -83,3 +83,4 @@ r800 13002-50 Grindskylt Alphagate 2
 r810 11603-22-9003 Alphagate MKll Rear radar RH 1
 r820 11602-21-9003 Alphagate MKll Rear radar LH 1
 r830 100-005-309-20-9003 Gate Arm 2
+r840 DEMO-DRZAK-01 Držák displeje (demo) 4
