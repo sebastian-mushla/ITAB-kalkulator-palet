@@ -12,7 +12,7 @@ import { renderKpis, renderPriorities, renderList, renderDetail, renderDock, req
 import { ringilHtml } from './ui/ringil.js';
 import { renderOrderTable, statusOf, transportOf } from './ui/ordertable.js';
 import { packListHtml } from './ui/packlist.js';
-import { requireLogin, loadSettings, saveSetting, signOut, changePassword, listProfiles, setRole, adminUsers } from './auth.js';
+import { requireLogin, loadSettings, saveSetting, signOut, changePassword, listProfiles, setRole, adminUsers, addTicket, listTickets, updateTicket } from './auth.js';
 import { esc } from './core/util.js';
 import { renderCatalog, renderPallets, renderVehicles, renderCombos, renderRules, importReport } from './ui/settings.js';
 
@@ -229,7 +229,7 @@ let timer = null;
 function later() { clearTimeout(timer); timer = setTimeout(recalc, 250); }
 
 // ---------- navigation ----------
-const VIEWS = ['orders', 'dock', 'catalog', 'pallets', 'combos', 'projects', 'vehicles', 'rules', 'users', 'help'];
+const VIEWS = ['orders', 'dock', 'catalog', 'pallets', 'combos', 'projects', 'vehicles', 'rules', 'users', 'tickets', 'help'];
 // help page shows the current rule values
 function renderHelp() {
   const r = state.rules;
@@ -246,6 +246,7 @@ function showView(v) {
     const on = x === v;
     $('#view-' + x).hidden = !on;
     if (on && x === 'help') renderHelp();
+    if (on && x === 'tickets') drawTickets();
     $('#tab-' + x).setAttribute('aria-selected', on ? 'true' : 'false');
   });
 }
@@ -1824,7 +1825,7 @@ $('#passBtn').addEventListener('click', async () => {
   alert(err ? 'Heslo se nezměnilo: ' + err : 'Heslo změněno.');
 });
 if (!isAdmin) {
-  ['catalog', 'pallets', 'combos', 'projects', 'vehicles', 'rules', 'users'].forEach(v => { $('#tab-' + v).hidden = true; });
+  ['catalog', 'pallets', 'combos', 'projects', 'vehicles', 'rules', 'users', 'tickets'].forEach(v => { $('#tab-' + v).hidden = true; });
 }
 async function drawUsers() {
   const body = $('#userBody');
@@ -1880,6 +1881,64 @@ drawCatalog(); drawPallets(); drawVehicles(); drawCombos(); renderRules(state.ru
 drawLog();
 importOrders(load(KEYS.list, null) || state.csv, false, true);
 
-// any unexpected error: tell the user instead of a silently broken page
-window.addEventListener('error', e => { try { flash('Chyba: ' + (e.message || e) + ' – obnovte stránku (F5), data jsou uložená.'); } catch (x) {} });
-window.addEventListener('unhandledrejection', e => { try { flash('Chyba: ' + ((e.reason && e.reason.message) || e.reason) + ' – obnovte stránku (F5).'); } catch (x) {} });
+// any unexpected error: tell the user instead of a silently broken page (and keep it for a bug report)
+const pageErrors = [];
+const noteErr = m => { pageErrors.push(new Date().toLocaleTimeString('cs-CZ') + ' ' + m); if (pageErrors.length > 20) pageErrors.shift(); };
+window.addEventListener('error', e => { noteErr(e.message || String(e)); try { flash('Chyba: ' + (e.message || e) + ' – obnovte stránku (F5), data jsou uložená.'); } catch (x) {} });
+window.addEventListener('unhandledrejection', e => { const m = (e.reason && e.reason.message) || String(e.reason); noteErr(m); try { flash('Chyba: ' + m + ' – obnovte stránku (F5).'); } catch (x) {} });
+
+// ---------- bug reports (tickets) ----------
+let bugShot = '';
+// screenshot → JPEG, max 1600 px wide, so a ticket stays small
+function shrinkImage(file) {
+  return new Promise(res => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => { const k = Math.min(1, 1600 / img.width), c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', 0.8)); };
+    img.onerror = () => res('');
+    img.src = url;
+  });
+}
+async function setShot(file) {
+  if (!file || !/^image\//.test(file.type)) return;
+  bugShot = await shrinkImage(file);
+  $('#bugImg').src = bugShot; $('#bugImg').hidden = !bugShot;
+}
+$('#bugBtn').addEventListener('click', () => {
+  bugShot = ''; $('#bugForm').reset(); $('#bugImg').hidden = true;
+  $('#dlgBug').showModal(); $('#bugText').focus();
+});
+$('#dlgBug').addEventListener('paste', e => { const it = [...(e.clipboardData || {}).items || []].find(i => /^image\//.test(i.type)); if (it) { e.preventDefault(); setShot(it.getAsFile()); } });
+$('#bugFile').addEventListener('change', e => setShot(e.target.files[0]));
+$('#bugForm').addEventListener('submit', async ev => {
+  if (!ev.submitter || ev.submitter.value !== 'yes') return;
+  const id = state.sel, o = id && state.orders.get(id);
+  const view = (VIEWS.find(v => !$('#view-' + v).hidden)) || '';
+  let orderText = '';
+  try { if (o) orderText = ordersToText(new Map([[id, o]])); } catch (e) {}
+  const context = { order: id || null, orderText, view, url: location.href, ua: navigator.userAgent, errors: pageErrors.slice(), at: new Date().toISOString() };
+  const t = { email: me.user.email || '', body: $('#bugText').value.trim(), shot: bugShot || null, context };
+  if (me.demo) { console.log('ticket (demo, not saved)', t); flash('Demo: tiket se neukládá (viz konzole).'); return; }
+  const err = await addTicket(t);
+  flash(err ? 'Tiket se neuložil: ' + err + (/relation|does not exist|schema cache/.test(err) ? ' – chybí tabulka tickets (spusťte SQL ze supabase/schema.sql).' : '') : 'Děkujeme, chyba je nahlášená.');
+});
+const TK_ST = { novy: 'Nový', resi: 'Řeší se', hotovo: 'Hotovo' };
+async function drawTickets() {
+  const el = $('#tkList');
+  if (me.demo) { el.innerHTML = '<p class="muted">V demu se tikety neukládají.</p>'; return; }
+  el.innerHTML = '<p class="muted">Načítám…</p>';
+  let list;
+  try { list = await listTickets(); } catch (e) { el.innerHTML = '<p class="problems">' + esc(e.message) + (/relation|does not exist|schema cache/.test(e.message) ? ' – chybí tabulka tickets (spusťte SQL ze supabase/schema.sql).' : '') + '</p>'; return; }
+  const f = $('#tkFilter').value;
+  list = list.filter(t => f === 'open' ? t.status !== 'hotovo' : !f || t.status === f);
+  el.innerHTML = list.length ? list.map(t => '<article class="card tk"><header><b>#' + t.id + '</b> <span class="muted">' + new Date(t.created_at).toLocaleString('cs-CZ') + ' · ' + esc(t.email || '') + (t.context && t.context.order ? ' · zakázka ' + esc(t.context.order) : '') + '</span>' +
+    '<select data-tkst="' + t.id + '">' + Object.entries(TK_ST).map(([k, v]) => '<option value="' + k + '"' + (k === t.status ? ' selected' : '') + '>' + v + '</option>').join('') + '</select></header>' +
+    '<p class="tk-body">' + esc(t.body) + '</p>' + (t.shot ? '<a href="' + t.shot + '" target="_blank" rel="noopener"><img class="tk-shot" src="' + t.shot + '" alt="Snímek obrazovky tiketu ' + t.id + '"></a>' : '') +
+    (t.context && t.context.errors && t.context.errors.length ? '<details><summary>Chyby stránky (' + t.context.errors.length + ')</summary><pre>' + esc(t.context.errors.join('\n')) + '</pre></details>' : '') +
+    (t.context && t.context.orderText ? '<details><summary>Text zakázky</summary><pre>' + esc(t.context.orderText) + '</pre></details>' : '') + '</article>').join('') : '<p class="muted">Žádné tikety.</p>';
+}
+$('#tkFilter').addEventListener('change', drawTickets);
+$('#tkList').addEventListener('change', async e => {
+  const id = e.target.dataset.tkst; if (!id) return;
+  const err = await updateTicket(Number(id), { status: e.target.value });
+  flash(err ? 'Neuloženo: ' + err : 'Stav tiketu #' + id + ': ' + TK_ST[e.target.value] + '.');
+});

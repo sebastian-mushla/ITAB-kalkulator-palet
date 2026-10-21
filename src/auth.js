@@ -91,3 +91,18 @@ export async function adminUsers(body) {
   if (!error) return null;
   try { const j = await error.context.json(); return j.error || error.message; } catch (e) { return error.message; }
 }
+
+// ---------- tickets (bug reports) ----------
+export async function addTicket(t) {
+  const { error } = await sb.from('tickets').insert(t);
+  return error ? error.message : null;
+}
+export async function listTickets() {
+  const { data, error } = await sb.from('tickets').select('*').order('created_at', { ascending: false }).limit(200);
+  if (error) throw new Error(error.message);
+  return data;
+}
+export async function updateTicket(id, ch) {
+  const { error } = await sb.from('tickets').update(ch).eq('id', id);
+  return error ? error.message : null;
+}
