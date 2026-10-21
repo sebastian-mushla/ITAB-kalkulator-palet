@@ -435,7 +435,10 @@ dialog.dlg-wide .pe-row{grid-template-columns:minmax(0,1fr) auto auto}
 .pal-code-in{font-weight:700;color:var(--primary)!important;min-width:110px}
 .lr-rows{display:flex;flex-direction:column;gap:6px;max-height:46vh;overflow:auto}
 .lr,.lr-h{display:grid;grid-template-columns:minmax(0,1.6fr) 70px 110px;gap:8px;align-items:center}
-.lr.m,.lr-h.m{grid-template-columns:minmax(0,1.5fr) 80px 90px 80px 140px}
+.lr.m,.lr-h.m{grid-template-columns:minmax(0,1.5fr) 70px 100px 90px}
+.lr.m5,.lr-h.m5{grid-template-columns:minmax(0,1.5fr) 80px 90px 80px 140px}
+dialog#dlgCombo{max-width:560px}dialog#dlgMaterial{max-width:680px}
+.lr b{overflow-wrap:anywhere}
 .sz2{display:flex;gap:4px}.sz2 input{min-width:0;width:50%}
 .lr-h{font-size:12px;color:var(--ink2);font-weight:600}
 .lr{padding:6px 0;border-bottom:1px dashed var(--line)}
