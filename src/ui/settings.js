@@ -9,7 +9,7 @@ export function filterCatalog(catalog, q) {
   q = (q || '').trim().toLowerCase();
   const idx = catalog.map((a, i) => i);
   if (!q) return idx;
-  return idx.filter(i => String(catalog[i].code).toLowerCase().includes(q) || String(catalog[i].name || '').toLowerCase().includes(q));
+  return idx.filter(i => String(catalog[i].code).toLowerCase().includes(q) || String(catalog[i].vykres || '').toLowerCase().includes(q) || String(catalog[i].name || '').toLowerCase().includes(q));
 }
 
 export function renderCatalog(catalog, view, pallets, combos) {
@@ -25,6 +25,7 @@ export function renderCatalog(catalog, view, pallets, combos) {
     const a = catalog[i];
     const num = (f, min, step) => '<td><input type="number" min="' + (min || 0) + '" step="' + (step || 'any') + '" data-i="' + i + '" data-f="' + f + '" value="' + (a[f] == null ? '' : a[f]) + '"></td>';
     return '<tr><td><i class="sw" style="background:' + color(i) + '"></i><input type="text" data-i="' + i + '" data-f="code" value="' + esc(a.code) + '" aria-label="Artikl"></td>' +
+      '<td><input type="text" data-i="' + i + '" data-f="vykres" value="' + esc(a.vykres || '') + '" placeholder="–" aria-label="Výkres"></td>' +
       '<td>' + (a.name ? '<span class="ro-name" title="Název z ERP, nelze měnit">' + esc(a.name) + '</span>' : '<input type="text" data-i="' + i + '" data-f="name" value="" aria-label="Název" placeholder="doplnit">') + '</td>' +
       '<td><select data-i="' + i + '" data-f="pack" aria-label="Druh"><option value="neurceno"' + (a.pack !== 'sluzba' && a.pack !== 'kit' ? ' selected' : '') + '>zboží</option><option value="sluzba"' + (a.pack === 'sluzba' ? ' selected' : '') + '>služba</option><option value="kit"' + (a.pack === 'kit' ? ' selected' : '') + '>kit item</option></select></td>' +
       '<td class="muted small">' + (a.pack === 'sluzba' || a.pack === 'kit' ? 'nic se neveze' : balOf(a.code)) + '</td>' +
@@ -33,7 +34,7 @@ export function renderCatalog(catalog, view, pallets, combos) {
       '<td><span class="dims"><input type="number" min="0" data-i="' + i + '" data-f="aL" value="' + (a.aL || '') + '" placeholder="–" aria-label="Délka artiklu, mm"> × <input type="number" min="0" data-i="' + i + '" data-f="aW" value="' + (a.aW || '') + '" placeholder="–" aria-label="Šířka artiklu, mm"></span></td>' +
       '<td><input type="checkbox" data-i="' + i + '" data-f="rot"' + (a.rot ? ' checked' : '') + ' aria-label="Lze otáčet"></td>' +
       '<td><button class="btn small" data-del="' + i + '">Smazat</button></td></tr>';
-  }).join('') || '<tr><td colspan="8" class="empty">Nic nenalezeno.</td></tr>';
+  }).join('') || '<tr><td colspan="9" class="empty">Nic nenalezeno.</td></tr>';
   $('#catInfo').textContent = list.length + ' ' + plural(list.length, ['artikl', 'artikly', 'artiklů']) + (list.length !== catalog.length ? ' z ' + catalog.length : '');
   $('#catPager').innerHTML = pages > 1
     ? '<button class="btn small" data-page="' + (view.page - 1) + '"' + (view.page === 0 ? ' disabled' : '') + '>‹ Předchozí</button><span class="muted">Strana ' + (view.page + 1) + ' z ' + pages + '</span><button class="btn small" data-page="' + (view.page + 1) + '"' + (view.page >= pages - 1 ? ' disabled' : '') + '>Další ›</button>'

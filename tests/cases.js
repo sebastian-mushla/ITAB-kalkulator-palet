@@ -458,3 +458,10 @@ cases.push(['Bezpečnost: služba, Ks na paletě 0 / 1 – žádné zamrznutí a
   assert(r.pallets.filter(p => p.code === 'V-POL').length === 1, 'V-POL per 0 = one pallet');
   assert(r.pallets.length < 10 && r.errors.some(e => /2000 palet/.test(e)), 'huge per 1 capped: ' + r.pallets.length);
 }]);
+
+cases.push(['Číselník: sloupec výkres (import, jen když je v souboru)', () => {
+  const r = rowsToCatalog(parseCsvRows('artikl;výkres;váha\nV3-POL-069-7003;V3-POL-069;2,5\nV3-POL-069-9003;;2,5'));
+  assert(r.items[0].vykres === 'V3-POL-069' && r.items[1].vykres === '' && r.items[0].kg === 2.5, JSON.stringify(r.items));
+  const r2 = rowsToCatalog(parseCsvRows('artikl;váha\nV3-POL-069-7003;3'));
+  assert(!('vykres' in r2.items[0]), 'no column = untouched');
+}]);

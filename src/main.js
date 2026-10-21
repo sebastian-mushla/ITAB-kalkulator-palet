@@ -1563,8 +1563,8 @@ $('#catReset').addEventListener('click', async () => {
   state.catalog = clone(DEFAULT_CATALOG); persist('catalog'); drawCatalog(); recalc(); $('#catReport').innerHTML = '';
 });
 $('#catExport').addEventListener('click', () => download('ciselnik-artiklu.csv',
-  [['artikl', 'nazev', 'druh', 'vaha_kusu_kg', 'delka_artiklu_mm', 'sirka_artiklu_mm', 'lze_otacet']]
-    .concat(state.catalog.map(a => [a.code, a.name, a.pack === 'sluzba' || a.pack === 'kit' ? a.pack : 'zbozi', String(a.kg || 0).replace('.', ','), a.aL || '', a.aW || '', a.rot ? 'ano' : 'ne']))));
+  [['artikl', 'vykres', 'nazev', 'druh', 'vaha_kusu_kg', 'delka_artiklu_mm', 'sirka_artiklu_mm', 'lze_otacet']]
+    .concat(state.catalog.map(a => [a.code, a.vykres || '', a.name, a.pack === 'sluzba' || a.pack === 'kit' ? a.pack : 'zbozi', String(a.kg || 0).replace('.', ','), a.aL || '', a.aW || '', a.rot ? 'ano' : 'ne']))));
 // full check of the catalog: every problem that would make an order wrong
 function catalogProblems() {
   const out = [], seen = new Map();

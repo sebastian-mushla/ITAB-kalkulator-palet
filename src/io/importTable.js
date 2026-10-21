@@ -94,6 +94,8 @@ export const CATALOG_FIELDS = {
   // article size (posts, tubes bigger than their pallet) – before the generic délka/šířka so those words go here first
   aL: ['delka_artiklu_mm', 'delka artiklu', 'rozmer artiklu delka', 'article length'],
   aW: ['sirka_artiklu_mm', 'sirka artiklu', 'rozmer artiklu sirka', 'article width'],
+  // drawing number (article without paint): optional, a tool next to the article code
+  vykres: ['vykres', 'cislo vykresu', 'drawing', 'drawing number', 'чертеж', 'викрес'],
   code: ['artikl', 'article', 'artikel', 'артикул', 'sku', 'kod', 'code', 'cislo artiklu'],
   name: ['nazev', 'name', 'название', 'наименование', 'popis', 'description'],
   pack: ['baleni', 'pack', 'packaging', 'упаковка', 'typ baleni'],
@@ -135,6 +137,7 @@ export function rowsToCatalog(rows) {
     // only the columns the file has: a file with just code + size does not wipe the weights (merge keeps the rest)
     const it = { code };
     if (cols.name != null) it.name = String(get(r, 'name')).trim();
+    if (cols.vykres != null) it.vykres = String(get(r, 'vykres')).trim();
     if (cols.pack != null || pal || (pl > 0 && pw > 0)) it.pack = pack;
     if (pal && pack !== 'balik') it.pal = pal;
     if (pl > 0) it.pl = pl; if (pw > 0) it.pw = pw; if (per > 0) it.per = per;
@@ -145,7 +148,7 @@ export function rowsToCatalog(rows) {
   });
   return { items, errors, cols };
 }
-export const CATALOG_LABELS = { aL: 'délka artiklu', aW: 'šířka artiklu', pal: 'typ palety (nebo délka a šířka)', code: 'artikl', name: 'název', pack: 'balení', per: 'kusů na paletě', pl: 'délka', pw: 'šířka', kg: 'váha kusu', rot: 'lze otáčet' };
+export const CATALOG_LABELS = { vykres: 'výkres', aL: 'délka artiklu', aW: 'šířka artiklu', pal: 'typ palety (nebo délka a šířka)', code: 'artikl', name: 'název', pack: 'balení', per: 'kusů na paletě', pl: 'délka', pw: 'šířka', kg: 'váha kusu', rot: 'lze otáčet' };
 
 // ---------- pallet types ----------
 export const PALLET_FIELDS = {
@@ -231,6 +234,8 @@ export function rowsToVehicles(rows) {
 
 // ---------- combos ----------
 export const COMBO_FIELDS = {
+  // drawing number (article without paint): optional, a tool next to the article code
+  vykres: ['vykres', 'cislo vykresu', 'drawing', 'drawing number', 'чертеж', 'викрес'],
   code: ['artikl', 'article', 'артикул', 'code'],
   withCode: ['kdyz je v zakazce', 'v kombinaci s', 'with', 'spolu s', 'в комбинации'],
   min: ['mnozstvi od', 'od', 'min', 'от'],
