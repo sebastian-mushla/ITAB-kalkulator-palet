@@ -15,7 +15,8 @@ if(t==='system')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'lig
 document.documentElement.setAttribute('data-theme',t);})();
 </script>
 </head>
-<body>
+<body class="booting">
+<div id="boot" role="status" aria-live="polite"><div class="boot-ring"></div><p>Načítám data a počítám zakázky…</p></div>
 <section id="login" class="login" hidden>
   <form class="login-card" id="loginForm">
     <div class="brand"><span class="logo"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></span><span>ITAB Expedice</span></div>
@@ -223,12 +224,12 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
       </section>
 
       <section id="view-users" hidden>
-        <div class="pagehead"><div><h1>Uživatelé</h1><p>Kdo smí co: administrátor vidí a mění vše, uživatel jen počítá zakázky na Přehledu.</p></div></div>
+        <div class="pagehead"><div><h1>Uživatelé</h1><p>Kdo smí co: uživatel – kalkulátor a nakládka; administrátor – vše kromě uživatelů a tiketů; hlavní administrátor – vše.</p></div></div>
         <div class="card cat">
           <form class="useradd" id="userAdd">
             <label>E-mail<input type="email" id="uaEmail" required autocomplete="off"></label>
             <label>Heslo (aspoň 8 znaků)<input type="text" id="uaPass" required minlength="8" autocomplete="new-password"></label>
-            <label>Role<select id="uaRole"><option value="user">uživatel (jen výpočet)</option><option value="admin">administrátor (vše)</option></select></label>
+            <label>Role<select id="uaRole"><option value="user">uživatel (kalkulátor a nakládka)</option><option value="manager">administrátor (vše kromě uživatelů a tiketů)</option><option value="admin">hlavní administrátor (vše)</option></select></label>
             <button class="btn primary" type="submit" id="uaBtn">Přidat uživatele</button>
           </form>
           <p class="hint">Heslo předejte člověku sami. Po přihlášení si ho změní tlačítkem „Změnit heslo“ nahoře.</p>
@@ -516,9 +517,10 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
       <label>Vlastní váha palety, kg<input type="number" id="daPTare" min="0" step="any" value="0"></label>
     </div>
     <div data-sec="balik" class="two"><label>Délka balíku, mm<input type="number" id="daL" min="1" value="400" required></label><label>Šířka balíku, mm<input type="number" id="daW" min="1" value="300" required></label></div>
-    <div class="two" id="daSizeRow"><label>Délka artiklu, mm<input type="number" id="daAL" min="1" placeholder="skutečná délka artiklu" required></label><label>Šířka artiklu, mm<input type="number" id="daAW" min="1" placeholder="skutečná šířka artiklu" required></label></div>
+    <div class="two" id="daSizeRow"><label>Délka artiklu, mm<input type="number" id="daAL" min="0" placeholder="jen když je delší než paleta"></label><label>Šířka artiklu, mm<input type="number" id="daAW" min="0" placeholder="jen když je širší než paleta"></label></div>
     <div class="two" id="daQtyRow"><label><span id="daPerLabel">Kusů na paletě</span><input type="number" id="daPer" min="1" step="1" value="1" required></label><label>Váha kusu, kg<input type="number" id="daKg" min="0" step="any" value="0" required></label></div>
     <label class="inline"><input type="checkbox" id="daRot" checked>Lze otáčet</label>
+    <label class="inline" id="daRememberWrap"><input type="checkbox" id="daRemember" checked>Zapamatovat – uložit do číselníku a způsobu balení (bez zaškrtnutí jen pro tuto zakázku)</label>
     <div class="acts"><button class="btn" value="no" formnovalidate>Zrušit</button><button class="btn primary" value="yes">Uložit artikl</button></div>
   </form>
 </dialog>

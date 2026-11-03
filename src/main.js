@@ -44,7 +44,8 @@ function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); 
 // the prototype stored the catalog under this key; take it over once
 // sign in first; catalog, vehicles, combos and rules are shared for everybody in Supabase
 const me = await requireLogin();
-const isAdmin = me.role === 'admin';
+// roles: user = Kalkulátor + Nakládka; manager = everything except Uživatelé and Tikety; admin = everything
+const isAdmin = me.role === 'admin' || me.role === 'manager', isSuper = me.role === 'admin';
 let shared = {};
 if (!me.demo) { try { shared = await loadSettings(); } catch (e) { alert(e.message); } }
 const state = {
@@ -54,7 +55,8 @@ const state = {
   combos: Array.isArray(shared.combos) ? shared.combos : clone(DEFAULT_COMBOS),
   pallets: Array.isArray(shared.pallets) && shared.pallets.length ? shared.pallets : clone(DEFAULT_PALLETS),
   rules: Object.assign(clone(DEFAULT_RULES), shared.rules || {}),
-  csv: load(KEYS.csv, SAMPLE),
+  // a new user starts with an empty list (the demo sample only in ?demo)
+  csv: load(KEYS.csv, me.demo ? SAMPLE : ''),
   orders: new Map(), results: new Map(), forced: new Map(), manual: new Map(), board: new Map(), plan: new Map(Object.entries(load('itab.plans.v1', {})).map(([k, v]) => [k, v.plan])),
 
   projSel: new Map(Object.entries(load('itab.projsel.v1', {}))),
@@ -1353,7 +1355,7 @@ function askMaterial(listU, bid) {
   $('#dmText').innerHTML = 'Na paletu <b>' + esc(t.code) + '</b> <span class="dlg-name">' + esc(t.name || '') + '</span>. Zaplnění se počítá podle „vejde se na paletu“.';
   $('#dmRows').innerHTML = '<div class="lr-h m5"><span>Artikl</span><span>Na tuto paletu</span><span>Vejde se na paletu</span><span>Váha kusu, kg</span><span title="Skutečný rozměr artiklu; větší než paleta = paleta se prodlouží">Délka × šířka art., mm</span></div>' + listU.map((u, i) =>
     '<div class="lr m5"><span><b>' + esc(u.code) + '</b><small>' + esc(u.name || '') + ' · ' + u.qty + ' ks</small></span>' +
-    '<input type="number" min="1" max="' + u.qty + '" step="1" value="' + u.qty + '" data-mu="' + i + '" required><input type="number" min="1" step="1" value="' + u.qty + '" data-mp="' + i + '" required><input type="number" min="0" step="any" value="0" data-mk="' + i + '" required><span class="sz2"><input type="number" min="1" placeholder="D" data-ml="' + i + '" required><input type="number" min="1" placeholder="Š" data-mw="' + i + '" required></span></div>').join('');
+    '<input type="number" min="1" max="' + u.qty + '" step="1" value="' + u.qty + '" data-mu="' + i + '" required><input type="number" min="1" step="1" value="' + u.qty + '" data-mp="' + i + '" required><input type="number" min="0" step="any" value="0" data-mk="' + i + '" required><span class="sz2"><input type="number" min="0" placeholder="D" data-ml="' + i + '"><input type="number" min="0" placeholder="Š" data-mw="' + i + '"></span></div>').join('');
   $('#dmSave').checked = true;
   $('#dmSaveText').textContent = 'Uložit do číselníku: ' + (listU.length > 1 ? 'artikly jedou' : listU[0].code + ' jede') + ' na ' + t.code + ' (kusů na paletu = „vejde se na paletu“)';
   dlg.querySelector('form').onsubmit = ev => {
@@ -1415,6 +1417,17 @@ function askArticle(u, next, left) {
       state.pallets.push({ code, name: $('#daPName').value.trim() || 'Paleta ' + Math.round(L / 10) + ' × ' + Math.round(W / 10), L, W, H: 0, tare: toNum($('#daPTare').value) || 0, maxKg: 0, rot });
       persist('pallets'); drawPallets(); a.pal = code;
     }
+    // not remembered: pallets only in this order's plan, catalog and Způsob balení untouched
+    if (!$('#daRemember').checked && a.pack === 'paleta') {
+      const P1 = ensurePlan(state.sel);
+      let left = u.qty; const per1 = a.per > 0 ? a.per : Math.max(1, u.qty);
+      while (left > 0) { const n = Math.min(left, per1); P1.push({ id: newId(), pal: a.pal, contents: [{ code: a.code, name: a.name, units: n, per: a.per, kg: a.kg, so: u.so }] }); left -= n; }
+      logChanges(state.sel, ['Artikl ' + u.code + ' položen jen pro tuto zakázku (' + a.pal + ', ' + u.qty + ' ks)']);
+      flash('Artikl ' + u.code + ' položen jen pro tuto zakázku (číselník se nemění).');
+      clearSel(); keepScroll(() => recalcOne());
+      if (next) setTimeout(next, 50);
+      return;
+    }
     // an article known only from a balení (balení neurčeno) gets its packing now instead of a second entry
     const ex = state.catalog.find(c => String(c.code).toLowerCase() === u.code.toLowerCase());
     if (ex) { delete ex.pl; delete ex.pw; delete ex.pal; Object.assign(ex, a, { name: ex.name || a.name, kg: a.kg || ex.kg || 0 }); }
@@ -1444,6 +1457,7 @@ function daSections() {
   $('#daQtyRow').hidden = none; $('#daQtyRow').querySelectorAll('input').forEach(i => { i.disabled = none; });
   $('#daRot').closest('label').hidden = none;
   const sz = m === 'list' || m === 'new';
+  $('#daRememberWrap').hidden = !sz;
   $('#daSizeRow').hidden = !sz; $('#daSizeRow').querySelectorAll('input').forEach(i => { i.disabled = !sz; });
 }
 $('#daPack').addEventListener('change', daSections);
@@ -1815,7 +1829,7 @@ document.querySelector('.themes').addEventListener('click', e => {
 darkMq.addEventListener('change', () => { if (themePref === 'system') applyTheme('system'); });
 
 // ---------- account and roles ----------
-$('#who').textContent = (me.user.email || '') + (isAdmin ? ' · admin' : '');
+$('#who').textContent = (me.user.email || '') + (isSuper ? ' · hlavní admin' : isAdmin ? ' · admin' : '');
 $('#logoutBtn').addEventListener('click', signOut);
 $('#passBtn').addEventListener('click', async () => {
   const p = prompt('Nové heslo (aspoň 8 znaků):');
@@ -1824,29 +1838,34 @@ $('#passBtn').addEventListener('click', async () => {
   const err = await changePassword(p);
   alert(err ? 'Heslo se nezměnilo: ' + err : 'Heslo změněno.');
 });
-if (!isAdmin) {
-  ['catalog', 'pallets', 'combos', 'projects', 'vehicles', 'rules', 'users', 'tickets'].forEach(v => { $('#tab-' + v).hidden = true; });
-}
+if (!isAdmin) ['catalog', 'pallets', 'combos', 'projects', 'vehicles', 'rules'].forEach(v => { $('#tab-' + v).hidden = true; });
+if (!isSuper) ['users', 'tickets'].forEach(v => { $('#tab-' + v).hidden = true; });
+const ROLE_OPTS = [['user', 'uživatel (kalkulátor a nakládka)'], ['manager', 'administrátor (vše kromě uživatelů a tiketů)'], ['admin', 'hlavní administrátor (vše)']];
 async function drawUsers() {
   const body = $('#userBody');
   try {
     const list = await listProfiles();
     body.innerHTML = list.map(u => '<tr><td>' + esc(u.email || '') + '</td><td><select data-uid="' + u.id + '"' + (u.id === me.user.id ? ' disabled title="Svou roli změnit nelze"' : '') + '>' +
-      '<option value="user"' + (u.role === 'user' ? ' selected' : '') + '>uživatel (jen výpočet)</option>' +
-      '<option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>administrátor (vše)</option></select></td><td>' +
+      ROLE_OPTS.map(r => '<option value="' + r[0] + '"' + (u.role === r[0] ? ' selected' : '') + '>' + r[1] + '</option>').join('') + '</select></td><td>' +
       new Date(u.created_at).toLocaleDateString('cs-CZ') + '</td><td class="nowrap">' +
       '<button class="btn small" data-pass="' + u.id + '">Nové heslo</button> ' +
       (u.id === me.user.id ? '' : '<button class="btn small" data-deluser="' + u.id + '" data-email="' + esc(u.email || '') + '">Smazat</button>') + '</td></tr>').join('');
   } catch (e) { body.innerHTML = '<tr><td colspan="4" class="problems">' + esc(e.message) + '</td></tr>'; }
 }
-if (isAdmin) {
+if (isSuper) {
   $('#tab-users').addEventListener('click', drawUsers);
   const report = (err, ok) => { $('#userReport').innerHTML = err ? '<p class="problems">' + esc(err) + '</p>' : '<p class="ok-line">' + ok + '</p>'; };
   $('#userAdd').addEventListener('submit', async e => {
     e.preventDefault();
     const btn = $('#uaBtn'); btn.disabled = true;
     const email = $('#uaEmail').value.trim();
-    const err = await adminUsers({ action: 'create', email, password: $('#uaPass').value, role: $('#uaRole').value });
+    const role = $('#uaRole').value;
+    let err = await adminUsers({ action: 'create', email, password: $('#uaPass').value, role: role === 'admin' ? 'admin' : 'user' });
+    // the middle role is set right after creating (the server function knows only user / admin)
+    if (!err && role === 'manager') {
+      const u = (await listProfiles()).find(x => String(x.email || '').toLowerCase() === email.toLowerCase());
+      err = u ? await setRole(u.id, 'manager') : 'Uživatel vytvořen, ale roli se nepodařilo nastavit – nastavte ji v tabulce.';
+    }
     btn.disabled = false;
     report(err, 'Uživatel ' + esc(email) + ' přidán. Může se hned přihlásit.');
     if (!err) { $('#userAdd').reset(); drawUsers(); }
@@ -1880,6 +1899,8 @@ $('#csv').value = state.csv;
 drawCatalog(); drawPallets(); drawVehicles(); drawCombos(); renderRules(state.rules);
 drawLog();
 importOrders(load(KEYS.list, null) || state.csv, false, true);
+// everything is loaded and calculated: the page may be used now
+document.body.classList.remove('booting'); const bootEl = document.getElementById('boot'); if (bootEl) bootEl.remove();
 
 // any unexpected error: tell the user instead of a silently broken page (and keep it for a bug report)
 const pageErrors = [];
