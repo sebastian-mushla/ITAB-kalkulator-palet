@@ -691,3 +691,26 @@ dialog.dlg{border-radius:20px}
   .brand span:last-child{display:none}
   .topbar,.content{padding-left:16px;padding-right:16px}
 }
+
+/* ===== Inspector windows (side panel next to the page) + icon plates ===== */
+dialog.inspector{position:fixed;inset:72px 0 12px auto;margin:0;width:500px;max-width:calc(100vw - 24px);height:auto;max-height:none;border-radius:22px 0 0 22px;padding:0;overflow:auto;z-index:60;box-shadow:-18px 0 50px -28px rgba(27,52,120,.45),0 0 0 1px var(--line);animation:inspIn .18s ease-out}
+dialog.inspector>form{display:flex;flex-direction:column;min-height:100%;padding:0 22px}
+dialog.inspector .dlg-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:12px;padding:18px 0 14px;margin-bottom:6px;background:var(--panel);border-bottom:1px solid var(--line)}
+dialog.inspector .dlg-head h2{flex:1;font-size:18px;line-height:1.25;margin:0}
+.ic-plate{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:var(--primary-t);color:var(--primary)}
+.dlg-x{flex:none;width:32px;height:32px;border:0;border-radius:10px;background:var(--soft);color:var(--ink2);cursor:pointer;font-size:14px}
+.dlg-x:hover{background:var(--line);color:var(--ink)}
+dialog.inspector .acts{position:sticky;bottom:0;margin-top:auto;padding:14px 0 18px;background:var(--panel);border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+body.inspector-open .content{margin-right:516px;transition:margin .18s ease-out}
+@keyframes inspIn{from{transform:translateX(24px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){dialog.inspector{animation:none}body.inspector-open .content{transition:none}}
+@media (max-width:900px){
+  dialog.inspector{inset:auto 0 0 0;width:100%;max-width:none;max-height:85vh;border-radius:22px 22px 0 0}
+  body.inspector-open .content{margin-right:auto}
+}
+/* menu icons on plates */
+.tab svg{display:block;box-sizing:content-box;padding:5px;border-radius:9px;background:var(--primary-t);color:var(--primary);width:16px;height:16px}
+.tab[aria-selected="true"] svg{background:rgba(255,255,255,.2);color:#fff}
+@media (max-width:1500px){.tab svg{display:block}}
+@media (max-width:1280px){.tab{font-size:0;gap:0;padding:4px}.tab svg{width:18px;height:18px}}
+.kpi-ic{width:44px;height:44px;border-radius:13px}

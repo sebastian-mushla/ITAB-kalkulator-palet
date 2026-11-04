@@ -43,6 +43,37 @@ function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); 
 
 // the prototype stored the catalog under this key; take it over once
 // sign in first; catalog, vehicles, combos and rules are shared for everybody in Supabase
+// side panels ("inspector"): these windows open next to the page, not over it – the board stays visible and usable
+{
+  const showModal0 = HTMLDialogElement.prototype.showModal;
+  HTMLDialogElement.prototype.showModal = function () {
+    if (!this.classList.contains('inspector')) return showModal0.call(this);
+    document.querySelectorAll('dialog.inspector[open]').forEach(d => { if (d !== this) d.close(); });
+    this.show(); document.body.classList.add('inspector-open');
+  };
+  const IC = {
+    dlgPalEdit: '<rect x="3" y="7" width="18" height="6" rx="1"/><path d="M5 13v4M12 13v4M19 13v4M3 17h18"/>',
+    dlgPallet: '<rect x="3" y="7" width="18" height="6" rx="1"/><path d="M5 13v4M12 13v4M19 13v4M3 17h18"/>',
+    dlgArticle: '<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
+    dlgMaterial: '<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
+    dlgCombo: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+    dlgKolo: '<rect x="3" y="13" width="18" height="8" rx="1.5"/><rect x="6" y="5" width="7" height="8" rx="1.5"/>',
+    dlgAudit: '<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/>',
+    dlgRingil: '<path d="M2 6h12v10H2z"/><path d="M14 9h4l4 4v3h-8z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
+    dlgBug: '<path d="M8 2v3M16 2v3M7 8h10l-1 11a3 3 0 0 1-3 3h-2a3 3 0 0 1-3-3z"/><path d="M3 12h4M17 12h4"/>'
+  };
+  document.querySelectorAll('dialog.inspector').forEach(d => {
+    const h = d.querySelector('h2'); if (!h) return;
+    const head = document.createElement('div'); head.className = 'dlg-head';
+    head.innerHTML = '<span class="ic-plate"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (IC[d.id] || '') + '</svg></span>';
+    h.replaceWith(head); head.appendChild(h);
+    const x = document.createElement('button'); x.type = 'button'; x.className = 'dlg-x'; x.setAttribute('aria-label', 'Zavřít'); x.textContent = '✕';
+    x.addEventListener('click', () => d.close()); head.appendChild(x);
+    d.addEventListener('close', () => { if (!document.querySelector('dialog.inspector[open]')) document.body.classList.remove('inspector-open'); });
+  });
+  document.querySelectorAll('.tab').forEach(t => { t.title = t.textContent.trim(); });
+  document.addEventListener('keydown', e => { if (e.key !== 'Escape' || document.querySelector('dialog[open]:modal')) return; const d = document.querySelector('dialog.inspector[open]'); if (d) d.close(); });
+}
 const me = await requireLogin();
 // roles: user = Kalkulátor + Nakládka; manager = everything except Uživatelé and Tikety; admin = everything
 const isAdmin = me.role === 'admin' || me.role === 'manager', isSuper = me.role === 'admin';
@@ -495,13 +526,13 @@ onBoth('pointerdown', e => {
       ? [...document.querySelectorAll('#detail .board-pal')].filter(el => sel.board.has(boardKey(el))).map(el => ({ bid: el.dataset.bid, pi: el.dataset.pi }))
       : [{ bid: bpal.dataset.bid, pi: bpal.dataset.pi }];
     drag = { g: bpal, n: group.length, boardPal: group, sx: e.clientX, sy: e.clientY, w: rc.width, h: rc.height, color: getComputedStyle(bpal).getPropertyValue('--c') || 'var(--primary)', moved: false };
-    bpal.setPointerCapture(e.pointerId);
+    try { bpal.setPointerCapture(e.pointerId); } catch (x) {}
     return;
   }
   const pt = e.target.closest('.ptype');
   if (pt && isAdmin && e.button === 0) {
     drag = { g: pt, ptype: pt.dataset.pal, sx: e.clientX, sy: e.clientY, w: 84, h: 56, color: 'var(--primary)', moved: false };
-    pt.setPointerCapture(e.pointerId);
+    try { pt.setPointerCapture(e.pointerId); } catch (x) {}
     return;
   }
   const u = !e.target.closest('.unk-hint') && e.target.closest('.unk');
@@ -513,14 +544,14 @@ onBoth('pointerdown', e => {
     const sos = new Set(group.map(x => x.so).filter(Boolean));
     if (sos.size) document.querySelectorAll('.board-pal[data-so]').forEach(el => { if (el.dataset.so) el.classList.add(sos.has(el.dataset.so) ? 'drop-ok' : 'drop-no'); });
     drag = { g: u, n: group.length, unk: group, sx: e.clientX, sy: e.clientY, w: Math.min(rc.width, 120), h: 40, color: 'var(--gray)', moved: false };
-    u.setPointerCapture(e.pointerId);
+    try { u.setPointerCapture(e.pointerId); } catch (x) {}
     return;
   }
   const g = e.target.closest('.pal'); if (!g || e.button !== 0) return;
   const svg = g.ownerSVGElement, rect = g.querySelector('rect').getBoundingClientRect();
   const vgroup = sel.veh.has(vehKey(g)) && sel.veh.size > 1 ? [...sel.veh].map(k => k.split(':').map(Number)) : [[Number(g.dataset.v), Number(g.dataset.p)]];
   drag = { g, n: vgroup.length, vgroup, from: Number(g.dataset.v), pid: Number(g.dataset.p), sx: e.clientX, sy: e.clientY, w: rect.width, h: rect.height, color: g.querySelector('rect').style.fill, moved: false, svg };
-  g.setPointerCapture(e.pointerId);
+  try { g.setPointerCapture(e.pointerId); } catch (x) {}
 });
 onBoth('pointermove', e => {
   if (!drag) return;

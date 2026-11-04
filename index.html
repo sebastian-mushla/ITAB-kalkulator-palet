@@ -395,7 +395,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
     </main>
   </div>
 </div>
-<dialog class="dlg dlg-wide" id="dlgRingil">
+<dialog class="dlg dlg-wide inspector" id="dlgRingil">
   <form method="dialog">
     <h2 id="drTitle">Údaje pro Ringil</h2>
     <p>Klikněte na „Kopírovat“ a vložte do stejného pole v Ringilu (Cmd + V). Zkopírovaná pole se označí.</p>
@@ -403,14 +403,14 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
     <div class="acts"><button type="button" class="btn" id="drOrdered">Označit: doprava objednána</button><button class="btn primary" value="close">Hotovo</button></div>
   </form>
 </dialog>
-<dialog class="dlg dlg-wide" id="dlgPalEdit">
+<dialog class="dlg dlg-wide inspector" id="dlgPalEdit">
   <form method="dialog">
     <h2 id="peTitle">Paleta</h2>
     <div id="peBody"></div>
     <div class="acts"><button type="button" class="btn" id="peKoli" title="Obsah této palety se uloží jako balení – příště artikly pojedou spolu">Uložit jako balení</button><button type="button" class="btn" id="peDelete">Smazat paletu</button><button class="btn primary" value="close">Hotovo</button></div>
   </form>
 </dialog>
-<dialog class="dlg" id="dlgPallet">
+<dialog class="dlg inspector" id="dlgPallet">
   <form method="dialog">
     <h2>Jiná paleta</h2>
     <p>Paleta, která není v seznamu. Po uložení se přidá na plochu této zakázky.</p>
@@ -422,7 +422,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
     <div class="acts"><button class="btn" value="no" formnovalidate>Zrušit</button><button class="btn primary" value="yes">Přidat paletu</button></div>
   </form>
 </dialog>
-<dialog class="dlg" id="dlgMaterial">
+<dialog class="dlg inspector" id="dlgMaterial">
   <form method="dialog">
     <h2>Materiál na paletu</h2>
     <p id="dmText"></p>
@@ -431,7 +431,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
     <div class="acts"><button class="btn" value="no" formnovalidate>Zrušit</button><button class="btn primary" value="yes">Položit na paletu</button></div>
   </form>
 </dialog>
-<dialog class="dlg" id="dlgKolo">
+<dialog class="dlg inspector" id="dlgKolo">
   <form method="dialog" id="koForm">
     <h2>Importovat balení</h2>
     <p class="hint">Vložte řádky balení z ERP (artikl, název, množství, netto, brutto). Artikly pak pojedou spolu na jedné paletě. Množství se bere jako <b>ověřené</b>, ne jako maximum – když jich bude v zakázce víc, pojedou také, jen s upozorněním.</p>
@@ -454,7 +454,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
     <div class="acts"><button class="btn" value="no" formnovalidate>Zrušit</button><button class="btn primary" value="yes" id="koSave" disabled>Uložit balení</button></div>
   </form>
 </dialog>
-<dialog class="dlg" id="dlgAudit">
+<dialog class="dlg inspector" id="dlgAudit">
   <form method="dialog">
     <h2 id="auTitle">Zkontrolovat a uložit</h2>
     <p class="hint" id="auHint">Porovná uložené způsoby balení a definice artiklů s paletami této zakázky. Zaškrtnuté změny se provedou, palety zakázky se uloží a změny se zapíšou do historie (záložka Způsob balení).</p>
@@ -485,7 +485,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
     <div class="acts"><button class="btn" value="no">Zrušit</button><button class="btn primary" value="yes">Přeložit</button></div>
   </form>
 </dialog>
-<dialog class="dlg" id="dlgCombo">
+<dialog class="dlg inspector" id="dlgCombo">
   <form method="dialog">
     <h2 id="dcTitle">Přesunout artikl na paletu</h2>
     <p id="dcText"></p>
@@ -495,7 +495,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
     <div class="acts"><button class="btn" value="no">Zrušit</button><button class="btn primary" value="yes" id="dcYes">Přesunout na paletu</button></div>
   </form>
 </dialog>
-<dialog class="dlg" id="dlgBug">
+<dialog class="dlg inspector" id="dlgBug">
   <form method="dialog" id="bugForm">
     <h2>Nahlásit chybu</h2>
     <label>Co se stalo a co jste čekali?<textarea id="bugText" rows="5" required placeholder="např. Zakázka 9304: 700 ks V-POL se rozdělilo na 700 palet, čekal jsem 3."></textarea></label>
@@ -504,7 +504,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
     <div class="acts"><button class="btn" value="no" formnovalidate>Zrušit</button><button class="btn primary" value="yes">Odeslat</button></div>
   </form>
 </dialog>
-<dialog class="dlg" id="dlgArticle">
+<dialog class="dlg inspector" id="dlgArticle">
   <form method="dialog" id="daForm">
     <h2 id="daTitle">Nový artikl</h2>
     <p>Doplňte údaje, artikl se uloží do číselníku pro všechny.</p>
