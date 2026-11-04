@@ -19,6 +19,46 @@ export function icon(n) {
 
 // ---------- drawings ----------
 // --rel = length of this drawing compared with a 13,6 m trailer: all vehicles are drawn in the same scale
+// isometric preview of the load (view and print only; work happens in the 2D plan)
+export function svgVehicle3d(v) {
+  const L = v.L, W = v.W, H = 2600;
+  const P = (x, y, z) => [x + y * 0.55, -y * 0.42 - z * 0.85]; // oblique: body along x, width goes back and up, height up
+  const pts = [P(0, 0, 0), P(L, 0, 0), P(L, W, 0), P(0, W, 0), P(0, 0, H), P(0, W, H)];
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const mnx = Math.min(...xs) - 200, mny = Math.min(...ys) - 300, w = Math.max(...xs) - mnx + 200, h = Math.max(...ys) - mny + 200;
+  const poly = (ps, st) => '<polygon points="' + ps.map(p => p[0].toFixed(0) + ',' + p[1].toFixed(0)).join(' ') + '" style="' + st + '"/>';
+  let g = poly([P(0, 0, 0), P(L, 0, 0), P(L, W, 0), P(0, W, 0)], 'fill:var(--truck);stroke:var(--truck-line);stroke-width:18');
+  // cab wall and the far side wall as light glass so the load stays visible
+  g += poly([P(0, 0, 0), P(0, W, 0), P(0, W, H), P(0, 0, H)], 'fill:color-mix(in srgb,var(--primary) 10%,transparent);stroke:var(--truck-line);stroke-width:14');
+  g += poly([P(0, W, 0), P(L, W, 0), P(L, W, H), P(0, W, H)], 'fill:color-mix(in srgb,var(--primary) 5%,transparent);stroke:var(--truck-line);stroke-width:10;stroke-dasharray:60 40');
+  const nums = palletNumbers(v.items);
+  v.items.slice().sort((a, b) => b.y - a.y || a.x - b.x).forEach(it => {
+    const x1 = it.x, x2 = it.x + it.w, y1 = it.y, y2 = it.y + it.h, z = Math.min(H - 100, it.palH >= 600 ? it.palH : 1100), col = color(it.ci);
+    g += poly([P(x1, y1, 0), P(x2, y1, 0), P(x2, y1, z), P(x1, y1, z)], 'fill:color-mix(in srgb,' + col + ' 78%,#000);stroke:#fff;stroke-width:8');
+    g += poly([P(x2, y1, 0), P(x2, y2, 0), P(x2, y2, z), P(x2, y1, z)], 'fill:color-mix(in srgb,' + col + ' 62%,#000);stroke:#fff;stroke-width:8');
+    g += poly([P(x1, y1, z), P(x2, y1, z), P(x2, y2, z), P(x1, y2, z)], 'fill:' + col + ';stroke:#fff;stroke-width:8');
+    const t = P((x1 + x2) / 2, (y1 + y2) / 2, z);
+    g += '<text x="' + t[0].toFixed(0) + '" y="' + (t[1] + 60).toFixed(0) + '" style="fill:#fff;font-size:260px;font-weight:700;text-anchor:middle">' + nums.get(it) + '</text>';
+  });
+  return '<svg class="veh3d" viewBox="' + mnx.toFixed(0) + ' ' + mny.toFixed(0) + ' ' + w.toFixed(0) + ' ' + h.toFixed(0) + '" role="img" aria-label="3D náhled nakládky: ' + esc(v.title) + '">' + g + '</svg>';
+}
+// three small meters above the plan: length used, payload, centre of gravity with its zone
+function vehMeters(v, ev, load) {
+  if (!v.items.length) return '';
+  const used = Math.min(100, Math.round(Math.max(...v.items.map(i => i.x + i.w)) / v.L * 100));
+  const m = (lab, val, pct, cls, extra) => '<div class="vm' + (cls ? ' ' + cls : '') + '"><span class="vm-l">' + lab + '</span><b>' + val + '</b><span class="vm-bar">' + (extra || '') + '<i style="width:' + Math.min(100, pct) + '%"></i></span></div>';
+  const cg = ev && !v.items.some(missKg) ? Math.round(ev.cgPct) : null;
+  const zone = '<em style="left:' + normsNow.cgMin + '%;width:' + (normsNow.cgMax - normsNow.cgMin) + '%"></em>';
+  return '<div class="vmeters">' + m('Délka', used + ' %', used) + m('Nosnost', v.items.some(missKg) ? 'chybí váha' : load + ' %', load, load > 100 ? 'bad' : '') +
+    (cg != null ? '<div class="vm' + (cg < normsNow.cgMin || cg > normsNow.cgMax ? ' warn' : '') + '"><span class="vm-l">Těžiště</span><b>' + cg + ' %</b><span class="vm-bar cg">' + zone + '<u style="left:' + Math.max(0, Math.min(100, cg)) + '%"></u></span></div>' : '') + '</div>';
+}
+let view3d = false;
+if (typeof document !== 'undefined') document.addEventListener('click', e => {
+  const b = e.target.closest('[data-v3d]'); if (!b) return;
+  view3d = b.dataset.v3d === '1';
+  document.querySelectorAll('.veh').forEach(a => a.classList.toggle('show3d', view3d));
+  document.querySelectorAll('[data-v3d]').forEach(x => x.classList.toggle('on', (x.dataset.v3d === '1') === view3d));
+});
 export function svgVehicle(v) {
   const S = 10, x0 = 86, y0 = 6, Lw = v.L / S, Hw = v.W / S, lift = v.lift ? 26 : 0, vbW = x0 + Lw + 14 + lift, vbH = y0 + Hw + 36;
   const drag = v.idx != null;
@@ -313,7 +353,8 @@ function vehicleHtml(v) {
     shares = '<div class="so-shares">' + [...m].map(([so, n]) => { const tot = v.soTot.get(so) || n, pc = Math.round(n / tot * 100), C = 2 * Math.PI * 7;
       return '<span class="so-share" title="Zakázka ' + esc(so || '') + ': ' + n + ' z ' + tot + ' palet v tomto vozidle"><svg width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="7" style="fill:none;stroke:var(--line);stroke-width:3"/><circle cx="9" cy="9" r="7" transform="rotate(-90 9 9)" style="fill:none;stroke:var(--primary);stroke-width:3;stroke-dasharray:' + (C * n / tot).toFixed(1) + ' ' + C.toFixed(1) + '"/></svg><b>' + esc(so || '–') + '</b> ' + pc + ' %<small> (' + n + '/' + tot + ')</small></span>'; }).join('') + '</div>';
   }
-  return '<article class="panel veh' + (over ? ' over' : '') + '"><header>' + tools + '<h3>' + esc(v.title) + ', korba ' + fmtM(v.L) + ' × ' + fmtM(v.W) + ' m</h3>' + shares + '<p>' + (v.items.length ? v.items.length + ' ' + palWord(v.items.length) + ', ' + fmtKg(v.kg) + ' (' + load + ' % nosnosti' + (over ? ', přetíženo!' : '') + ')' : 'prázdné – přetáhněte sem palety') + rm + '</p>' + bal + '</header><div class="plan">' + svgVehicle(v) + '</div>' + (v.items.length ? palletTable(v, nameOf) : '') + '</article>';
+  const sw = v.items.length ? '<span class="seg v3d"><button type="button" class="seg-b' + (view3d ? '' : ' on') + '" data-v3d="0">2D</button><button type="button" class="seg-b' + (view3d ? ' on' : '') + '" data-v3d="1">3D</button></span>' : '';
+  return '<article class="panel veh' + (over ? ' over' : '') + (view3d ? ' show3d' : '') + '"><header>' + sw + tools + '<h3>' + esc(v.title) + ', korba ' + fmtM(v.L) + ' × ' + fmtM(v.W) + ' m</h3>' + shares + '<p>' + (v.items.length ? v.items.length + ' ' + palWord(v.items.length) + ', ' + fmtKg(v.kg) + ' (' + load + ' % nosnosti' + (over ? ', přetíženo!' : '') + ')' : 'prázdné – přetáhněte sem palety') + rm + '</p>' + bal + vehMeters(v, ev, load) + '</header><div class="plan">' + svgVehicle(v) + (v.items.length ? svgVehicle3d(v) : '') + '</div>' + (v.items.length ? palletTable(v, nameOf) : '') + '</article>';
 }
 function depotHtml(d, rules) {
   const nonEuro = [...new Set(d.items.filter(p => !p.euro).map(p => p.code))];

@@ -765,3 +765,21 @@ body.inspector-open .content{margin-right:516px;transition:margin .18s ease-out}
   .tray2 .unk{flex:1 1 220px;min-width:200px}
 }
 .tray2 .unk-top span{position:static}.tray2 .unk{position:relative}
+/* vehicle: meters, 2D/3D switch */
+.vmeters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0 4px}
+.vm{background:var(--soft);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.vm-l{font-size:12.5px;color:var(--ink2)}
+.vm b{font-size:18px;font-weight:600;letter-spacing:-.02em}
+.vm-bar{position:relative;display:block;height:6px;border-radius:999px;background:color-mix(in srgb,var(--ink2) 18%,transparent);overflow:hidden}
+.vm-bar i{display:block;height:100%;border-radius:999px;background:var(--primary)}
+.vm.bad b{color:var(--red)}.vm.bad .vm-bar i{background:var(--red)}
+.vm.warn b{color:var(--amber)}
+.vm-bar.cg{overflow:visible}
+.vm-bar.cg em{position:absolute;top:0;bottom:0;background:color-mix(in srgb,var(--green) 45%,transparent);border-radius:999px}
+.vm-bar.cg u{position:absolute;top:-4px;width:4px;height:14px;margin-left:-2px;border-radius:2px;background:var(--ink)}
+.seg.v3d{float:right;margin:0 0 0 10px}
+.veh .veh3d{display:none;width:100%;height:auto;max-height:420px}
+.veh.show3d .veh3d{display:block}
+.veh.show3d .veh-svg,.veh.show3d .plan>svg:not(.veh3d){display:none}
+@media (max-width:700px){.vmeters{grid-template-columns:1fr}}
+.vmeters{width:100%;flex-basis:100%;clear:both;order:9}.vm{min-width:0}
