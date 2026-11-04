@@ -359,11 +359,25 @@ export function idTitle(r) {
 }
 function unknownTray(r, isAdmin) {
   const unk = r.unknown || [];
-  return unk.length ? '<aside class="tray" aria-label="Neznámé artikly"><h3>Neznámé artikly</h3><p class="hint">' +
-    (isAdmin ? 'Přetáhněte na paletu (artikl pojede s ní) nebo na volné místo (nový artikl do číselníku).' : 'Tyto artikly nejsou v číselníku. Požádejte administrátora o doplnění.') + '</p>' +
-    (unk.length > 3 ? '<input type="search" class="unk-search" placeholder="Hledat artikl nebo název…" aria-label="Hledat neznámý artikl">' : '') +
-    unk.map(u => '<div class="unk' + (isAdmin ? '' : ' ro') + '" data-code="' + esc(u.code) + '" data-so="' + esc(u.so || '') + '" data-qty="' + u.qty + '" data-name="' + esc(u.name || '') + '"' + (isAdmin ? ' title="Přetáhněte na paletu nebo na volné místo"' : '') + '><div class="unk-top"><b>' + esc(u.code) + '</b><span>' + fmtN(u.qty) + ' ks</span></div>' + ((r.sos || []).length > 1 && u.so ? '<div class="unk-so">zakázka ' + esc(u.so) + '</div>' : '') + '<div class="unk-name' + (u.name ? '' : ' none') + '" title="' + esc(u.name || '') + '">' + esc(u.name || 'bez názvu v zakázce') + '</div>' + (u.hint ? '<button type="button" class="unk-hint linkbtn" data-koli="' + esc(u.hint.replace(/^.*balení /, '')) + '" title="Sám nemá určené balení – přetáhněte ho na volné místo (Nový artikl). Kliknutím ukážete balení.">' + esc(u.hint) + ' ›</button>' : '') + '</div>').join('') + '</aside>' : '';
+  if (!unk.length) return '';
+  // status card: progress of classified articles, pill filters, one draggable row per article
+  const known = new Set(r.rows.map(x => String(x.code).toLowerCase())).size, total = known + unk.length, pct = Math.round(known / (total || 1) * 100);
+  const sos = [...new Set(unk.map(u => u.so).filter(Boolean))];
+  const pills = [['all', 'Vše', unk.length], ['hint', 'Bez balení', unk.filter(u => u.hint).length]].concat(sos.length > 1 ? sos.map(so => ['so:' + so, so, unk.filter(u => u.so === so).length]) : []).filter((p, i) => i === 0 || p[2]);
+  return '<aside class="tray tray2" aria-label="Neznámé artikly"><div class="tray-head"><h3>Neznámé artikly</h3><span class="tray-n">' + unk.length + '</span></div>' +
+    '<div class="tray-prog"><span>Zařazeno <b>' + known + '</b> / ' + total + '</span><span>' + pct + ' %</span></div><div class="pe-fill"><i style="width:' + pct + '%"></i></div>' +
+    (pills.length > 1 ? '<div class="seg" role="group" aria-label="Filtr neznámých artiklů">' + pills.map((p, i) => '<button type="button" class="seg-b' + (i ? '' : ' on') + '" data-ufilt="' + esc(p[0]) + '">' + esc(p[1]) + ' <small>' + p[2] + '</small></button>').join('') + '</div>' : '') +
+    (unk.length > 6 ? '<input type="search" class="unk-search" placeholder="Hledat artikl nebo název…" aria-label="Hledat neznámý artikl">' : '') +
+    '<p class="hint">' + (isAdmin ? 'Řádek přetáhněte na paletu (pojede s ní) nebo na volné místo (nový artikl).' : 'Tyto artikly nejsou v číselníku. Požádejte administrátora o doplnění.') + '</p>' +
+    unk.map(u => '<div class="unk' + (isAdmin ? '' : ' ro') + '" data-code="' + esc(u.code) + '" data-so="' + esc(u.so || '') + '" data-qty="' + u.qty + '" data-name="' + esc(u.name || '') + '" data-hint="' + (u.hint ? 1 : '') + '"' + (isAdmin ? ' title="Přetáhněte na paletu nebo na volné místo"' : '') + '><div class="unk-top"><span class="unk-dot' + (u.hint ? ' warn' : '') + '"></span><b>' + esc(u.code) + '</b><span class="unk-q">' + fmtN(u.qty) + ' ks</span></div>' + ((r.sos || []).length > 1 && u.so ? '<div class="unk-so">zakázka ' + esc(u.so) + '</div>' : '') + '<div class="unk-name' + (u.name ? '' : ' none') + '" title="' + esc(u.name || '') + '">' + esc(u.name || 'bez názvu v zakázce') + '</div>' + (u.hint ? '<button type="button" class="unk-hint linkbtn" data-koli="' + esc(u.hint.replace(/^.*balení /, '')) + '" title="Sám nemá určené balení – přetáhněte ho na volné místo (Nový artikl). Kliknutím ukážete balení.">' + esc(u.hint) + ' ›</button>' : '') + '</div>').join('') + '</aside>';
 }
+// tray pill filters work in the page only
+if (typeof document !== 'undefined') document.addEventListener('click', e => {
+  const b = e.target.closest('[data-ufilt]'); if (!b) return;
+  const tray = b.closest('.tray'), f = b.dataset.ufilt;
+  tray.querySelectorAll('[data-ufilt]').forEach(x => x.classList.toggle('on', x === b));
+  tray.querySelectorAll('.unk').forEach(u => { u.hidden = f === 'hint' ? !u.dataset.hint : f.startsWith('so:') ? u.dataset.so !== f.slice(3) : false; });
+});
 
 // All pallets of the order as blocks (size to scale), grouped by article; drop target for learning.
 // Admin also gets a palette of pallet types to drag onto the board (empty pallet for this order).
@@ -373,7 +387,12 @@ function palletBoardHtml(r, isAdmin, board, types) {
   const S = 0.1; // px per mm
   const block = (p, attrs, inner, cls) => {
     const w = Math.max(132, p.pl * S), hh = Math.max(82, p.pw * S);
-    return '<div class="board-pal' + (cls || '') + '" ' + attrs + ' style="width:' + w.toFixed(0) + 'px;height:' + hh.toFixed(0) + 'px;--c:' + color(p.ci) + ';--f:' + Math.min(100, Math.round(p.fill * 100)) + '%">' + inner + '</div>';
+    // ORVENA card: kind as a top stripe, pieces and weight as thin bars (weight only with a max weight of the pallet)
+    const kind = p.group ? 'mix' : p.tag ? 'host' : p.board != null && !r.planOn ? 'hand' : 'solo';
+    const wf = p.maxKg > 0 ? Math.max(0, (p.kg || 0) - (p.tare || 0)) / p.maxKg : null;
+    const bar = (f, t) => '<span class="bp-bar' + (f > 1.001 ? ' over' : '') + '" title="' + t + ' ' + Math.round(f * 100) + ' %"><i style="width:' + Math.min(100, Math.round(f * 100)) + '%"></i></span>';
+    const bars = p.units ? '<span class="bp-bars">' + bar(p.fill || 0, 'Kusy') + (wf != null ? bar(wf, 'Váha') : '') + '</span>' : '';
+    return '<div class="board-pal k-' + kind + (wf > 1.001 ? ' heavy' : '') + (cls || '') + '" ' + attrs + ' style="width:' + w.toFixed(0) + 'px;height:' + hh.toFixed(0) + 'px;--c:' + color(p.ci) + ';--f:' + Math.min(100, Math.round(p.fill * 100)) + '%">' + inner + bars + '</div>';
   };
   const multi = (r.sos || []).length > 1;
   const label = p => (p.overhang ? '<small class="ovh" title="Artikl ' + esc(p.overhang.code) + ' je větší než paleta ' + Math.round(p.overhang.palL / 10) + ' × ' + Math.round(p.overhang.palW / 10) + ' cm – v korbě zabere ' + Math.round(p.pl / 10) + ' × ' + Math.round(p.pw / 10) + ' cm">↔ přesah ' + Math.round(p.pl / 10) + '×' + Math.round(p.pw / 10) + '</small>' : '') +  '<b>' + esc(p.code) + '</b><span>' + fmtN(p.units) + ' ks' + (p.fill < 0.999 ? ' · ' + Math.round(p.fill * 100) + ' %' : '') + '</span>' +
