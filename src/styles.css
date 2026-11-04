@@ -693,7 +693,7 @@ dialog.dlg{border-radius:20px}
 }
 
 /* ===== Inspector windows (side panel next to the page) + icon plates ===== */
-dialog.inspector{position:fixed;inset:72px 0 12px auto;margin:0;width:500px;max-width:calc(100vw - 24px);height:auto;max-height:none;border-radius:22px 0 0 22px;padding:0;overflow:auto;z-index:60;box-shadow:-18px 0 50px -28px rgba(27,52,120,.45),0 0 0 1px var(--line);animation:inspIn .18s ease-out}
+dialog.inspector{position:fixed;inset:72px 0 12px auto;margin:0;width:500px;max-width:calc(100vw - 24px);height:auto;max-height:none;border-radius:22px 0 0 22px;padding:0;overflow:auto;z-index:1000;box-shadow:-18px 0 50px -28px rgba(27,52,120,.45),0 0 0 1px var(--line);animation:inspIn .18s ease-out}
 dialog.inspector>form{display:flex;flex-direction:column;min-height:100%;padding:0 22px}
 dialog.inspector .dlg-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:12px;padding:18px 0 14px;margin-bottom:6px;background:var(--panel);border-bottom:1px solid var(--line)}
 dialog.inspector .dlg-head h2{flex:1;font-size:18px;line-height:1.25;margin:0}
@@ -714,3 +714,4 @@ body.inspector-open .content{margin-right:516px;transition:margin .18s ease-out}
 @media (max-width:1500px){.tab svg{display:block}}
 @media (max-width:1280px){.tab{font-size:0;gap:0;padding:4px}.tab svg{width:18px;height:18px}}
 .kpi-ic{width:44px;height:44px;border-radius:13px}
+.app{overflow-x:clip}@media (max-width:900px){.nav{max-width:100vw}.tabs{min-width:0}}

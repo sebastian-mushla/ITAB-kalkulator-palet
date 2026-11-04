@@ -47,7 +47,8 @@ function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); 
 {
   const showModal0 = HTMLDialogElement.prototype.showModal;
   HTMLDialogElement.prototype.showModal = function () {
-    if (!this.classList.contains('inspector')) return showModal0.call(this);
+    // phones: a normal modal sheet over the page (no room for a side panel)
+    if (!this.classList.contains('inspector') || matchMedia('(max-width:900px)').matches) return showModal0.call(this);
     document.querySelectorAll('dialog.inspector[open]').forEach(d => { if (d !== this) d.close(); });
     this.show(); document.body.classList.add('inspector-open');
   };
