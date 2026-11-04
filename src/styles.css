@@ -635,3 +635,59 @@ label.check.nowrap{white-space:nowrap}
 #boot{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:var(--bg,#f4f3fa);color:var(--ink2,#555);font:15px Inter,system-ui,sans-serif}.boot-ring{width:46px;height:46px;border-radius:50%;border:4px solid #e1ddf3;border-top-color:#7866EE;animation:bootspin .9s linear infinite}@keyframes bootspin{to{transform:rotate(360deg)}}body.booting{overflow:hidden}
 body:has(#login:not([hidden])) #boot{display:none}
 label.inline input[type=checkbox]{flex:none;width:18px;height:18px}
+
+/* ===== Theme "ORVENA" – operations dashboard: cool steel background, white floating panels, cobalt accent,
+   geometric type (Outfit), top navigation in one pill rail. Overrides the older lavender theme above. ===== */
+:root{
+  --bg:#EDF1F7; --panel:#FFFFFF; --ink:#131A33; --ink2:#67718C; --line:#E2E7F0; --soft:#F4F6FA;
+  --primary:#2F5BEA; --primary-h:#2449C9; --primary-t:#E7EDFF; --on-primary:#FFFFFF;
+  --grad:#2F5BEA; --glow:0 6px 16px -8px rgba(47,91,234,.55);
+  --green:#15965F; --green-t:#E3F6EC; --amber:#C77700; --amber-t:#FFF2DC; --red:#D33A3A; --red-t:#FDEBEB;
+  --truck:#EEF2FA; --truck-line:#3B4A70;
+  --shadow:0 0 0 1px rgba(19,26,51,.04),0 14px 34px -22px rgba(27,52,120,.35);
+}
+:root[data-theme="dark"]{
+  --bg:#0D1322; --panel:#151D31; --ink:#E9EDF7; --ink2:#97A1BC; --line:#243052; --soft:#1A2440;
+  --primary:#6F8FFF; --primary-h:#8BA5FF; --primary-t:#1E2B55; --grad:#4C70F0; --glow:0 6px 16px -8px rgba(0,0,0,.7);
+  --truck:#18213A; --truck-line:#93A3D6; --shadow:0 0 0 1px rgba(255,255,255,.04),0 14px 34px -22px rgba(0,0,0,.8);
+}
+body{font-family:Outfit,Inter,'Segoe UI',Roboto,Arial,sans-serif;font-size:15px;letter-spacing:.005em;font-feature-settings:"tnum" 1}
+h1,h2,h3{font-weight:600;letter-spacing:-.015em}
+button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible,select:focus-visible{outline:3px solid rgba(47,91,234,.35);outline-offset:2px}
+
+/* shell: brand + one horizontal pill rail on top, account bar below */
+.app{display:block}
+.nav{position:sticky;top:0;z-index:40;height:auto;display:flex;align-items:center;gap:20px;padding:12px 28px;background:color-mix(in srgb,var(--panel) 88%,transparent);backdrop-filter:saturate(1.4) blur(10px);border-right:0;border-bottom:1px solid var(--line)}
+.brand{padding:0;font-size:18px;font-weight:700;letter-spacing:.04em;white-space:nowrap}
+.logo{background:var(--primary);box-shadow:none;border-radius:10px;width:34px;height:34px}
+.tabs{flex-direction:row;flex-wrap:nowrap;gap:2px;overflow-x:auto;scrollbar-width:none;padding:4px;background:var(--soft);border-radius:999px;border:1px solid var(--line)}
+.tabs::-webkit-scrollbar{display:none}
+.tab{width:auto;white-space:nowrap;padding:7px 12px;border-radius:999px;font-size:13.5px;gap:7px;color:var(--ink2)}
+@media (max-width:1500px){.tab svg{display:none}}
+.tab svg{width:17px;height:17px}
+.tab:hover{background:var(--panel);color:var(--ink)}
+.tab[aria-selected="true"]{background:var(--primary);color:#fff;box-shadow:var(--glow);font-weight:500}
+.topbar{background:transparent;border-bottom:0;padding:14px 28px 0}
+.content{padding:18px 28px 56px;max-width:1520px;margin:0 auto}
+.pagehead h1{font-size:30px;font-weight:600}
+
+/* panels float on the steel background */
+.card,.panel,.kpi{border:0;border-radius:18px;box-shadow:var(--shadow)}
+.kpi-label{text-transform:none;letter-spacing:0;font-size:13.5px;font-weight:500}
+.kpi-val{font-weight:600;letter-spacing:-.03em}
+.kpi-ic{border-radius:12px}
+.kpi.alert{background:var(--panel);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--red) 40%,transparent),var(--shadow)}
+.btn{border-radius:10px;font-weight:500}
+.btn.primary{background:var(--primary);box-shadow:var(--glow)}
+.chip{font-weight:500;border-radius:999px}
+.pe-fill{height:6px;border-radius:999px;background:var(--soft)}
+.pe-fill i{border-radius:999px;background:var(--primary)}
+table th{font-weight:500;color:var(--ink2)}
+dialog.dlg{border-radius:20px}
+#boot .boot-ring{border-color:#DCE4F5;border-top-color:#2F5BEA}
+
+@media (max-width:900px){
+  .nav{padding:10px 12px;gap:10px}
+  .brand span:last-child{display:none}
+  .topbar,.content{padding-left:16px;padding-right:16px}
+}
