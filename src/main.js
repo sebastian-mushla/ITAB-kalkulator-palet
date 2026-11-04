@@ -10,7 +10,7 @@ import { fromResult, viewOf, movePallet, rotatePallet, addVehicle, removeVehicle
 import { readFileRows, isSpreadsheet, rowsToCatalog, rowsToVehicles, rowsToCombos, rowsToPallets, mergeBy, toCsv } from './io/importTable.js';
 import { renderKpis, renderPriorities, renderList, renderDetail, renderDock, requestText, loadPlanHtml, palOption, setNameLookup, setKgLookup } from './ui/orders.js';
 import { ringilHtml } from './ui/ringil.js';
-import { renderOrderTable, statusOf, transportOf } from './ui/ordertable.js';
+import { renderOrderTable, statusOf, transportOf, STATUSES } from './ui/ordertable.js';
 import { packListHtml } from './ui/packlist.js';
 import { requireLogin, loadSettings, saveSetting, signOut, changePassword, listProfiles, setRole, adminUsers, addTicket, listTickets, updateTicket } from './auth.js';
 import { esc } from './core/util.js';
@@ -303,6 +303,10 @@ function drawOrderTable(vs) {
     return { id, r, total, project: r.project || '', sos: state.orders.get(id).sos, known: total - (r.unknown || []).length, pallets: r.pallets.length, parcels: r.parcels.length, kg: r.kg, transport: transportOf(r), status: statusOf(r, id, { done: state.done, ordered: state.ordered, edited }) };
   });
   renderOrderTable($('#orderList'), $('#orderCount'), rows, state.listUi, state.sel);
+  // status pills (same filter as the funnel of the Stav column)
+  const cur = (state.listUi.filters.status || []), one = cur.length === 1 ? cur[0] : '';
+  $('#orderPills').innerHTML = [['', 'Vše', rows.length]].concat(STATUSES.map(st => [st[0], st[1], rows.filter(r => r.status === st[0]).length]).filter(x => x[2]))
+    .map(x => '<button type="button" class="seg-b' + (x[0] === one && (x[0] || !cur.length) ? ' on' : '') + '" data-stpill="' + x[0] + '">' + esc(x[1]) + ' <small>' + x[2] + '</small></button>').join('');
 }
 function saveListUi() { save('itab.listui.v1', { sort: state.listUi.sort, filters: state.listUi.filters }); drawOrderTable(views()); }
 $('#orderList').addEventListener('click', e => {
@@ -321,6 +325,7 @@ $('#orderList').addEventListener('change', e => {
   if (e.target.dataset.f != null) { ui.filters[e.target.dataset.f] = e.target.value; saveListUi(); }
 });
 $('#orderList').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.dataset.f != null) { e.preventDefault(); e.target.blur(); } });
+$('#orderPills').addEventListener('click', e => { const b = e.target.closest('[data-stpill]'); if (!b) return; state.listUi.filters.status = b.dataset.stpill ? [b.dataset.stpill] : []; saveListUi(); });
 $('#orderCount').addEventListener('click', e => { if (e.target.dataset.fclearall) { state.listUi.filters = {}; saveListUi(); } });
 document.addEventListener('click', e => {
   if (state.listUi.open && !e.target.closest('.fpop') && !e.target.closest('[data-filt]')) { state.listUi.open = null; drawOrderTable(views()); }

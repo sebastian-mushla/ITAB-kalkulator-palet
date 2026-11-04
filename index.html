@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ITAB kalkulátor palet</title>
+<title>Volumetrika · ITAB</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233358E6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 8l-9-5-9 5v8l9 5 9-5z'/%3E%3Cpath d='M3 8l9 5 9-5M12 13v8'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,7 +19,7 @@ document.documentElement.setAttribute('data-theme',t);})();
 <div id="boot" role="status" aria-live="polite"><div class="boot-ring"></div><p>Načítám data a počítám zakázky…</p></div>
 <section id="login" class="login" hidden>
   <form class="login-card" id="loginForm">
-    <div class="brand"><span class="logo"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></span><span>ITAB Expedice</span></div>
+    <div class="brand"><span class="logo"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 11l5-5 5 5"/><path d="M12 6v8"/><path d="M3 17h18M3 21h18M5 17v4M12 17v4M19 17v4"/></svg></span><span>Volumetrika<small class="brand-sub">ITAB</small></span></div>
     <h1>Přihlášení</h1>
     <p class="hint">Účet vám založí administrátor.</p>
     <label>E-mail<input type="email" id="loginEmail" autocomplete="username" required></label>
@@ -31,7 +31,7 @@ document.documentElement.setAttribute('data-theme',t);})();
 <div id="appRoot" hidden>
 <div class="app">
   <aside class="nav">
-    <div class="brand"><span class="logo"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></span><span>ITAB Expedice</span></div>
+    <div class="brand"><span class="logo"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 11l5-5 5 5"/><path d="M12 6v8"/><path d="M3 17h18M3 21h18M5 17v4M12 17v4M19 17v4"/></svg></span><span>Volumetrika<small class="brand-sub">ITAB</small></span></div>
     <nav class="tabs" role="tablist" aria-label="Hlavní navigace">
       <button class="tab" role="tab" id="tab-orders" aria-selected="true" data-view="orders"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Kalkulátor palet</button>
       <button class="tab" role="tab" id="tab-dock" aria-selected="false" data-view="dock"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h12v10H2z"/><path d="M14 9h4l4 4v3h-8z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>Nakládka</button>
@@ -100,7 +100,7 @@ r20 V4-PRL-043-302-9010 frame 20</pre>
             <div class="problems" id="problems"></div>
           </section>
           <section class="card">
-            <div class="cardhead"><h2>Zakázky</h2><span class="muted" id="orderCount"></span></div>
+            <div class="cardhead"><h2>Zakázky</h2><span class="muted" id="orderCount"></span></div><div class="seg" id="orderPills" role="group" aria-label="Stav zakázek"></div>
             <div class="otable-wrap" id="orderList"></div>
           </section>
         </div>

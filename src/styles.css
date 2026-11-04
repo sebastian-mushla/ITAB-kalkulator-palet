@@ -783,3 +783,10 @@ body.inspector-open .content{margin-right:516px;transition:margin .18s ease-out}
 .veh.show3d .veh-svg,.veh.show3d .plan>svg:not(.veh3d){display:none}
 @media (max-width:700px){.vmeters{grid-template-columns:1fr}}
 .vmeters{width:100%;flex-basis:100%;clear:both;order:9}.vm{min-width:0}
+#orderPills{margin:0 0 12px}
+/* status as a dot + text */
+.st{background:transparent!important;padding:0;font-weight:500;color:var(--ink)!important;display:inline-flex;align-items:center;gap:7px}
+.st::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
+.st-amber::before{background:var(--amber)}.st-blue::before{background:var(--primary)}.st-violet::before{background:#8B5CF6}.st-green::before{background:var(--green)}.st-gray::before{background:var(--gray)}
+.fpop .st{color:var(--ink)!important}
+.brand-sub{display:block;font-size:10.5px;font-weight:500;letter-spacing:.12em;color:var(--ink2);margin-top:-3px}.brand>span:last-child{line-height:1.1}
