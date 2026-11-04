@@ -185,7 +185,9 @@ function decisionHtml(r, rules, acts) {
     if (r.overweight.length) cls = 'warn';
   } else if (r.mode === 'trucks') {
     h2 = 'Objednat: ' + r.reco;
-    p = (r.forced != null ? 'Vozidlo zvoleno ručně.' : 'Sběrná služba nevyhovuje: ' + r.groupage.reasons.join('; ') + '.') + parcelNote;
+    // short reason only; the article list is in Složení and on the board
+    const ne = r.pallets.filter(x => !x.euro).length, gm = (r.groupage && r.groupage.reasons || []).length;
+    p = (r.forced != null ? 'Vozidlo zvoleno ručně.' : gm ? 'Sběrná služba nejde: ' + [r.pallets.length > 3 && /limitu/.test(r.groupage.reasons.join()) ? r.pallets.length + ' palet (limit ' + (r.groupage.reasons.join().match(/limitu (\d+)/) || [])[1] + ')' : '', ne ? ne + ' ' + palWord(ne) + ' mimo europaletu' : ''].filter(Boolean).join(', ') + '.' : '') + parcelNote;
   } else {
     btn = false;
     const why = [];

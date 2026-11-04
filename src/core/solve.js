@@ -9,7 +9,8 @@ import { projectOf, combosFor, koliOf } from './combos.js';
 export function recoText(vehicles) {
   const m = new Map();
   vehicles.forEach(v => { const g = m.get(v.vi) || { name: v.name, L: v.L, n: 0 }; g.n++; m.set(v.vi, g); });
-  return [...m.values()].map(g => g.n + '× ' + g.name + ' ' + fmtM(g.L) + ' m').join(' + ');
+  // length only when the name does not already say it ("Kamion – návěs 13,6 m")
+  return [...m.values()].map(g => g.n + '× ' + g.name + (String(g.name).includes(fmtM(g.L) + ' m') ? '' : ' ' + fmtM(g.L) + ' m')).join(' + ');
 }
 
 export function groupItems(items) {

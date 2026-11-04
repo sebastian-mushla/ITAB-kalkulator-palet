@@ -22,6 +22,18 @@
         "/Users/sebastianstanko/ITAB rezije"
       ],
       "port": 5174
+    },
+    {
+      "name": "regaly",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5175",
+        "--directory",
+        "/Users/sebastianstanko/ITAB калькулятор палет/regaly"
+      ],
+      "port": 5175
     }
   ]
 }

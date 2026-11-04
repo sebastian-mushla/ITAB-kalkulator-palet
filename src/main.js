@@ -202,7 +202,7 @@ function views() { return new Map([...state.results.keys()].map(id => [id, view(
 function renderOverview() {
   const vs = views(), res = [...vs.values()];
   renderKpis(res);
-  renderPriorities(res, state.prioHidden);
+  // Dnešní priority removed (ticket #9): the same facts are in the KPI cards and the order list
   drawOrderTable(vs);
   renderDetail(vs.get(state.sel), state);
   renderList(state.orders, vs, state.sel, '', state.done, '#dockList', '#dockCount');
