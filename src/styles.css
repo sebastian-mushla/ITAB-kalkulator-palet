@@ -394,8 +394,6 @@ dialog.dlg-wide{max-width:560px}
 .ptype.dragging{opacity:.35}
 .board-pal small{font-size:10px;opacity:.85;letter-spacing:.02em}
 .board-pal.empty{background:repeating-linear-gradient(45deg,var(--soft) 0 6px,var(--panel) 6px 12px);border:2px dashed var(--primary);color:var(--ink2);text-shadow:none}
-.bp-x{position:absolute;top:2px;right:2px;width:20px;height:20px;border:0;border-radius:5px;background:rgba(0,0,0,.25);color:#fff;font-size:14px;line-height:1;cursor:pointer;padding:0}
-.board-pal.empty .bp-x{background:var(--line);color:var(--ink2)}
 .addpal{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}.addpal input{flex:1 1 280px;font:inherit;padding:8px 12px;border:1px solid var(--line);border-radius:9px;background:var(--soft);color:var(--ink)}
 .comp-sum{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
 .cs{font-size:13px;padding:4px 10px;border-radius:999px;background:var(--soft);color:var(--ink2)}
@@ -737,25 +735,6 @@ body.inspector-open .content{margin-right:516px;transition:margin .18s ease-out}
 .unk-dot.warn{background:var(--amber)}
 .tray2 .unk-name,.tray2 .unk-so{padding-left:16px}
 
-.board-pal{background:var(--panel)!important;color:var(--ink)!important;text-shadow:none!important;border-radius:12px;box-shadow:0 0 0 1px var(--line),0 8px 18px -14px rgba(27,52,120,.5);padding:14px 10px 8px;overflow:hidden;--k:var(--primary)}
-.board-pal::after{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:var(--k)}
-.board-pal.k-mix{--k:#8B5CF6}.board-pal.k-host{--k:#0EA5A4}.board-pal.k-hand{--k:var(--amber)}
-.board-pal .pnum{top:8px;left:8px;color:var(--ink2);opacity:1}
-.board-pal b{color:var(--ink)}
-.board-pal span{color:var(--ink2)}
-.board-pal em{background:var(--soft);color:var(--ink2)}
-.board-pal[data-tag]::before{top:8px;left:auto;right:8px;color:var(--k);background:color-mix(in srgb,var(--k) 12%,var(--panel));border:0;border-radius:999px;padding:1px 7px}
-.board-pal[data-over]{outline:0;box-shadow:0 0 0 2px var(--amber),0 8px 18px -14px rgba(27,52,120,.5)}
-.board-pal[data-over]::after{content:"";background:var(--amber)}
-.board-pal.heavy{box-shadow:0 0 0 2px var(--red),0 8px 18px -14px rgba(27,52,120,.5)}
-.bp-bars{display:flex;flex-direction:column;gap:3px;width:100%;margin-top:auto;padding-top:4px}
-.bp-bar{display:block;height:4px;border-radius:999px;background:var(--soft);overflow:hidden}
-.bp-bar i{display:block;height:100%;border-radius:999px;background:var(--k)}
-.bp-bar.over i{background:var(--red)}
-.board-pal.empty{background:var(--soft)!important}
-.board-pal.empty::after{display:none}
-.board-pal>b::before{content:"";display:inline-block;width:8px;height:8px;border-radius:3px;background:var(--c);margin-right:6px;vertical-align:1px}.board-pal[data-over]::after{width:auto;height:4px;border-radius:0;top:0;right:0}
-.board-pal{border:0;align-items:flex-start;justify-content:flex-start;text-align:left;padding:28px 12px 10px}.board-pal .ovh{bottom:auto;top:30px;right:8px}.board-pal.empty{border:2px dashed var(--line);align-items:center;justify-content:center}
 .tray2 .unk-top{display:flex;flex-direction:row;align-items:center;gap:8px}
 .tray2 .unk-dot{order:0}.tray2 .unk-top b{order:1}.tray2 .unk-top .unk-q{order:2}
 @media (max-width:1200px){
@@ -790,3 +769,11 @@ body.inspector-open .content{margin-right:516px;transition:margin .18s ease-out}
 .st-amber::before{background:var(--amber)}.st-blue::before{background:var(--primary)}.st-violet::before{background:#8B5CF6}.st-green::before{background:var(--green)}.st-gray::before{background:var(--gray)}
 .fpop .st{color:var(--ink)!important}
 .brand-sub{display:block;font-size:10.5px;font-weight:500;letter-spacing:.12em;color:var(--ink2);margin-top:-3px}.brand>span:last-child{line-height:1.1}
+
+/* pallet blocks: colour of the article, filled up to the fill level, rounded and calm (ORVENA palette) */
+.board-pal{border:0;border-radius:12px;box-shadow:0 6px 14px -10px rgba(27,52,120,.55);
+  background:linear-gradient(90deg,color-mix(in srgb,var(--c) 88%,#fff) var(--f),color-mix(in srgb,var(--c) 30%,var(--panel)) var(--f));text-shadow:none}
+.board-pal[data-tag]::before{top:6px;left:auto;right:6px;color:#fff;background:rgba(0,0,0,.18);border:0;border-radius:999px;padding:0 7px;font-weight:600}
+.board-pal .pnum{top:6px;left:8px}
+.board-pal.heavy{box-shadow:0 0 0 2px var(--red),0 6px 14px -10px rgba(27,52,120,.55)}
+.bp-bars{display:none}
