@@ -237,3 +237,25 @@ export function defsToSolo(catalog, combos, project) {
   });
   return changed;
 }
+
+// Výkres (drawing number, the article without its colour): a rule may name a výkres instead of an article –
+// in "Artikl", in "Hlavní položka" or in "s artiklem". It then counts for every article of that výkres in the
+// order (V-06-1019-0-0039-9006-1, -5, -6 … all = one light). Expanded into plain rules per article, in place,
+// so priorities and all other logic stay as they are. An exact article rule written above still wins.
+export function expandVykres(combos, catalog, lines) {
+  const vk = new Map();
+  (catalog || []).forEach(a => { if (a.vykres) vk.set(low(a.code), low(a.vykres)); });
+  if (!vk.size) return combos;
+  const codes = new Set((catalog || []).map(a => low(a.code)));
+  const byV = new Map();
+  (lines || []).forEach(l => { const v = vk.get(low(l.code)); if (v) { if (!byV.has(v)) byV.set(v, []); if (!byV.get(v).includes(l.code)) byV.get(v).push(l.code); } });
+  const isV = x => x && !codes.has(low(x)) && byV.has(low(x));
+  const out = [];
+  combos.forEach(r => {
+    if (!isV(r.code) && !isV(r.host) && !isV(r.withCode)) { out.push(r); return; }
+    const cs = isV(r.code) ? byV.get(low(r.code)) : [r.code];
+    const hs = isV(r.host) ? byV.get(low(r.host)) : [r.host];
+    cs.forEach(c => hs.forEach(h => out.push(Object.assign({}, r, { code: c, host: h, vkCodes: isV(r.code) ? cs : undefined, withCode: isV(r.withCode) ? (r.withCode === r.host ? h : byV.get(low(r.withCode))[0]) : r.withCode, fromVykres: true }))));
+  });
+  return out;
+}

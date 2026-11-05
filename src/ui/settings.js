@@ -75,7 +75,8 @@ export function renderCombos(combos, catalog, pallets, projects) {
   const key = catalog.length + '|' + (catalog[0] && catalog[0].code) + '|' + (catalog[catalog.length - 1] && catalog[catalog.length - 1].code);
   let dl = document.getElementById('codeList');
   if (!dl) { dl = document.createElement('datalist'); dl.id = 'codeList'; document.body.appendChild(dl); }
-  if (dl.dataset.key !== key) { dl.innerHTML = catalog.slice(0, 5000).map(a => '<option value="' + esc(a.code) + '">').join(''); dl.dataset.key = key; }
+  const vks = new Map(); catalog.forEach(a => { if (a.vykres) vks.set(String(a.vykres).toLowerCase(), (vks.get(String(a.vykres).toLowerCase()) || 0) + 1); });
+  if (dl.dataset.key !== key + '|' + vks.size) { dl.innerHTML = [...new Set(catalog.filter(a => a.vykres).map(a => a.vykres))].map(v => '<option value="' + esc(v) + '" label="výkres">').join('') + catalog.slice(0, 5000).map(a => '<option value="' + esc(a.code) + '">').join(''); dl.dataset.key = key + '|' + vks.size; }
   const names = new Map(catalog.map(a => [String(a.code).toLowerCase(), a.name || '']));
   // one labelled field inside a cell (label above the input, so it is clear what each number means)
   const fld = (label, html, title) => '<label class="cf"' + (title ? ' title="' + esc(title) + '"' : '') + '><span>' + label + '</span>' + html + '</label>';
@@ -92,7 +93,8 @@ export function renderCombos(combos, catalog, pallets, projects) {
       [['main', '1 · Hl.+přibal'], ['mix', '2 · Mix'], ['solo', '3 · Solo P. (paleta)'], ['parcel', '4 · Solo B. (balík)']].map(m => '<option value="' + m[0] + '"' + (kind === m[0] ? ' selected' : '') + '>' + m[1] + '</option>').join('') + '</select>';
     const codeF = main ? 'koli' : group ? 'group' : '';
     const codeIn = codeF ? '<input type="text" class="bal-code" data-i="' + i + '" data-f="' + codeF + '" value="' + esc(r[codeF] || '') + '" placeholder="BAL-?">' : '<span class="bal-none">bez čísla</span>';
-    const nm = names.get(String(r.code || '').toLowerCase()) || r.name || '';
+    const vkN = vks.get(String(r.code || '').toLowerCase());
+    const nm = names.get(String(r.code || '').toLowerCase()) || (vkN ? 'výkres – platí pro ' + vkN + ' ' + (vkN === 1 ? 'artikl' : vkN < 5 ? 'artikly' : 'artiklů') : '') || r.name || '';
     const pt = c => pallets.find(p => String(p.code).toLowerCase() === String(c || '').toLowerCase());
     const ptxt = t => t ? '<small class="c-name">' + esc(t.code) + ' · ' + (t.L || 0) + ' × ' + (t.W || 0) + ' mm</small>' : '<small class="c-name warn">paleta neurčena</small>';
     // "Typ palety" first, the fields of the chosen type below

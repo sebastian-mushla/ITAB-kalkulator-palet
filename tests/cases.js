@@ -465,3 +465,18 @@ cases.push(['Číselník: sloupec výkres (import, jen když je v souboru)', () 
   const r2 = rowsToCatalog(parseCsvRows('artikl;váha\nV3-POL-069-7003;3'));
   assert(!('vykres' in r2.items[0]), 'no column = untouched');
 }]);
+
+cases.push(['Výkres v pravidle: 1 světlo (libovolné) na každou kasu', () => {
+  const cat = DEFAULT_CATALOG.map(a => Object.assign({}, a)).concat([
+    { code: 'K-V1', vykres: 'KASA', pack: 'neurceno', kg: 200 }, { code: 'K-V11', vykres: 'KASA', pack: 'neurceno', kg: 200 },
+    { code: 'L-1', vykres: 'LIGHT', pack: 'neurceno', kg: 2 }, { code: 'L-5', vykres: 'LIGHT', pack: 'neurceno', kg: 2 }, { code: 'L-6', vykres: 'LIGHT', pack: 'neurceno', kg: 2 }]);
+  const combos = [
+    { on: true, code: 'LIGHT', withCode: 'KASA', mode: 'host', host: 'KASA', strict: true, per: 1, min: 0, max: 0, project: '' },
+    { on: true, code: 'KASA', mode: 'pallet', pal: 'PAL-0002', per: 1, min: 0, max: 0, project: '' }];
+  const o = parseOrders('SO 1\nr10 K-V1 kasa 1\nr20 K-V11 kasa 1\nr30 L-1 svetlo 1\nr40 L-5 svetlo 1\nr50 L-6 svetlo 1').orders.get('1');
+  const r = solve(o, { catalog: cat, vehicles: DEFAULT_VEHICLES, pallets: DEFAULT_PALLETS, rules: DEFAULT_RULES, combos });
+  const kasy = r.pallets.filter(p => /^K-/.test(p.code));
+  const lights = kasy.map(p => (p.extra || []).filter(e => /^L-/.test(e.code)).reduce((s, e) => s + e.units, 0));
+  assert(kasy.length === 2 && lights.every(n => n === 1), 'lights per kasa ' + JSON.stringify(lights));
+  assert((r.unknown || []).filter(u => /^L-/.test(u.code)).reduce((s, u) => s + u.qty, 0) === 1, 'third light waits: ' + JSON.stringify(r.unknown));
+}]);

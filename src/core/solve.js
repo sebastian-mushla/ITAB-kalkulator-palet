@@ -4,7 +4,7 @@ import { typeOf } from './palletTypes.js';
 import { planPallets, unplaced } from './plan.js';
 import { isEuro } from './util.js';
 import { packAll, prepareVehicles } from './packing.js';
-import { projectOf, combosFor, koliOf } from './combos.js';
+import { projectOf, combosFor, koliOf, expandVykres } from './combos.js';
 
 export function recoText(vehicles) {
   const m = new Map();
@@ -99,7 +99,7 @@ export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], 
   // each zakázka is calculated on its own pallets (pallets do not mix zakázky); everything is tagged with its zakázka
   const sos = o.sos && o.sos.length ? o.sos : [o.id];
   // project per zakázka (an ID can carry an Action order and a small order without project); chosen by hand = for all
-  const allCombos = combos, soProj = new Map(), soCombos = new Map();
+  const allCombos = expandVykres(combos, catalog, lines), soProj = new Map(), soCombos = new Map();
   sos.forEach(so => {
     const sl = new Map([...o.lines].filter(([, l]) => (l.so || o.id) === so));
     const pj = project !== undefined ? project : ((projectOf({ lines: sl }, rules.projects) || {}).name || '');

@@ -122,7 +122,9 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     const rules = rule.strict ? [rule].concat(strictAll.filter(r => r.host.toLowerCase() !== rule.host.toLowerCase())) : [rule];
     const slots = [];
     rules.forEach(r => pallets.filter(p => p.code.toLowerCase() === low(r.host)).forEach(p => { if (!slots.some(x => x.p === p)) slots.push({ p, cap: r.per > 0 ? r.per : Infinity }); }));
-    const has = p => (p.extra || []).filter(e => e.code === a.code).reduce((s, e) => s + e.units, 0);
+    // a výkres rule ("one light per cash register, any light"): the limit counts all articles of that výkres together
+    const same = new Set((rule.vkCodes || [a.code]).map(low));
+    const has = p => (p.extra || []).filter(e => same.has(low(e.code))).reduce((s, e) => s + e.units, 0);
     const load = p => (p.extra || []).reduce((s, e) => s + e.units, 0);
     // one piece at a time onto the main-item pallet with the least přibal so far (spread, not all on the first one)
     while (left > 0) {
