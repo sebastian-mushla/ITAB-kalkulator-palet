@@ -234,21 +234,27 @@ export function rowsToVehicles(rows) {
 
 // ---------- combos ----------
 export const COMBO_FIELDS = {
+  // the app's own wording first (Typ · Číslo balení · Artikl · Hlavní položka · Paleta · Ks … · Projekt)
+  typ: ['typ', 'typ baleni'],
+  cislo: ['cislo baleni', 'baleni'],
+  project: ['projekt', 'project'],
+  cap: ['max ks mix', 'max ks'],
+  hostV: ['hlavni polozka'],
   // drawing number (article without paint): optional, a tool next to the article code
   vykres: ['vykres', 'cislo vykresu', 'drawing', 'drawing number', 'чертеж', 'викрес'],
   code: ['artikl', 'article', 'артикул', 'code'],
   withCode: ['kdyz je v zakazce', 'v kombinaci s', 'with', 'spolu s', 'в комбинации'],
-  min: ['mnozstvi od', 'od', 'min', 'от'],
-  max: ['mnozstvi do', 'do', 'max', 'до'],
+  min: ['od ks v zakazce', 'mnozstvi od', 'od', 'min', 'от'],
+  max: ['do ks v zakazce', 'mnozstvi do', 'do', 'max', 'до'],
   mode: ['pojede', 'mode', 'akce', 'как'],
   host: ['na palete artiklu', 'cil', 'host', 'хозяин', 'na palete'],
   pl: ['delka', 'length', 'длина'],
   pw: ['sirka', 'width', 'ширина'],
-  per: ['max ks na paletu', 'ks na paletu', 'per', 'ks', 'шт'],
+  per: ['ks na palete', 'max ks na 1 hlavni polozku', 'ks v baliku', 'max ks na paletu', 'ks na paletu', 'per', 'ks', 'шт'],
   note: ['poznamka', 'note', 'комментарий'],
   kg: ['vaha kusu', 'vaha', 'weight', 'вес'],
   name: ['nazev', 'name', 'название'],
-  pal: ['typ palety', 'pallet type'],
+  pal: ['paleta', 'typ palety', 'pallet type'],
   group: ['spolecna paleta', 'skupina', 'group', 'koli'],
   top: ['max ks na palete solo', 'max ks na palete', 'max per pallet'],
   topLim: ['nerozkladat zbytek od proc', 'nerozkladat zbytek od', 'zbytek od'],
@@ -276,9 +282,20 @@ export function rowsToCombos(rows) {
       host: String(get(r, 'host')).trim(), pl: toNum(get(r, 'pl') || 0) || 0, pw: toNum(get(r, 'pw') || 0) || 0,
       per: toNum(get(r, 'per') || 0) || 0, top: toNum(get(r, 'top') || 0) || 0, topLim: toNum(get(r, 'topLim') || 0) || 0, pal: String(get(r, 'pal')).trim().toUpperCase(), group: String(get(r, 'group')).trim(), note: String(get(r, 'note')).trim(), kg: toNum(get(r, 'kg') || 0) || 0, name: String(get(r, 'name')).trim()
     };
+    // new layout: Typ 1 · Hl.+přibal / 2 · Mix / 3 · Solo P. / 4 · Solo B., Číslo balení, Hlavní položka, Max ks, Projekt
+    const typ = norm(get(r, 'typ'));
+    if (typ) {
+      const n = (typ.match(/^\s*(\d)/) || [])[1] || (/prib|hl/.test(typ) ? '1' : /mix/.test(typ) ? '2' : /solo b|balik/.test(typ) ? '4' : '3');
+      const cislo = String(get(r, 'cislo')).trim(), hv = String(get(r, 'hostV')).trim() || x.host;
+      if (n === '1') Object.assign(x, { mode: 'host', strict: true, host: hv, withCode: hv, koli: cislo || undefined });
+      else if (n === '2') Object.assign(x, { mode: 'group', group: cislo, cap: toNum(get(r, 'cap') || 0) || 0 });
+      else if (n === '4') x.mode = 'parcel';
+      else x.mode = 'pallet';
+    }
+    if (cols.project != null) x.project = String(get(r, 'project')).trim();
     if (!x.code) { errors.push('řádek ' + (hi + i + 2) + ': chybí artikl'); return; }
     if (x.mode === 'host' && !x.host) { errors.push('řádek ' + (hi + i + 2) + ': chybí artikl, na jehož paletě pojede'); return; }
-    if (x.mode === 'group' && !(x.pal && x.group)) { errors.push('řádek ' + (hi + i + 2) + ': u společné palety chybí typ palety nebo název společné palety'); return; }
+    if (x.mode === 'group' && !(x.pal && x.group)) { errors.push('řádek ' + (hi + i + 2) + ': u Mixu chybí Paleta nebo Číslo balení'); return; }
     if (x.mode === 'pallet' && !x.pal && !(x.pl > 0 && x.pw > 0 && x.per > 0)) { errors.push('řádek ' + (hi + i + 2) + ': u jiné palety chybí délka, šířka nebo ks'); return; }
     items.push(x);
   });

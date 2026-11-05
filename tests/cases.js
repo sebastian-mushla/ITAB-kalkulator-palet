@@ -505,3 +505,16 @@ cases.push(['Solo P. s Max ks: malý zbytek se rozloží na celé palety (std 15
   const c = run(240); assert(JSON.stringify(c) === '[156,84]', '240 (zbytek ≥ 50 %): ' + c);
   combos[0].topLim = 60; const d = run(240); assert(JSON.stringify(d) === '[170,70]', '240 s limitem 60 %: ' + d);
 }]);
+
+cases.push(['Import Způsobu balení v názvosloví aplikace (Typ, Číslo balení, Hlavní položka, Projekt…)', () => {
+  const csv = 'Aktivní;Typ;Číslo balení;Artikl;Hlavní položka;Paleta;Ks na paletě;Max ks na paletě;Nerozkládat zbytek od, %;Max ks mix;Od ks v zakázce;Do ks v zakázce;Délka;Šířka;Projekt;Poznámka\n' +
+    'ano;1 · Hl.+přibal;BAL-9;AC-RGB;KASA;;1;;;;;;;;Action;\n' +
+    'ano;2 · Mix;BAL-4;EXI-0186;;PAL-0013;;;;10;;;;;Action;\n' +
+    'ano;3 · Solo P.;;V-POL;;PAL-0001;156;170;60;;;;;;;';
+  const r = rowsToCombos(parseCsvRows(csv));
+  assert(r.errors.length === 0, r.errors.join('; '));
+  const [h, g, p] = r.items;
+  assert(h.mode === 'host' && h.strict && h.host === 'KASA' && h.withCode === 'KASA' && h.koli === 'BAL-9' && h.per === 1 && h.project === 'Action', JSON.stringify(h));
+  assert(g.mode === 'group' && g.group === 'BAL-4' && g.pal === 'PAL-0013' && g.cap === 10, JSON.stringify(g));
+  assert(p.mode === 'pallet' && p.per === 156 && p.top === 170 && p.topLim === 60 && p.pal === 'PAL-0001', JSON.stringify(p));
+}]);
