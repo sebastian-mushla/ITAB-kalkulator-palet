@@ -777,3 +777,4 @@ body.inspector-open .content{margin-right:516px;transition:margin .18s ease-out}
 .board-pal .pnum{top:6px;left:8px}
 .board-pal.heavy{box-shadow:0 0 0 2px var(--red),0 6px 14px -10px rgba(27,52,120,.55)}
 .bp-bars{display:none}
+dialog.inspector.stack{z-index:1100;box-shadow:-24px 0 60px -20px rgba(27,52,120,.6),0 0 0 1px var(--line)}

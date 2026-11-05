@@ -49,10 +49,12 @@ function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); 
   HTMLDialogElement.prototype.showModal = function () {
     // phones: a normal modal sheet over the page (no room for a side panel)
     if (!this.classList.contains('inspector') || matchMedia('(max-width:900px)').matches) return showModal0.call(this);
-    document.querySelectorAll('dialog.inspector[open]').forEach(d => { if (d !== this) d.close(); });
+    if (!this.classList.contains('stack')) document.querySelectorAll('dialog.inspector[open]').forEach(d => { if (d !== this) d.close(); });
     this.show(); document.body.classList.add('inspector-open');
   };
   const IC = {
+    dlgAsk: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17h.01"/>',
+    dlgMerge: '<path d="M6 3v6a6 6 0 0 0 6 6h6M18 3v6"/><path d="M15 12l3 3-3 3"/>',
     dlgPalEdit: '<rect x="3" y="7" width="18" height="6" rx="1"/><path d="M5 13v4M12 13v4M19 13v4M3 17h18"/>',
     dlgPallet: '<rect x="3" y="7" width="18" height="6" rx="1"/><path d="M5 13v4M12 13v4M19 13v4M3 17h18"/>',
     dlgArticle: '<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
@@ -701,7 +703,12 @@ function addCombos(rules) {
     // přibal of a main item stays a fixed per-pallet rule without a quantity limit
     if (old && old.strict) { r.strict = true; r.max = 0; r.note = old.note; }
   });
-  state.combos = rules.concat(state.combos.filter(c => !codes.has(key(c))));
+  // moved by hand onto another main item: the article's přibal rules to main items of this order no longer apply
+  // (otherwise they share the pieces and nothing seems to move); rules to main items not in this order stay
+  const inOrder = new Set(o ? [...o.lines.values()].map(l => l.code.toLowerCase()) : []);
+  const moved = new Set(rules.filter(r => r.mode === 'host').map(r => String(r.code).toLowerCase() + '|' + String(r.project || '').toLowerCase()));
+  const stale = c => c.mode === 'host' && moved.has(String(c.code).toLowerCase() + '|' + String(c.project || '').toLowerCase()) && inOrder.has(String(c.host || '').toLowerCase());
+  state.combos = rules.concat(state.combos.filter(c => !codes.has(key(c)) && !stale(c)));
 }
 // small yes/no dialog in the app's style (instead of the browser's confirm, which freezes the page)
 function ask(title, text, yes, check) {
@@ -1238,7 +1245,7 @@ function drawPalEditor() {
   $('#peBody').innerHTML =
     '<div class="pe-head"><input type="search" id="peType" list="palList2" value="' + esc(t.code ? t.code + ' · ' + t.name : '') + '" aria-label="Typ palety" style="flex:1 1 260px"><datalist id="palList2">' + state.pallets.map(p => '<option value="' + esc(palOption(p)) + '"></option>').join('') + '</datalist><button type="button" class="btn small" id="peTypeBtn">Změnit typ</button></div>' +
     '<p class="muted">' + cm(t.L) + ' × ' + cm(t.W) + ' cm · ' + Math.round(kg) + ' kg (tara ' + (t.tare || 0) + ' kg)' + (t.maxKg ? ' · nosnost ' + t.maxKg + ' kg' : '') + '</p>' +
-    fillBar('Kusy', fill) + (t.maxKg ? fillBar('Váha', bar) : '') +
+    fillBar('Kusy', fill) + (t.maxKg ? fillBar('Váha', bar) : '<div class="pe-bar"><span>Váha ' + Math.round(Math.max(0, kg - (t.tare || 0))) + ' kg</span><small class="muted">nosnost palety ' + esc(t.code || '') + ' není zadaná (záložka Palety)</small></div>') +
     (iss.length ? '<div class="pe-issues"><b>Problémy na paletě</b><ul>' + iss.map(x => '<li><b>' + esc(x.c.code) + '</b>: ' + esc(x.t) + '</li>').join('') + '</ul>' +
       (iss.some(x => x.fix) ? '<div class="pe-iss-acts"><button type="button" class="btn small primary" id="peConfirm">✓ Potvrdit množství</button><small class="muted">ověřené / max kusy se zvýší</small></div>' +
       (iss.some(x => x.fix && x.r && x.r.mode === 'group') ? '<div class="pe-iss-acts"><button type="button" class="btn small" id="peNoConfirm">✗ Nepotvrzovat množství</button><small class="muted">Max ks = ověřeno; kusy navíc se přepočítají (jiné balení, solo, jinak vpravo)</small></div>' : '') : '') + '</div>' : '') +
