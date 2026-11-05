@@ -82,7 +82,7 @@ export function auditOrder(order, plan, combos, catalog, project) {
     const rule = findRule(l.code, l.qty, bySo.get(l.so || order.id), combos);
     if (!rule || rule.mode !== 'group') return;
     const n = placed.get(low(l.code)) || 0, i = combos.indexOf(rule);
-    if (n > (rule.per || 0) && !seen.some(x => x.i === i)) seen.push({ i, code: l.code, from: rule.per || 0, to: n });
+    // Mix no longer learns "verified" counts (they inflated); capacity comes from Solo P. rules
   });
 
   // balení pallets the operator added articles to: those articles join the balení

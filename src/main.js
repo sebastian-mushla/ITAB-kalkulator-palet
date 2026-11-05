@@ -1210,7 +1210,11 @@ function palIssues(b) {
       const r = state.combos.find(x => x.mode === 'group' && low(x.group) === low(b.group) && low(x.code) === low(c.code));
       if (!r) return { i, c, r: null, t: 'není v balení ' + b.group };
       if (r.cap > 0 && c.units > r.cap) return { i, c, r, t: c.units + ' ks, max ' + r.cap + ' ks' };
-      if (r.per > 0 && c.units > r.per) return { i, c, r, t: c.units + ' ks, ověřeno jen ' + r.per + ' ks', fix: { per: c.units } };
+      // Mix: capacity of the article = Ks na paletě of its Solo P. rule on this pallet type
+      const cap = (state.combos.filter(x => x.on !== false && x.mode === 'pallet' && low(x.code) === low(c.code) && low(x.pal) === low(b.pal) && x.per > 0)[0] || {}).per;
+      if (!cap) return { i, c, r, t: 'chybí kapacita (Solo P. ks na ' + b.pal + ')' };
+      const tot = b.contents.reduce((s, k) => { const kc = (state.combos.filter(x => x.on !== false && x.mode === 'pallet' && low(x.code) === low(k.code) && low(x.pal) === low(b.pal) && x.per > 0)[0] || {}).per; return s + (kc ? k.units / kc : 0); }, 0);
+      if (i === b.contents.findIndex(k => k.units > 0) && tot > 1.0001) return { i, c, r, t: 'paleta balení zaplněna na ' + Math.round(tot * 100) + ' % (podle kapacit)' };
       return null;
     }
     if (c.ride && main) {

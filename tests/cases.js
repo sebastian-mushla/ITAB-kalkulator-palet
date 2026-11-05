@@ -340,7 +340,7 @@ cases.push(['Koli: import z ERP – duplicity sečtené, PAL řádek = paleta', 
   assert(k.items.find(i => i.code === 'DRO-0987').seen === 6, 'DRO-0987 = 6');
   assert(k.pals.length === 1 && k.pals[0].code === 'PAL-0013', 'pal');
 }]);
-cases.push(['Koli: artikly zakázky jedou spolu na jedné paletě, víc než ověřeno = upozornění', () => {
+cases.push(['Koli: artikly zakázky jedou spolu na jedné paletě, bez kapacity = upozornění', () => {
   const k = parseKolo(KOLI_TEXT);
   const rows = k.items.map(it => koloRow(it, 'BAL-1', 'PAL-0001'));
   const o = parseOrders('SO 9\nr10 DRO-0988 kit 1\nr20 DRO-0987 kit 8\nr30 V-POL police 156').orders.get('9');
@@ -350,7 +350,7 @@ cases.push(['Koli: artikly zakázky jedou spolu na jedné paletě, víc než ov�
   const codes = [kp[0].code].concat((kp[0].extra || []).map(e => e.code));
   assert(codes.length === 2 && codes.includes('DRO-0988') && codes.includes('DRO-0987'), codes.join(','));
   assert(r.unknown.length === 0, 'nic neznámého');
-  assert(r.errors.some(e => /DRO-0987.*ověřeno jen 6/.test(e)), 'upozornění: ' + r.errors.join('; '));
+  assert(r.errors.some(e => /BAL-1: chybí kapacita/.test(e)) && kp[0].over, 'upozornění: ' + r.errors.join('; '));
   assert(r.pallets.length === 2, 'koli + V-POL: ' + r.pallets.length);
 }]);
 cases.push(['Společná paleta: pořadí pravidel – když první nesedí, platí druhé', () => {
@@ -479,4 +479,20 @@ cases.push(['Výkres v pravidle: 1 světlo (libovolné) na každou kasu', () => 
   const lights = kasy.map(p => (p.extra || []).filter(e => /^L-/.test(e.code)).reduce((s, e) => s + e.units, 0));
   assert(kasy.length === 2 && lights.every(n => n === 1), 'lights per kasa ' + JSON.stringify(lights));
   assert((r.unknown || []).filter(u => /^L-/.test(u.code)).reduce((s, u) => s + u.qty, 0) === 1, 'third light waits: ' + JSON.stringify(r.unknown));
+}]);
+
+cases.push(['Mix podle kapacity: 200 polic (156) + 200 panelů (400) → 1 celá + 1 mix 78 %', () => {
+  const cat = DEFAULT_CATALOG.map(a => Object.assign({}, a)).concat([{ code: 'PAN', name: 'panel', pack: 'neurceno', kg: 1 }]);
+  const combos = [
+    { on: true, code: 'V-POL', mode: 'group', group: 'BAL-9', pal: 'PAL-0001', per: 0, project: '' },
+    { on: true, code: 'PAN', mode: 'group', group: 'BAL-9', pal: 'PAL-0001', per: 0, project: '' },
+    { on: true, code: 'V-POL', mode: 'pallet', pal: 'PAL-0001', per: 156, min: 0, max: 0, project: '' },
+    { on: true, code: 'PAN', mode: 'pallet', pal: 'PAL-0001', per: 400, min: 0, max: 0, project: '' }];
+  const run = t => solve(parseOrders('SO 1\n' + t).orders.get('1'), { catalog: cat, vehicles: DEFAULT_VEHICLES, pallets: DEFAULT_PALLETS, rules: DEFAULT_RULES, combos });
+  const r = run('r10 V-POL police 200\nr20 PAN panel 200');
+  assert(r.pallets.length === 2, 'palet: ' + r.pallets.length);
+  const mix = r.pallets.find(p => p.extra);
+  assert(mix && Math.abs(mix.fill - (44 / 156 + 0.5)) < 0.01 && !mix.over, 'mix ' + JSON.stringify(mix && { f: mix.fill, u: mix.units }));
+  const r2 = run('r10 V-POL police 300\nr20 PAN panel 300');
+  assert(r2.pallets.length === 3 && r2.pallets.every(p => p.fill <= 1.0001), '300+300: ' + r2.pallets.map(p => p.fill.toFixed(2)).join(','));
 }]);

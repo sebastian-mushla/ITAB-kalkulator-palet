@@ -97,18 +97,49 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     if (next && next.mode === 'group' && !overCap(next, qty)) { addGroup(next, a, idx, l0); continue; }
     spill.push({ l: Object.assign({}, l0, { qty }), rules: strict, rest: qty, hint: 'hlavní položka ' + strict.map(r => r.host).join(', ') + ' nemá v zakázce vlastní paletu' });
   }
+  // Mix balení: whole pallets and the mix on one level. Capacity of an article = "Ks na paletě" of its Solo P.
+  // rule on the same pallet type. First full pallets, then the remainders (each a fraction of a pallet) are
+  // packed together on as few pallets of the balení type as possible (fill ≤ 100 %, ≤ max weight).
+  // Without the capacity of some article the balení cannot be judged: everything on one pallet, marked orange.
+  const capOf = (code, pal) => {
+    const rs = combos.filter(r => r.on !== false && r.mode === 'pallet' && low(r.code) === low(code) && low(r.pal) === low(pal) && r.per > 0);
+    return (rs.find(r => r.project) || rs[0] || {}).per || 0;
+  };
   groups.forEach(list => {
     const r0 = list[0].rule, t = typeOf(types, r0.pal);
     if (!t) { list.forEach(g => errors.push('Artikl „' + g.code + '“: typ palety ' + r0.pal + ' pro společnou paletu ' + r0.group + ' neexistuje.')); return; }
-    list.sort((x, y) => y.qty - x.qty);
-    const [m, ...rest] = list, tare = t.tare || 0;
-    pallets.push({ code: m.code, units: m.qty, fill: 1, kg: tare + list.reduce((s, g) => s + g.qty * g.kg, 0), tare, pl: t.L, pw: t.W, rot: t.rot !== false, euro: isEuro({ pl: t.L, pw: t.W }), ci: m.ci,
-      pal: t.code, palName: t.name, palH: t.H || 0, maxKg: t.maxKg || 0, group: r0.group, noKg: list.some(g => !(g.kg > 0)), over: list.some(g => g.rule.per > 0 && g.qty > g.rule.per), extra: rest.length ? rest.map(g => ({ code: g.code, units: g.qty, ci: g.ci, mixed: true })) : undefined });
-    list.forEach((g, n) => {
-      const over = g.rule.per > 0 && g.qty > g.rule.per;
-      if (over) errors.push('Společná paleta ' + r0.group + ': ' + g.code + ' má ' + g.qty + ' ks, ověřeno jen ' + g.rule.per + ' ks – zkontrolujte, zda se vše vejde.');
-      rows.push({ code: g.code, name: g.name, qty: g.qty, kg: g.qty * g.kg, ci: g.ci, rule: ruleText(g.rule) + (over ? ' – víc než ověřeno' : ''), over,
-        pack: 'paleta', full: n === 0 ? 1 : 0, rem: 0, per: 1, fillRem: 0, count: n === 0 ? 1 : 0, group: r0.group, pal: t.code, palName: t.name, pl: t.L, pw: t.W });
+    const tare = t.tare || 0;
+    const base = { tare, pl: t.L, pw: t.W, rot: t.rot !== false, euro: isEuro({ pl: t.L, pw: t.W }), pal: t.code, palName: t.name, palH: t.H || 0, maxKg: t.maxKg || 0, group: r0.group };
+    const mk = (items, fill, noCap) => {
+      items.sort((x, y) => y.units - x.units);
+      const [m, ...rest] = items;
+      pallets.push(Object.assign({ code: m.g.code, units: m.units, fill, kg: tare + items.reduce((s, i) => s + i.units * i.g.kg, 0), ci: m.g.ci, noKg: items.some(i => !(i.g.kg > 0)), over: !!noCap,
+        extra: rest.length ? rest.map(i => ({ code: i.g.code, units: i.units, ci: i.g.ci, mixed: true })) : undefined }, base));
+    };
+    list.forEach(g => { g.cap = capOf(g.code, r0.pal); });
+    const noCap = list.filter(g => !(g.cap > 0));
+    if (noCap.length) {
+      mk(list.map(g => ({ g, units: g.qty })), 1, true);
+      errors.push('Balení ' + r0.group + ': chybí kapacita (Solo P. „Ks na paletě“ na ' + t.code + ') u ' + noCap.map(g => g.code).join(', ') + ' – vše na jedné paletě, zkontrolujte.');
+    } else {
+      const rest = [];
+      list.forEach(g => {
+        for (let i = 0; i < Math.floor(g.qty / g.cap); i++) mk([{ g, units: g.cap }], 1);
+        const r = g.qty % g.cap; if (r > 0) rest.push({ g, units: r, f: r / g.cap });
+      });
+      // first-fit decreasing: the biggest remainders first, each to the first pallet where it still fits
+      const bins = [];
+      rest.sort((x, y) => y.f - x.f).forEach(it => {
+        const kg = it.units * it.g.kg;
+        const b = bins.find(b => b.f + it.f <= 1.0001 && (!(t.maxKg > 0) || b.kg + kg <= t.maxKg));
+        if (b) { b.items.push(it); b.f += it.f; b.kg += kg; } else bins.push({ items: [it], f: it.f, kg });
+      });
+      bins.forEach(b => mk(b.items, b.f));
+    }
+    list.forEach(g => {
+      const full = g.cap > 0 ? Math.floor(g.qty / g.cap) : 0, rem = g.cap > 0 ? g.qty % g.cap : g.qty;
+      rows.push({ code: g.code, name: g.name, qty: g.qty, kg: g.qty * g.kg, ci: g.ci, rule: ruleText(g.rule) + (g.cap > 0 ? '' : ' – chybí kapacita'), over: !(g.cap > 0),
+        pack: 'paleta', full, rem, per: g.cap || g.qty, fillRem: g.cap > 0 ? rem / g.cap : 1, count: full + (rem > 0 ? 1 : 0), group: r0.group, pal: t.code, palName: t.name, pl: t.L, pw: t.W });
     });
   });
 
