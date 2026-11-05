@@ -35,6 +35,9 @@ export function auditOrder(order, plan, combos, catalog, project) {
   const rides = ridesOf(plan);
   const verdict = new Map(); // combo index → 'keep' | 'drop'
   const add = new Map(), update = new Map();
+  // a rule is dropped only when its pieces really went somewhere else; pieces waiting on the right side
+  // (not placed yet, taken off with "Vyndat", over the limit) say nothing against the rule
+  const placedSomewhere = code => plan.some(b => (b.contents || []).some(c => c.units > 0 && low(c.code) === low(code)));
   const bySo = new Map();
   lines.forEach(l => { const so = l.so || order.id; if (!bySo.has(so)) bySo.set(so, new Set()); bySo.get(so).add(low(l.code)); });
 
@@ -51,7 +54,7 @@ export function auditOrder(order, plan, combos, catalog, project) {
         if (rule.max > 0 && l.qty > rule.max) update.set(i, Object.assign(update.get(i) || {}, { max: l.qty }));
         return;
       }
-      if (verdict.get(i) !== 'keep') verdict.set(i, 'drop');
+      if (verdict.get(i) !== 'keep' && placedSomewhere(l.code)) verdict.set(i, 'drop');
     } else if (rule) return; // other kinds of rules are not checked here
     if (best) {
       const k = low(l.code) + '|' + low(best.host);
@@ -97,7 +100,7 @@ export function auditOrder(order, plan, combos, catalog, project) {
     const rule = findRule(l.code, l.qty, bySo.get(l.so || order.id), combos);
     if (!rule || rule.mode !== 'group') return;
     const on = plan.some(b => low(b.group) === low(rule.group) && (b.contents || []).some(c => c.units > 0 && low(c.code) === low(l.code)));
-    if (!on) verdict.set(combos.indexOf(rule), 'drop');
+    if (!on && placedSomewhere(l.code)) verdict.set(combos.indexOf(rule), 'drop');
   });
 
   // solo: an article alone on its own pallets (not a balení pallet) without a rule → new solo rule in the order's project;
