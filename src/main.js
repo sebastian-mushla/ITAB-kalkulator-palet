@@ -128,13 +128,18 @@ if (isAdmin && !me.demo) {
 // admin edits go to the shared database; plain users cannot write (RLS)
 // who saved which Způsob balení row and when: rows that differ from the last saved state get by / at
 const comboSnap = new WeakMap();
-const comboKey = r => JSON.stringify(Object.assign({}, r, { by: undefined, at: undefined }));
+const comboKey = r => JSON.stringify(Object.assign({}, r, { by: undefined, at: undefined, prev: undefined }));
+const dayOf = at => at ? new Date(at).toLocaleDateString('sv-SE') : '';
 function stampCombos() {
   const who = (me && me.user && me.user.email) || '', at = new Date().toISOString();
   const trs = document.querySelectorAll('#comboBody tr[data-by]');
   state.combos.forEach((r, i) => {
     const k = comboKey(r); if (comboSnap.get(r) === k) return;
     if (comboSnap.has(r) || !r.at) {
+      // keep the version from before today's edits of this person, so "Smazat změny výběru" can bring it back
+      if (comboSnap.has(r) && r.at && (dayOf(r.at) !== dayOf(at) || r.by !== who)) {
+        try { r.prev = Object.assign(JSON.parse(comboSnap.get(r)), { by: r.by, at: r.at }); delete r.prev.prev; } catch (e) {}
+      }
       r.by = who; r.at = at;
       // the open table shows it at once (no redraw while typing)
       const td = trs[i] && trs[i].querySelector('td.c-who'); if (td) { td.innerHTML = esc(who) + '<br><small class="muted">' + new Date(at).toLocaleString('cs-CZ') + '</small>'; trs[i].dataset.by = who; trs[i].dataset.day = new Date(at).toLocaleDateString('sv-SE'); }
@@ -1791,10 +1796,13 @@ $('#comboDay').addEventListener('change', drawCombos);
 $('#comboBy').addEventListener('change', drawCombos);
 $('#comboUndo').addEventListener('click', () => {
   const by = $('#comboBy').value, day = $('#comboDay').value;
-  const del = state.combos.filter(r => r.by === by && r.at && new Date(r.at).toLocaleDateString('sv-SE') === day);
-  if (!del.length || !confirm('Smazat ' + del.length + ' řádků, které ' + by + ' uložil(a) ' + day.split('-').reverse().join('.') + '? Upravené řádky se smažou celé (předchozí verze se nevrací).')) return;
-  state.combos = state.combos.filter(r => !del.includes(r));
-  persist('combos'); drawCombos(); recalc(); flash('Smazáno ' + del.length + ' řádků.');
+  const sel = state.combos.filter(r => r.by === by && r.at && dayOf(r.at) === day);
+  // edited rows go back to their earlier version, only new rows are removed
+  const back = sel.filter(r => r.prev && dayOf(r.prev.at) !== day), del = sel.filter(r => !back.includes(r));
+  if (!sel.length || !confirm('Vrátit změny, které ' + by + ' uložil(a) ' + day.split('-').reverse().join('.') + '?\n' + back.length + ' upravených řádků se vrátí do předchozí verze, ' + del.length + ' nových řádků se smaže.')) return;
+  state.combos = state.combos.filter(r => !del.includes(r)).map(r => back.includes(r) ? r.prev : r);
+  state.combos.forEach(r => comboSnap.set(r, comboKey(r)));
+  persist('combos'); drawCombos(); recalc(); flash('Vráceno: ' + back.length + ', smazáno: ' + del.length + '.');
 });
 $('#comboSearch').addEventListener('input', e => filterTable($('#comboBody'), e.target.value));
 // lazy pallet list in the Způsob balení table: filled the first time the select is used
