@@ -250,6 +250,7 @@ export const COMBO_FIELDS = {
   name: ['nazev', 'name', 'название'],
   pal: ['typ palety', 'pallet type'],
   group: ['spolecna paleta', 'skupina', 'group', 'koli'],
+  top: ['max ks na palete solo', 'max ks na palete', 'max per pallet'],
   on: ['aktivni', 'active', 'on', 'активно']
 };
 function comboMode(v) {

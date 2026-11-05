@@ -110,7 +110,7 @@ export function solve(o, { catalog, vehicles, rules, combos = [], pallets = [], 
   combos = soCombos.get(sos[0]);
   const mp = { pallets: [], parcels: [], errors: [], rows: [], unknown: [] };
   sos.forEach(so => {
-    const part = makePallets(lines.filter(l => (l.so || o.id) === so), catalog, soCombos.get(so), pallets, { mix: rules.mix !== false });
+    const part = makePallets(lines.filter(l => (l.so || o.id) === so), catalog, soCombos.get(so), pallets, { mix: rules.mix !== false, topLimit: rules.topLimit == null ? 50 : rules.topLimit });
     const tag = x => Object.assign(x, { so });
     mp.pallets.push(...part.pallets.map(tag)); mp.parcels.push(...part.parcels.map(tag));
     mp.rows.push(...part.rows.map(tag)); mp.unknown.push(...part.unknown.map(tag));

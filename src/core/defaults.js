@@ -28,9 +28,10 @@ export const VEHICLE_TYPES = [
   ['kamion', 'Kamion'], ['plachta', 'Plachťák'], ['celo', 'Dodávka s čelem'], ['dodavka', 'Dodávka'], ['solo', 'Nákladní auto (sólo)'], ['jine', 'Jiné']
 ];
 
-export const DEFAULT_RULES = { oneVeh: true, minVeh: true, mix: true, vehExtra: 0.3, projects: [], lrTol: 60, cgMin: 35, cgMax: 60, heavyShare: 50, gMax: 3, oL: 2.4, oW: 1.2, pKg: 31.5, pL: 1.2 };
+export const DEFAULT_RULES = { oneVeh: true, minVeh: true, mix: true, vehExtra: 0.3, projects: [], lrTol: 60, cgMin: 35, cgMax: 60, heavyShare: 50, topLimit: 50, gMax: 3, oL: 2.4, oW: 1.2, pKg: 31.5, pL: 1.2 };
 export const RULE_FIELDS = [
   ['oneVeh', 'Jedna zakázka jede jedním vozidlem, pokud se vejde (i když by víc menších vozidel vyšlo levněji)', 'bool'],
+  ['topLimit', 'Zbytek do Max ks na paletě: nerozkládat na celé palety, když je zbytek od, % palety', '1'],
   ['mix', 'Neúplné palety stejného typu skládat dohromady (smíšená paleta, do 100 % a do nosnosti palety)', 'bool'],
   ['minVeh', 'Co nejméně vozidel: rozhoduje počet vozidel, cena až mezi stejným počtem', 'bool'],
   ['vehExtra', 'Příplatek za každé další vozidlo, když je „co nejméně vozidel“ vypnuto (jednotky jako Cena)', '0.05'],

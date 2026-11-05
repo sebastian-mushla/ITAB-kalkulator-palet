@@ -496,3 +496,11 @@ cases.push(['Mix podle kapacity: 200 polic (156) + 200 panelů (400) → 1 celá
   const r2 = run('r10 V-POL police 300\nr20 PAN panel 300');
   assert(r2.pallets.length === 3 && r2.pallets.every(p => p.fill <= 1.0001), '300+300: ' + r2.pallets.map(p => p.fill.toFixed(2)).join(','));
 }]);
+
+cases.push(['Solo P. s Max ks: malý zbytek se rozloží na celé palety (std 156, max 170, limit 50 %)', () => {
+  const combos = [{ on: true, code: 'V-POL', mode: 'pallet', pal: 'PAL-0001', per: 156, top: 170, min: 0, max: 0, project: '' }];
+  const run = q => solve(parseOrders('SO 1\nr10 V-POL police ' + q).orders.get('1'), { catalog: DEFAULT_CATALOG, vehicles: DEFAULT_VEHICLES, pallets: DEFAULT_PALLETS, rules: DEFAULT_RULES, combos }).pallets.map(p => p.units).sort((a, b) => b - a);
+  const a = run(352); assert(JSON.stringify(a) === '[170,170,12]', '352: ' + a);
+  const b = run(330); assert(JSON.stringify(b) === '[170,160]', '330: ' + b);
+  const c = run(240); assert(JSON.stringify(c) === '[156,84]', '240 (zbytek ≥ 50 %): ' + c);
+}]);
