@@ -1218,11 +1218,14 @@ function palIssues(b) {
 function drawPalEditor() {
   const { id, pid } = peCur, P = state.plan.get(id), b = P.find(x => x.id === pid);
   if (!b) { $('#dlgPalEdit').close(); return; }
-  const filled = P.filter(x => x.contents.some(c => c.units > 0)), n = filled.indexOf(b) + 1;
+  const filled = P.filter(x => x.contents.some(c => c.units > 0));
+  // numbers as on the board (the board orders pallets by type), not the order inside the plan
+  const boardNum = x => { const el = document.querySelector('#detail [data-bid="' + (window.CSS && CSS.escape ? CSS.escape(x.id) : x.id) + '"] .pnum'); return el ? Number(el.textContent) : filled.indexOf(x) + 1; };
+  const n = b.contents.some(c => c.units > 0) ? boardNum(b) : 0;
   const t = typeOf(state.pallets, b.pal) || b.custom || { code: b.pal, name: '', L: 0, W: 0, tare: 0 };
   const fill = b.contents.filter(c => !c.ride).reduce((s, c) => s + c.units / (c.per || c.units || 1), 0);
   const kg = (t.tare || 0) + b.contents.reduce((s, c) => s + c.units * (c.kg || 0), 0);
-  const label = x => { const i = filled.indexOf(x), main = x.contents.find(c => c.units > 0); return (i >= 0 ? 'č. ' + (i + 1) : 'prázdná') + ' · ' + (x.pal || 'JINÁ') + (main ? ' · ' + main.code + ' ' + main.units + ' ks' : ''); };
+  const label = x => { const i = filled.indexOf(x), main = x.contents.find(c => c.units > 0); return (i >= 0 ? 'č. ' + boardNum(x) : 'prázdná') + ' · ' + (x.pal || 'JINÁ') + (main ? ' · ' + main.code + ' ' + main.units + ' ks' : ''); };
   const soNow = (b.contents.find(c => c.units > 0) || {}).so;
   const others = P.filter(x => x !== b && sameSo(x, soNow)).map(x => '<option value="' + esc(x.id) + '">' + esc(label(x)) + '</option>').join('');
   $('#peTitle').textContent = (n ? 'Paleta č. ' + n : 'Prázdná paleta') + ' – zakázka ' + id;
@@ -1251,7 +1254,7 @@ function drawPalEditor() {
       (iss.some(x => x.fix && x.r && x.r.mode === 'group') ? '<div class="pe-iss-acts"><button type="button" class="btn small" id="peNoConfirm">✗ Nepotvrzovat množství</button><small class="muted">Max ks = ověřeno; kusy navíc se přepočítají (jiné balení, solo, jinak vpravo)</small></div>' : '') : '') + '</div>' : '') +
     // shown A→Z by article name (then code); i stays the index in b.contents for the actions
     (b.contents.length ? b.contents.map((c, i) => [c, i]).sort((x, y) => String(x[0].name || '').localeCompare(String(y[0].name || ''), 'cs', { numeric: true, sensitivity: 'base' }) || String(x[0].code).localeCompare(String(y[0].code), 'cs', { numeric: true })).map(([c, i]) => '<div class="pe-row' + (iss.some(x => x.i === i) ? ' bad' : '') + '"><span><b>' + esc(c.code) + '</b><span class="muted">' + esc(c.name || '') + (c.ride ? ' · navrch' : '') + '</span></span><span>' + c.units + ' ks</span>' +
-      (peCur.row === i ? '' : '<button type="button" class="btn small" data-po="' + i + '">Přesunout…</button>') + '</div>' + (peCur.row === i ? movePanel(c, i) : '')).join('')
+      (peCur.row === i ? '' : '<span class="nowrap"><button type="button" class="btn small" data-po="' + i + '">Přesunout…</button> <button type="button" class="btn small" data-pout="' + i + '" title="Vyndat z palety – kusy se vrátí vpravo mezi nezařazené (pravidlo si pak uložíte sami)">Vyndat</button></span>') + '</div>' + (peCur.row === i ? movePanel(c, i) : '')).join('')
       : '<p class="muted">Paleta je prázdná. Přetáhněte na ni materiál na ploše nebo ji smažte.</p>');
   $('#peDelete').hidden = false;
 }
@@ -1279,6 +1282,15 @@ $('#peBody').addEventListener('click', e => {
   }
   const po = e.target.getAttribute('data-po');
   if (po != null) { peCur.row = Number(po); drawPalEditor(); return; }
+  // take the article off the pallet: its pieces go back to the right side (unplaced), rules stay untouched
+  const pout = e.target.getAttribute('data-pout');
+  if (pout != null) {
+    const { id, pid } = peCur, P = state.plan.get(id), b = P.find(x => x.id === pid), c = b && b.contents[Number(pout)]; if (!c) return;
+    b.contents.splice(Number(pout), 1); peCur.wasPlan = true;
+    logChanges(id, ['Vyndáno z palety: ' + c.code + ' ' + c.units + ' ks (vráceno vpravo)']);
+    keepScroll(() => recalcOne()); drawPalEditor(); flash(c.code + ' ' + c.units + ' ks vráceno vpravo.');
+    return;
+  }
   if (e.target.getAttribute('data-pcancel')) { peCur.row = null; drawPalEditor(); return; }
   const go = e.target.getAttribute('data-pgo');
   if (go != null) {
