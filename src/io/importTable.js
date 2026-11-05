@@ -250,13 +250,13 @@ export const COMBO_FIELDS = {
   host: ['na palete artiklu', 'cil', 'host', 'хозяин', 'na palete'],
   pl: ['delka', 'length', 'длина'],
   pw: ['sirka', 'width', 'ширина'],
-  per: ['ks na palete', 'max ks na 1 hlavni polozku', 'ks v baliku', 'max ks na paletu', 'ks na paletu', 'per', 'ks', 'шт'],
+  per: ['standardni mnozstvi', 'ks na palete', 'max ks na 1 hlavni polozku', 'ks v baliku', 'max ks na paletu', 'ks na paletu', 'per', 'ks', 'шт'],
   note: ['poznamka', 'note', 'комментарий'],
   kg: ['vaha kusu', 'vaha', 'weight', 'вес'],
   name: ['nazev', 'name', 'название'],
   pal: ['paleta', 'typ palety', 'pallet type'],
   group: ['spolecna paleta', 'skupina', 'group', 'koli'],
-  top: ['max ks na palete solo', 'max ks na palete', 'max per pallet'],
+  top: ['maximalni mnozstvi', 'max ks na palete solo', 'max ks na palete', 'max per pallet'],
   topLim: ['nerozkladat zbytek od proc', 'nerozkladat zbytek od', 'zbytek od'],
   on: ['aktivni', 'active', 'on', 'активно']
 };

@@ -1212,7 +1212,7 @@ function palIssues(b) {
       if (r.cap > 0 && c.units > r.cap) return { i, c, r, t: c.units + ' ks, max ' + r.cap + ' ks' };
       // Mix: capacity of the article = Ks na paletě of its Solo P. rule on this pallet type
       const cap = (state.combos.filter(x => x.on !== false && x.mode === 'pallet' && low(x.code) === low(c.code) && low(x.pal) === low(b.pal) && x.per > 0)[0] || {}).per;
-      if (!cap) return { i, c, r, t: 'chybí kapacita (Solo P. ks na ' + b.pal + ')' };
+      if (!cap) return { i, c, r, t: 'chybí standardní množství (Solo P. na ' + b.pal + ')' };
       const tot = b.contents.reduce((s, k) => { const kc = (state.combos.filter(x => x.on !== false && x.mode === 'pallet' && low(x.code) === low(k.code) && low(x.pal) === low(b.pal) && x.per > 0)[0] || {}).per; return s + (kc ? k.units / kc : 0); }, 0);
       if (i === b.contents.findIndex(k => k.units > 0) && tot > 1.0001) return { i, c, r, t: 'paleta balení zaplněna na ' + Math.round(tot * 100) + ' % (podle kapacit)' };
       return null;
@@ -1857,7 +1857,7 @@ const MODE_NAMES = { host: 'na palete artiklu', pallet: 'na jine palete', group:
 // export in the app's own wording (the same columns the import reads)
 const TYP_NAMES = { host: '1 · Hl.+přibal', group: '2 · Mix', pallet: '3 · Solo P.', parcel: '4 · Solo B.' };
 $('#comboExport').addEventListener('click', () => download('zpusob-baleni.csv',
-  [['Aktivní', 'Typ', 'Číslo balení', 'Artikl', 'Hlavní položka', 'Paleta', 'Ks na paletě', 'Max ks na paletě', 'Nerozkládat zbytek od, %', 'Max ks mix', 'Od ks v zakázce', 'Do ks v zakázce', 'Délka', 'Šířka', 'Projekt', 'Poznámka']]
+  [['Aktivní', 'Typ', 'Číslo balení', 'Artikl', 'Hlavní položka', 'Paleta', 'Standardní množství', 'Maximální množství', 'Nerozkládat zbytek od, %', 'Max ks mix', 'Od ks v zakázce', 'Do ks v zakázce', 'Délka', 'Šířka', 'Projekt', 'Poznámka']]
     .concat(state.combos.map(r => [r.on !== false ? 'ano' : 'ne', TYP_NAMES[r.mode] || r.mode, r.mode === 'group' ? r.group || '' : r.koli || '', r.code, r.mode === 'host' ? r.host || '' : '', r.pal || '', r.per || '', r.top || '', r.topLim || '', r.cap || '', r.min || '', r.max || '', r.pl || '', r.pw || '', r.project || '', r.note || '']))));
 $('#comboFile').addEventListener('change', async e => {
   const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;

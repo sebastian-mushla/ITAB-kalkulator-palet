@@ -14,7 +14,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
   function build(a, idx, qty, row) {
     // safety: no / bad "Ks na paletě" = everything on one pallet; never thousands of pallets (page would freeze)
     if (!(a.per > 0) || !isFinite(a.per)) a = Object.assign({}, a, { per: Math.max(1, qty) });
-    if (qty / a.per > 2000) { errors.push(a.code + ': ' + qty + ' ks po ' + a.per + ' ks = víc než 2000 palet – zkontrolujte „Ks na paletě“. Počítáno vše na jedné paletě.'); a = Object.assign({}, a, { per: Math.max(1, qty) }); }
+    if (qty / a.per > 2000) { errors.push(a.code + ': ' + qty + ' ks po ' + a.per + ' ks = víc než 2000 palet – zkontrolujte „Standardní množství“. Počítáno vše na jedné paletě.'); a = Object.assign({}, a, { per: Math.max(1, qty) }); }
     let full = Math.floor(qty / a.per), rem = qty % a.per;
     // Max ks na paletě (a.top > standard): a small remainder is first added to the full pallets up to the max,
     // only what does not fit goes on its own pallet (or into a mix); a big remainder (≥ topLimit % of a pallet) stays
@@ -128,7 +128,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     const noCap = list.filter(g => !(g.cap > 0));
     if (noCap.length) {
       mk(list.map(g => ({ g, units: g.qty })), 1, true);
-      errors.push('Balení ' + r0.group + ': chybí kapacita (Solo P. „Ks na paletě“ na ' + t.code + ') u ' + noCap.map(g => g.code).join(', ') + ' – vše na jedné paletě, zkontrolujte.');
+      errors.push('Balení ' + r0.group + ': chybí standardní množství (Solo P. na ' + t.code + ') u ' + noCap.map(g => g.code).join(', ') + ' – vše na jedné paletě, zkontrolujte.');
     } else {
       const rest = [];
       list.forEach(g => {

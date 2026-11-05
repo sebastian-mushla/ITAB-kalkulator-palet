@@ -350,7 +350,7 @@ cases.push(['Koli: artikly zakázky jedou spolu na jedné paletě, bez kapacity 
   const codes = [kp[0].code].concat((kp[0].extra || []).map(e => e.code));
   assert(codes.length === 2 && codes.includes('DRO-0988') && codes.includes('DRO-0987'), codes.join(','));
   assert(r.unknown.length === 0, 'nic neznámého');
-  assert(r.errors.some(e => /BAL-1: chybí kapacita/.test(e)) && kp[0].over, 'upozornění: ' + r.errors.join('; '));
+  assert(r.errors.some(e => /BAL-1: chybí standardní množství/.test(e)) && kp[0].over, 'upozornění: ' + r.errors.join('; '));
   assert(r.pallets.length === 2, 'koli + V-POL: ' + r.pallets.length);
 }]);
 cases.push(['Společná paleta: pořadí pravidel – když první nesedí, platí druhé', () => {
