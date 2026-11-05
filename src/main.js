@@ -1855,8 +1855,8 @@ $('#comboAdd').addEventListener('click', () => {
 });
 const MODE_NAMES = { host: 'na palete artiklu', pallet: 'na jine palete', group: 'na spolecne palete', parcel: 'jako balik' };
 $('#comboExport').addEventListener('click', () => download('zpusob-baleni.csv',
-  [['aktivni', 'artikl', 'kdyz_je_v_zakazce', 'mnozstvi_od', 'mnozstvi_do', 'pojede', 'cil', 'delka_mm', 'sirka_mm', 'max_ks_na_paletu', 'vaha_kusu_kg', 'poznamka', 'typ_palety', 'spolecna_paleta', 'max_ks_na_palete_solo']]
-    .concat(state.combos.map(r => [r.on !== false ? 'ano' : 'ne', r.code, r.withCode, r.min || '', r.max || '', MODE_NAMES[r.mode], r.host, r.pl || '', r.pw || '', r.per || '', r.kg ? String(r.kg).replace('.', ',') : '', r.note, r.pal || '', r.group || '', r.top || '']))));
+  [['aktivni', 'artikl', 'kdyz_je_v_zakazce', 'mnozstvi_od', 'mnozstvi_do', 'pojede', 'cil', 'delka_mm', 'sirka_mm', 'max_ks_na_paletu', 'vaha_kusu_kg', 'poznamka', 'typ_palety', 'spolecna_paleta', 'max_ks_na_palete_solo', 'nerozkladat_zbytek_od_proc']]
+    .concat(state.combos.map(r => [r.on !== false ? 'ano' : 'ne', r.code, r.withCode, r.min || '', r.max || '', MODE_NAMES[r.mode], r.host, r.pl || '', r.pw || '', r.per || '', r.kg ? String(r.kg).replace('.', ',') : '', r.note, r.pal || '', r.group || '', r.top || '', r.topLim || '']))));
 $('#comboFile').addEventListener('change', async e => {
   const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
   try {

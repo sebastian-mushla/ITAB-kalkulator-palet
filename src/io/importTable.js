@@ -251,6 +251,7 @@ export const COMBO_FIELDS = {
   pal: ['typ palety', 'pallet type'],
   group: ['spolecna paleta', 'skupina', 'group', 'koli'],
   top: ['max ks na palete solo', 'max ks na palete', 'max per pallet'],
+  topLim: ['nerozkladat zbytek od proc', 'nerozkladat zbytek od', 'zbytek od'],
   on: ['aktivni', 'active', 'on', 'активно']
 };
 function comboMode(v) {
@@ -273,7 +274,7 @@ export function rowsToCombos(rows) {
       on: toBool(get(r, 'on'), true), code: String(get(r, 'code')).trim(), withCode: String(get(r, 'withCode')).trim(),
       min: toNum(get(r, 'min') || 0) || 0, max: toNum(get(r, 'max') || 0) || 0, mode: comboMode(get(r, 'mode')),
       host: String(get(r, 'host')).trim(), pl: toNum(get(r, 'pl') || 0) || 0, pw: toNum(get(r, 'pw') || 0) || 0,
-      per: toNum(get(r, 'per') || 0) || 0, pal: String(get(r, 'pal')).trim().toUpperCase(), group: String(get(r, 'group')).trim(), note: String(get(r, 'note')).trim(), kg: toNum(get(r, 'kg') || 0) || 0, name: String(get(r, 'name')).trim()
+      per: toNum(get(r, 'per') || 0) || 0, top: toNum(get(r, 'top') || 0) || 0, topLim: toNum(get(r, 'topLim') || 0) || 0, pal: String(get(r, 'pal')).trim().toUpperCase(), group: String(get(r, 'group')).trim(), note: String(get(r, 'note')).trim(), kg: toNum(get(r, 'kg') || 0) || 0, name: String(get(r, 'name')).trim()
     };
     if (!x.code) { errors.push('řádek ' + (hi + i + 2) + ': chybí artikl'); return; }
     if (x.mode === 'host' && !x.host) { errors.push('řádek ' + (hi + i + 2) + ': chybí artikl, na jehož paletě pojede'); return; }

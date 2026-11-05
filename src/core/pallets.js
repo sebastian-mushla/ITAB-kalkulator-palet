@@ -18,7 +18,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     let full = Math.floor(qty / a.per), rem = qty % a.per;
     // Max ks na paletě (a.top > standard): a small remainder is first added to the full pallets up to the max,
     // only what does not fit goes on its own pallet (or into a mix); a big remainder (≥ topLimit % of a pallet) stays
-    const lim = (opts.topLimit == null ? 50 : opts.topLimit) / 100;
+    const lim = (a.topLim > 0 ? a.topLim : 50) / 100; // per Solo P. rule, default 50 %
     const tops = [];
     if (a.top > a.per && full > 0 && rem > 0 && rem / a.per < lim) {
       for (let i = 0; i < full && rem > 0; i++) { const add = Math.min(rem, a.top - a.per); tops.push(a.per + add); rem -= add; }
@@ -83,8 +83,8 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
     }
     if (rule && rule.mode === 'host') { riders.push({ a: a.pack === 'neurceno' ? Object.assign({}, a, { unknown: true }) : a, idx: ci, qty: l.qty, rule, row }); rows.push(row); return; }
     if (rule && rule.mode === 'pallet') a = rule.pal && typeOf(types, rule.pal)
-      ? resolveArticle(Object.assign({}, a, { pack: 'paleta', pal: rule.pal, per: rule.per || l.qty, top: rule.top || 0 }), types)
-      : Object.assign({}, a, { pack: 'paleta', pal: null, palName: '', tare: 0, pl: rule.pl || a.pl, pw: rule.pw || a.pw, per: rule.per || l.qty, top: rule.top || 0 });
+      ? resolveArticle(Object.assign({}, a, { pack: 'paleta', pal: rule.pal, per: rule.per || l.qty, top: rule.top || 0, topLim: rule.topLim || 0 }), types)
+      : Object.assign({}, a, { pack: 'paleta', pal: null, palName: '', tare: 0, pl: rule.pl || a.pl, pw: rule.pw || a.pw, per: rule.per || l.qty, top: rule.top || 0, topLim: rule.topLim || 0 });
     if (rule && rule.mode === 'parcel') a = Object.assign({}, a, { pack: 'balik', pl: rule.pl || a.pl, pw: rule.pw || a.pw, per: rule.per || l.qty });
     if (!(a.per > 0) || !(a.pl > 0) || !(a.pw > 0)) { errors.push('U artiklu „' + a.code + '“ chybí rozměry nebo počet kusů.'); return; }
     rows.push(build(a, ci, l.qty, row));
@@ -111,7 +111,7 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
   const capOf = (code, pal) => {
     const rs = combos.filter(r => r.on !== false && r.mode === 'pallet' && low(r.code) === low(code) && low(r.pal) === low(pal) && r.per > 0);
     const r = rs.find(r => r.project) || rs[0] || {};
-    return { per: r.per || 0, top: r.top > r.per ? r.top : 0 };
+    return { per: r.per || 0, top: r.top > r.per ? r.top : 0, lim: r.topLim > 0 ? r.topLim : 50 };
   };
   groups.forEach(list => {
     const r0 = list[0].rule, t = typeOf(types, r0.pal);
@@ -124,15 +124,15 @@ export function makePallets(lines, catalog, combos = [], types = [], opts = {}) 
       pallets.push(Object.assign({ code: m.g.code, units: m.units, fill, kg: tare + items.reduce((s, i) => s + i.units * i.g.kg, 0), ci: m.g.ci, noKg: items.some(i => !(i.g.kg > 0)), over: !!noCap,
         extra: rest.length ? rest.map(i => ({ code: i.g.code, units: i.units, ci: i.g.ci, mixed: true })) : undefined }, base));
     };
-    list.forEach(g => { const c = capOf(g.code, r0.pal); g.cap = c.per; g.top = c.top; });
+    list.forEach(g => { const c = capOf(g.code, r0.pal); g.cap = c.per; g.top = c.top; g.lim = c.lim; });
     const noCap = list.filter(g => !(g.cap > 0));
     if (noCap.length) {
       mk(list.map(g => ({ g, units: g.qty })), 1, true);
       errors.push('Balení ' + r0.group + ': chybí kapacita (Solo P. „Ks na paletě“ na ' + t.code + ') u ' + noCap.map(g => g.code).join(', ') + ' – vše na jedné paletě, zkontrolujte.');
     } else {
       const rest = [];
-      const lim = (opts.topLimit == null ? 50 : opts.topLimit) / 100;
       list.forEach(g => {
+        const lim = (g.lim || 50) / 100;
         const full = Math.floor(g.qty / g.cap); let r = g.qty % g.cap;
         // remainder first up to Max ks on the full pallets (same rule as Solo P.), the rest goes to the mix
         const tops = [];
